@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
 import "./globals.css";
-
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-});
+import { AppProviders } from "@/components/app-providers";
 
 export const metadata: Metadata = {
   title: {
@@ -20,12 +15,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${montserrat.variable} font-montserrat scroll-smooth antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <main>{children}</main>
+    <html lang="en" className="scroll-smooth antialiased">
+      <body className="min-h-dvh">
+        <AppProviders>
+          <main>{children}</main>
+        </AppProviders>
       </body>
     </html>
   );
