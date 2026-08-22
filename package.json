@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "bun run prisma:generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "typecheck": "bun run prisma:generate && tsc --noEmit",
+    "test": "bun run prisma:generate && vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
+    "e2e": "bun run prisma:generate && playwright test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed"

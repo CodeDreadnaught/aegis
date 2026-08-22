@@ -38,8 +38,8 @@ export default async function LoginPage() {
             </p>
           </div>
           <div className="rounded-md border border-white/14 bg-white/8 p-4 text-sm text-cyan-50/76 backdrop-blur">
-            Authentication is in foundation state. Real login, sessions and
-            RBAC will be implemented in AE-03.
+            Secure server-side sessions and role-based access control protect
+            operational, maintenance, analytics and administration workflows.
           </div>
         </div>
         <Card className="animate-in fade-in-0 slide-in-from-right-3 border-white/20 bg-white/95 shadow-2xl shadow-slate-950/35 backdrop-blur duration-700">
