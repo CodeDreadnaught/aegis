@@ -20,6 +20,10 @@
 # production
 /build
 /generated
+/ml/.venv
+/ml/data
+__pycache__/
+*.pyc
 
 # misc
 .DS_Store

@@ -1,0 +1,67 @@
+{
+  "accuracy": 0.974,
+  "average_precision": 0.8207579776735646,
+  "class_weighting": {
+    "scale_pos_weight": 28.52029520295203,
+    "strategy": "xgboost_scale_pos_weight"
+  },
+  "confusion_matrix": [
+    [
+      1893,
+      39
+    ],
+    [
+      13,
+      55
+    ]
+  ],
+  "dataset_path": "ml\\data\\raw\\ai4i2020.csv",
+  "dataset_sha256": "dc6630cd9b1f0f853922fad78a1b6436570d3f1ec863f1dd5c4340ac56bc8a8e",
+  "f1": 0.6790123456790124,
+  "feature_order": [
+    "type_H",
+    "type_L",
+    "type_M",
+    "air_temperature_k",
+    "process_temperature_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min"
+  ],
+  "model_version": "ai4i-xgboost-v1",
+  "positive_probability_summary": {
+    "max": 0.9990358352661133,
+    "mean": 0.05815725773572922,
+    "min": 4.821819675271399e-05
+  },
+  "precision": 0.5851063829787234,
+  "recall": 0.8088235294117647,
+  "roc_auc": 0.9702989891608819,
+  "split": {
+    "random_seed": 42,
+    "strategy": "stratified",
+    "test_class_distribution": {
+      "negative": 1932,
+      "positive": 68
+    },
+    "test_rows": 2000,
+    "train_class_distribution": {
+      "negative": 7729,
+      "positive": 271
+    },
+    "train_rows": 8000
+  },
+  "threshold": 0.5,
+  "tuning": {
+    "best_cv_score": 0.7628933795386977,
+    "best_params": {
+      "colsample_bytree": 1.0,
+      "learning_rate": 0.1,
+      "max_depth": 4,
+      "n_estimators": 200,
+      "subsample": 0.8
+    },
+    "scoring": "average_precision",
+    "strategy": "GridSearchCV"
+  }
+}

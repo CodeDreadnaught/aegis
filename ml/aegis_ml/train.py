@@ -33,7 +33,7 @@ def _dependency_error(error: ImportError) -> RuntimeError:
     return RuntimeError(
         "Missing Python ML dependencies. From the repository root, run: "
         "cd ml; python -m pip install -r requirements.txt"
-    ) from error
+    )
 
 
 def _load_dependencies() -> dict[str, Any]:
@@ -135,6 +135,8 @@ def train_pipeline(dataset_path: Path = RAW_DATASET_PATH, model_dir: Path = MODE
 
     x_train = _transform_features(x_train_raw)
     x_test = _transform_features(x_test_raw)
+    x_train_model = x_train.to_numpy(dtype=deps["np"].float32)
+    x_test_model = x_test.to_numpy(dtype=deps["np"].float32)
 
     classifier = deps["XGBClassifier"](
         objective="binary:logistic",
@@ -158,10 +160,10 @@ def train_pipeline(dataset_path: Path = RAW_DATASET_PATH, model_dir: Path = MODE
         n_jobs=1,
         refit=True,
     )
-    search.fit(x_train, y_train)
+    search.fit(x_train_model, y_train)
 
     model = search.best_estimator_
-    probabilities = model.predict_proba(x_test)[:, 1]
+    probabilities = model.predict_proba(x_test_model)[:, 1]
     metrics = _prediction_metrics(deps, y_test, probabilities)
     metrics.update(
         {
@@ -186,6 +188,7 @@ def train_pipeline(dataset_path: Path = RAW_DATASET_PATH, model_dir: Path = MODE
                 "best_params": search.best_params_,
                 "best_cv_score": float(search.best_score_),
             },
+            "feature_order": list(TRANSFORMED_FEATURE_COLUMNS),
         }
     )
 
@@ -211,7 +214,7 @@ def train_pipeline(dataset_path: Path = RAW_DATASET_PATH, model_dir: Path = MODE
     onnx_model = deps["convert_xgboost"](model, initial_types=initial_types)
     ONNX_MODEL_PATH.write_bytes(onnx_model.SerializeToString())
 
-    parity_report = _write_parity_report(deps, model, x_test, ONNX_MODEL_PATH)
+    parity_report = _write_parity_report(deps, model, x_test_model, ONNX_MODEL_PATH)
 
     metadata = {
         "model_version": MODEL_VERSION,
@@ -239,7 +242,7 @@ def _write_parity_report(deps: dict[str, Any], model: Any, x_test: Any, onnx_pat
     np = deps["np"]
     ort = deps["ort"]
 
-    sample = x_test.head(100).to_numpy(dtype=np.float32)
+    sample = x_test[:100].astype(np.float32, copy=False)
     xgb_probabilities = model.predict_proba(sample)[:, 1]
 
     session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
