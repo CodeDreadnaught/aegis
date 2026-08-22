@@ -7,7 +7,7 @@ export default async function ApplicationLayout({ children }: LayoutProps<"/">) 
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/");
   }
 
   return <AppShell user={user}>{children}</AppShell>;

@@ -1,5 +1,14 @@
 import { redirect } from "next/navigation";
 
-export default function Home() {
-  redirect("/dashboard");
+import { LoginScreen } from "@/features/auth/login-screen";
+import { getCurrentUser } from "@/server/auth/session";
+
+export default async function Home() {
+  const user = await getCurrentUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
+
+  return <LoginScreen />;
 }
