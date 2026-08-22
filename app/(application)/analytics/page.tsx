@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   title: "AEGIS - Predictive Analytics",
 };
 
+export const runtime = "nodejs";
+
 export default async function AnalyticsPage() {
   await requirePermission("runPrediction");
   const { predictions, readings } = await getAnalyticsWorkspace();
