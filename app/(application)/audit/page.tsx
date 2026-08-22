@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { Fingerprint, LockKey, Pulse } from "@phosphor-icons/react/ssr";
 
 import { ModuleOverview } from "@/components/module-overview";
+import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
   title: "AEGIS - Audit",
 };
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  await requirePermission("viewAudit");
+
   return (
     <ModuleOverview
       description="Trace significant user and system actions without storing secrets."

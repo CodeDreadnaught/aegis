@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { LockKey, UserGear, Users } from "@phosphor-icons/react/ssr";
 
 import { ModuleOverview } from "@/components/module-overview";
+import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
   title: "AEGIS - User Management",
 };
 
-export default function UsersPage() {
+export default async function UsersPage() {
+  await requirePermission("manageUsers");
+
   return (
     <ModuleOverview
       description="Administrator-only user management for authorised AEGIS accounts and role assignments."

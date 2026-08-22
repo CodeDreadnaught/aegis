@@ -4,14 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
-import { navigationItems } from "@/components/app-shell/navigation";
+import { getNavigationItems } from "@/components/app-shell/navigation";
+import type { UserRole } from "@/generated/prisma/enums";
 
 type NavigationLinksProps = {
   onNavigate?: () => void;
+  role: UserRole;
 };
 
-export function NavigationLinks({ onNavigate }: NavigationLinksProps) {
+export function NavigationLinks({ onNavigate, role }: NavigationLinksProps) {
   const pathname = usePathname();
+  const navigationItems = getNavigationItems(role);
 
   return (
     <nav className="grid gap-1.5">
@@ -23,9 +26,9 @@ export function NavigationLinks({ onNavigate }: NavigationLinksProps) {
         return (
           <Link
             className={cn(
-              "group flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground/78 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              "group flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground/72 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/8 hover:text-sidebar-accent-foreground",
               isActive &&
-                "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm shadow-cyan-950/20"
+                "bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/25"
             )}
             href={item.href}
             key={item.href}

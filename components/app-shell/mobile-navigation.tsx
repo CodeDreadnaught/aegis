@@ -4,6 +4,7 @@ import { useState } from "react";
 import { List } from "@phosphor-icons/react";
 
 import { NavigationLinks } from "@/components/app-shell/navigation-links";
+import type { UserRole } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,7 +15,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-export function MobileNavigation() {
+type MobileNavigationProps = {
+  role: UserRole;
+};
+
+export function MobileNavigation({ role }: MobileNavigationProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -31,7 +36,7 @@ export function MobileNavigation() {
           </SheetDescription>
         </SheetHeader>
         <div className="px-3">
-          <NavigationLinks onNavigate={() => setOpen(false)} />
+          <NavigationLinks onNavigate={() => setOpen(false)} role={role} />
         </div>
       </SheetContent>
     </Sheet>
