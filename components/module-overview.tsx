@@ -36,11 +36,11 @@ export function ModuleOverview({
 
           return (
             <Card
-              className="bg-card/92 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-lg"
+              className="premium-panel motion-card overflow-hidden"
               key={item.title}
             >
               <CardHeader>
-                <div className="mb-4 grid size-10 place-items-center rounded-md bg-primary/10 text-primary">
+                <div className="mb-4 grid size-10 place-items-center rounded-md border border-cyan-200 bg-cyan-50 text-primary shadow-sm">
                   <Icon aria-hidden="true" className="size-5" />
                 </div>
                 <CardTitle className="text-base">{item.title}</CardTitle>

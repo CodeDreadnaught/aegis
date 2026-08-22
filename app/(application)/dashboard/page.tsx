@@ -11,7 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { dashboardStats, equipmentSummary, recentActivity, riskBadgeClass } from "@/lib/demo-data";
+import {
+  dashboardStats,
+  equipmentSummary,
+  recentActivity,
+  riskBadgeClass,
+} from "@/lib/demo-data";
 
 export const metadata: Metadata = {
   title: "AEGIS - Dashboard",
@@ -30,10 +35,17 @@ export default function DashboardPage() {
       </StatusNote>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {dashboardStats.map((stat) => (
-          <Card className="overflow-hidden border-border/80 bg-card/92 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg" key={stat.label}>
+          <Card
+            className="premium-panel motion-card overflow-hidden"
+            key={stat.label}
+          >
             <CardHeader className="pb-2">
-              <CardDescription>{stat.label}</CardDescription>
-              <CardTitle className="text-3xl">{stat.value}</CardTitle>
+              <CardDescription className="font-medium uppercase tracking-[0.12em]">
+                {stat.label}
+              </CardDescription>
+              <CardTitle className="text-3xl font-semibold tracking-normal">
+                {stat.value}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               {stat.detail}
@@ -42,14 +54,19 @@ export default function DashboardPage() {
         ))}
       </section>
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="bg-card/92 shadow-sm">
+        <Card className="premium-panel">
           <CardHeader>
             <CardTitle>Highest-Risk Equipment</CardTitle>
-            <CardDescription>Demo risk states are labelled and not presented as field data.</CardDescription>
+            <CardDescription>
+              Demo risk states are labelled and not presented as field data.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {equipmentSummary.map((equipment) => (
-              <div className="grid gap-3 rounded-md border border-border/80 bg-background/70 p-4 transition-all duration-300 hover:border-primary/35 hover:bg-background md:grid-cols-[1fr_auto]" key={equipment.assetTag}>
+              <div
+                className="data-row grid gap-3 rounded-md border border-border/80 bg-white/70 p-4 md:grid-cols-[1fr_auto]"
+                key={equipment.assetTag}
+              >
                 <div>
                   <p className="font-medium">{equipment.name}</p>
                   <p className="text-sm text-muted-foreground">
@@ -66,15 +83,17 @@ export default function DashboardPage() {
             ))}
           </CardContent>
         </Card>
-        <Card className="bg-card/92 shadow-sm">
+        <Card className="premium-panel">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Representative activity stream for foundation UI validation.</CardDescription>
+            <CardDescription>
+              Representative activity stream for foundation UI validation.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             {[Pulse, Wrench, Bell].map((Icon, index) => (
               <div className="flex gap-3" key={recentActivity[index]}>
-                <div className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                <div className="grid size-9 shrink-0 place-items-center rounded-md border border-cyan-200 bg-cyan-50 text-primary">
                   <Icon aria-hidden="true" className="size-4" />
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">
