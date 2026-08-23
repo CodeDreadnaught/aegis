@@ -32,6 +32,7 @@ __pycache__/
 *.pem
 AGENTS.md
 CLAUDE.md
+app-skill.md
 /coding-specs
 /docs
 
