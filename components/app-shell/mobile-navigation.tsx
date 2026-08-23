@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { List } from "@phosphor-icons/react";
+import { List, ShieldCheck } from "@phosphor-icons/react";
 
 import { NavigationLinks } from "@/components/app-shell/navigation-links";
 import type { UserRole } from "@/generated/prisma/enums";
@@ -28,9 +28,14 @@ export function MobileNavigation({ role }: MobileNavigationProps) {
         <List aria-hidden="true" className="size-5" />
         <span className="sr-only">Open navigation</span>
       </SheetTrigger>
-      <SheetContent className="bg-sidebar text-sidebar-foreground" side="left">
+      <SheetContent className="border-sidebar-border bg-sidebar text-sidebar-foreground" side="left">
         <SheetHeader className="border-b border-sidebar-border">
-          <SheetTitle>AEGIS</SheetTitle>
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 place-items-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+              <ShieldCheck aria-hidden="true" className="size-6" weight="fill" />
+            </div>
+            <SheetTitle>AEGIS</SheetTitle>
+          </div>
           <SheetDescription className="text-sidebar-foreground/65">
             Intelligent Predictive Maintenance
           </SheetDescription>

@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
-import { Bell, ChartLineUp, Pulse, Wrench } from "@phosphor-icons/react/ssr";
+import {
+  Bell,
+  ChartLineUp,
+  Gauge,
+  Pulse,
+  ShieldWarning,
+  TrendUp,
+  Wrench,
+} from "@phosphor-icons/react/ssr";
 
+import { PremiumMotion } from "@/components/motion/premium-motion";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,42 +37,79 @@ export default async function DashboardPage() {
       label: "Total Equipment",
       value: stats.equipmentCount,
       detail: `${stats.activeEquipmentCount} active assets`,
+      icon: Gauge,
+      accent: "text-sky-700 bg-sky-50 border-sky-200",
     },
     {
       label: "Low Risk",
       value: stats.riskCounts.low,
       detail: "Stored prediction outputs",
+      icon: TrendUp,
+      accent: "text-emerald-700 bg-emerald-50 border-emerald-200",
     },
     {
       label: "Medium Risk",
       value: stats.riskCounts.medium,
       detail: "Stored prediction outputs",
+      icon: Pulse,
+      accent: "text-amber-700 bg-amber-50 border-amber-200",
     },
     {
       label: "High Risk",
       value: stats.riskCounts.high,
       detail: `${stats.activeAlertCount} active alerts`,
+      icon: ShieldWarning,
+      accent: "text-red-700 bg-red-50 border-red-200",
+    },
+  ];
+
+  const totalRisk =
+    stats.riskCounts.low + stats.riskCounts.medium + stats.riskCounts.high;
+  const riskSegments = [
+    {
+      label: "Low",
+      value: stats.riskCounts.low,
+      className: "bg-emerald-500",
+    },
+    {
+      label: "Medium",
+      value: stats.riskCounts.medium,
+      className: "bg-amber-500",
+    },
+    {
+      label: "High",
+      value: stats.riskCounts.high,
+      className: "bg-red-500",
     },
   ];
 
   return (
-    <>
+    <PremiumMotion profile="dashboard">
       <PageHeader
         description="Fleet health, risk distribution, maintenance priorities and recent predictive-maintenance activity."
         eyebrow="Operational overview"
         title="Dashboard"
       />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {dashboardStats.map((stat) => (
+        {dashboardStats.map((stat) => {
+          const Icon = stat.icon;
+
+          return (
           <Card
             className="premium-panel motion-card overflow-hidden"
+            data-motion="metric"
             key={stat.label}
           >
             <CardHeader className="pb-2">
-              <CardDescription className="font-medium uppercase tracking-[0.12em]">
-                {stat.label}
-              </CardDescription>
-              <CardTitle className="text-3xl font-semibold tracking-normal">
+              <div className="mb-3 flex items-center justify-between">
+                <CardDescription className="font-medium uppercase tracking-[0.12em]">
+                  {stat.label}
+                </CardDescription>
+                <div className={`grid size-9 place-items-center rounded-md border ${stat.accent}`}>
+                  <Icon aria-hidden="true" className="size-4" />
+                </div>
+              </div>
+              <CardTitle className="text-4xl font-semibold tracking-normal">
                 {stat.value}
               </CardTitle>
             </CardHeader>
@@ -71,10 +117,79 @@ export default async function DashboardPage() {
               {stat.detail}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
+      </section>
+      <section className="mt-6 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <Card className="premium-panel" data-motion="panel">
+          <CardHeader>
+            <CardTitle>Risk Distribution</CardTitle>
+            <CardDescription>
+              Prediction mix from stored analytics outputs.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="aegis-inset p-4">
+              <div className="mb-4 flex h-4 overflow-hidden rounded-full bg-slate-200">
+                {riskSegments.map((segment) => {
+                  const percentage = totalRisk
+                    ? Math.max((segment.value / totalRisk) * 100, segment.value ? 8 : 0)
+                    : 0;
+
+                  return (
+                    <div
+                      aria-label={`${segment.label} risk ${segment.value}`}
+                      className={segment.className}
+                      key={segment.label}
+                      style={{ width: `${percentage}%` }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {riskSegments.map((segment) => (
+                  <div
+                    className="rounded-md border border-border/70 bg-white/80 p-3"
+                    key={segment.label}
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      {segment.label} risk
+                    </p>
+                    <p className="mt-1 text-xl font-semibold">
+                      {segment.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="premium-panel" data-motion="panel">
+          <CardHeader>
+            <CardTitle>Maintenance Load</CardTitle>
+            <CardDescription>
+              Planned and in-progress maintenance requiring operational attention.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="aegis-inset flex items-center gap-4 p-4">
+              <div className="grid size-14 place-items-center rounded-md border border-amber-200 bg-amber-50 text-amber-700">
+                <Wrench aria-hidden="true" className="size-7" weight="fill" />
+              </div>
+              <div>
+                <p className="text-4xl font-semibold tracking-normal">
+                  {stats.maintenanceDueCount}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  tracked maintenance records
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="premium-panel">
+        <Card className="premium-panel" data-motion="panel">
           <CardHeader>
             <CardTitle>Highest-Risk Equipment</CardTitle>
             <CardDescription>
@@ -117,7 +232,7 @@ export default async function DashboardPage() {
             )}
           </CardContent>
         </Card>
-        <Card className="premium-panel">
+        <Card className="premium-panel" data-motion="panel">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -162,7 +277,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </section>
-    </>
+    </PremiumMotion>
   );
 }
 

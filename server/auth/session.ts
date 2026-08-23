@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
 
 import { prisma } from "@/server/db/client";
@@ -103,7 +104,7 @@ export async function requireUser() {
   const user = await getCurrentUser();
 
   if (!user) {
-    throw new Error("Authentication is required.");
+    redirect("/");
   }
 
   return user;

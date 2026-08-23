@@ -9,7 +9,10 @@ type StatusNoteProps = {
 
 export function StatusNote({ title = "Implementation status", children }: StatusNoteProps) {
   return (
-    <Alert className="mb-6 border-cyan-200 bg-cyan-50/80 text-cyan-950">
+    <Alert
+      className="mb-6 border-emerald-200 bg-emerald-50/80 text-emerald-950 shadow-sm"
+      data-motion="panel"
+    >
       <Info aria-hidden="true" className="size-4" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{children}</AlertDescription>

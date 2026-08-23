@@ -26,17 +26,23 @@ export function NavigationLinks({ onNavigate, role }: NavigationLinksProps) {
         return (
           <Link
             className={cn(
-              "group flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground/72 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/8 hover:text-sidebar-accent-foreground",
+              "group relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/8 hover:text-sidebar-accent-foreground",
               isActive &&
-                "bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/25"
+                "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-emerald-950/25"
             )}
             href={item.href}
             key={item.href}
             onClick={onNavigate}
           >
+            {isActive && (
+              <span
+                aria-hidden="true"
+                className="absolute left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-sidebar-primary-foreground/70"
+              />
+            )}
             <Icon
               aria-hidden="true"
-              className="size-4 transition-transform duration-200 group-hover:scale-110"
+              className="size-4 shrink-0 transition-transform duration-200 group-hover:scale-110"
               weight={isActive ? "fill" : "regular"}
             />
             <span>{item.label}</span>

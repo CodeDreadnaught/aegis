@@ -37,10 +37,11 @@ export function ModuleOverview({
           return (
             <Card
               className="premium-panel motion-card overflow-hidden"
+              data-motion="metric"
               key={item.title}
             >
               <CardHeader>
-                <div className="mb-4 grid size-10 place-items-center rounded-md border border-cyan-200 bg-cyan-50 text-primary shadow-sm">
+                <div className="mb-4 grid size-10 place-items-center rounded-md border border-emerald-200 bg-emerald-50 text-primary shadow-sm">
                   <Icon aria-hidden="true" className="size-5" />
                 </div>
                 <CardTitle className="text-base">{item.title}</CardTitle>

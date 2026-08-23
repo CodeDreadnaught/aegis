@@ -5,38 +5,38 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0.006 231);
-  --foreground: oklch(0.19 0.035 248);
+  --background: oklch(0.982 0.006 96);
+  --foreground: oklch(0.18 0.026 248);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.035 248);
+  --card-foreground: oklch(0.18 0.026 248);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.035 248);
-  --primary: oklch(0.29 0.08 246);
-  --primary-foreground: oklch(0.99 0.004 231);
-  --secondary: oklch(0.93 0.026 227);
-  --secondary-foreground: oklch(0.24 0.056 246);
-  --muted: oklch(0.95 0.013 232);
-  --muted-foreground: oklch(0.47 0.032 242);
-  --accent: oklch(0.75 0.115 193);
-  --accent-foreground: oklch(0.16 0.035 248);
+  --popover-foreground: oklch(0.18 0.026 248);
+  --primary: oklch(0.36 0.093 166);
+  --primary-foreground: oklch(0.985 0.006 96);
+  --secondary: oklch(0.93 0.012 238);
+  --secondary-foreground: oklch(0.24 0.035 248);
+  --muted: oklch(0.948 0.01 238);
+  --muted-foreground: oklch(0.46 0.025 245);
+  --accent: oklch(0.69 0.102 206);
+  --accent-foreground: oklch(0.13 0.02 248);
   --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.89 0.018 235);
-  --input: oklch(0.89 0.018 235);
-  --ring: oklch(0.67 0.12 196);
-  --chart-1: oklch(0.67 0.13 162);
-  --chart-2: oklch(0.76 0.15 82);
-  --chart-3: oklch(0.62 0.2 28);
-  --chart-4: oklch(0.67 0.12 196);
-  --chart-5: oklch(0.41 0.08 246);
+  --border: oklch(0.875 0.014 238);
+  --input: oklch(0.875 0.014 238);
+  --ring: oklch(0.6 0.1 168);
+  --chart-1: oklch(0.58 0.12 166);
+  --chart-2: oklch(0.64 0.11 211);
+  --chart-3: oklch(0.76 0.15 82);
+  --chart-4: oklch(0.62 0.2 28);
+  --chart-5: oklch(0.38 0.055 248);
   --radius: 0.5rem;
-  --sidebar: oklch(0.21 0.052 248);
-  --sidebar-foreground: oklch(0.96 0.008 231);
-  --sidebar-primary: oklch(0.7 0.12 195);
-  --sidebar-primary-foreground: oklch(0.13 0.032 248);
-  --sidebar-accent: oklch(0.28 0.066 246);
-  --sidebar-accent-foreground: oklch(0.96 0.008 231);
-  --sidebar-border: oklch(0.34 0.052 246);
-  --sidebar-ring: oklch(0.7 0.12 195);
+  --sidebar: oklch(0.16 0.021 248);
+  --sidebar-foreground: oklch(0.955 0.008 96);
+  --sidebar-primary: oklch(0.64 0.125 166);
+  --sidebar-primary-foreground: oklch(0.12 0.018 248);
+  --sidebar-accent: oklch(0.24 0.03 248);
+  --sidebar-accent-foreground: oklch(0.965 0.006 96);
+  --sidebar-border: oklch(0.29 0.026 248);
+  --sidebar-ring: oklch(0.64 0.125 166);
   --risk-low: oklch(0.58 0.15 158);
   --risk-medium: oklch(0.72 0.16 78);
   --risk-high: oklch(0.6 0.2 29);
@@ -134,22 +134,41 @@
 
   .aegis-workspace {
     background:
-      linear-gradient(180deg, oklch(0.985 0.006 235 / 92%), oklch(0.95 0.016 238 / 96%)),
-      linear-gradient(90deg, oklch(0.9 0.025 235 / 32%) 1px, transparent 1px),
-      linear-gradient(180deg, oklch(0.9 0.025 235 / 28%) 1px, transparent 1px);
-    background-size: auto, 40px 40px, 40px 40px;
+      radial-gradient(circle at 20% 0%, oklch(0.95 0.028 166 / 58%), transparent 28rem),
+      radial-gradient(circle at 85% 8%, oklch(0.94 0.024 206 / 52%), transparent 30rem),
+      linear-gradient(180deg, oklch(0.985 0.006 96 / 96%), oklch(0.936 0.012 238 / 98%)),
+      linear-gradient(90deg, oklch(0.74 0.025 238 / 18%) 1px, transparent 1px),
+      linear-gradient(180deg, oklch(0.74 0.025 238 / 16%) 1px, transparent 1px);
+    background-size: auto, auto, auto, 44px 44px, 44px 44px;
   }
 
   .premium-panel {
-    @apply border border-white/70 bg-white/88 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-xl;
+    @apply border border-white/75 bg-white/88 shadow-[0_20px_70px_rgba(15,23,42,0.10)] backdrop-blur-xl;
   }
 
   .motion-card {
-    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_22px_70px_rgba(15,23,42,0.12)];
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/35 hover:shadow-[0_24px_80px_rgba(15,23,42,0.14)];
   }
 
   .data-row {
-    @apply transition-all duration-200 ease-out hover:border-primary/30 hover:bg-white;
+    @apply transition-all duration-200 ease-out hover:border-primary/35 hover:bg-white hover:shadow-sm;
+  }
+
+  .aegis-panel {
+    @apply rounded-lg border border-white/75 bg-white/88 shadow-[0_20px_70px_rgba(15,23,42,0.10)] backdrop-blur-xl;
+  }
+
+  .aegis-inset {
+    @apply rounded-lg border border-slate-950/8 bg-slate-950/[0.025] shadow-inner;
+  }
+
+  .aegis-kicker {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary;
+  }
+
+  .aegis-signal-line {
+    transform-origin: left center;
+    background: linear-gradient(90deg, transparent, oklch(0.72 0.13 166), oklch(0.7 0.1 206), transparent);
   }
 }
 
