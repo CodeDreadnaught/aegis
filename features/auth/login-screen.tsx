@@ -19,12 +19,12 @@ export function LoginScreen() {
           fill
           priority
           quality={90}
-          src="/login-industrial-robotics.jpeg"
+          src="/login-aegis-ai-industrial.png"
           sizes="100vw"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.68),rgba(2,6,23,0.42)_44%,rgba(2,6,23,0.58)),linear-gradient(180deg,rgba(2,6,23,0.22),rgba(2,6,23,0.68))]"
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.62),rgba(2,6,23,0.3)_45%,rgba(2,6,23,0.48)),linear-gradient(180deg,rgba(2,6,23,0.12),rgba(2,6,23,0.7))]"
         />
         <div
           aria-hidden="true"
