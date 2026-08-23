@@ -26,7 +26,7 @@ export function PremiumMotion({
     const scope = createScope({ root }).add(() => {
       const timeline = createTimeline({
         defaults: {
-          ease: "outQuart",
+          ease: "outElastic(1, .8)",
         },
       });
 

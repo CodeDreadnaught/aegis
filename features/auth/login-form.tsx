@@ -10,14 +10,23 @@ import { Label } from "@/components/ui/label";
 
 const initialState: LoginActionState = {};
 
-export function LoginForm() {
+type LoginFormProps = {
+  surface?: "dark" | "light";
+};
+
+export function LoginForm({ surface = "light" }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const isDark = surface === "dark";
 
   return (
     <form action={formAction} className="grid gap-4">
       <div className="grid gap-2">
         <Label
-          className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
+          className={
+            isDark
+              ? "text-xs font-semibold uppercase tracking-widest text-zinc-400"
+              : "text-xs font-semibold uppercase tracking-widest text-slate-500"
+          }
           htmlFor="email"
         >
           Email address
@@ -29,7 +38,11 @@ export function LoginForm() {
           />
           <Input
             autoComplete="email"
-            className="h-12 border-slate-200 bg-slate-50/80 pl-10 text-slate-950 shadow-inner focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+            className={
+              isDark
+                ? "h-12 border-zinc-800 bg-zinc-950/70 pl-10 text-zinc-50 placeholder:text-zinc-500 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                : "h-12 border-slate-200 bg-slate-50/80 pl-10 text-slate-950 shadow-inner focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+            }
             id="email"
             name="email"
             placeholder="name@company.com"
@@ -39,7 +52,11 @@ export function LoginForm() {
       </div>
       <div className="grid gap-2">
         <Label
-          className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
+          className={
+            isDark
+              ? "text-xs font-semibold uppercase tracking-widest text-zinc-400"
+              : "text-xs font-semibold uppercase tracking-widest text-slate-500"
+          }
           htmlFor="password"
         >
           Password
@@ -51,7 +68,11 @@ export function LoginForm() {
           />
           <Input
             autoComplete="current-password"
-            className="h-12 border-slate-200 bg-slate-50/80 pl-10 text-slate-950 shadow-inner focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+            className={
+              isDark
+                ? "h-12 border-zinc-800 bg-zinc-950/70 pl-10 text-zinc-50 placeholder:text-zinc-500 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                : "h-12 border-slate-200 bg-slate-50/80 pl-10 text-slate-950 shadow-inner focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+            }
             id="password"
             name="password"
             placeholder="Enter password"
@@ -65,7 +86,11 @@ export function LoginForm() {
         </p>
       )}
       <Button
-        className="mt-2 h-12 justify-between bg-slate-950 px-4 text-white shadow-xl shadow-slate-950/18 hover:bg-emerald-800"
+        className={
+          isDark
+            ? "mt-2 h-12 justify-between bg-emerald-500/10 px-4 text-emerald-400 ring-1 ring-emerald-500/25 hover:bg-emerald-500/20"
+            : "mt-2 h-12 justify-between bg-slate-950 px-4 text-white shadow-xl shadow-slate-950/18 hover:bg-emerald-800"
+        }
         disabled={pending}
         type="submit"
       >
