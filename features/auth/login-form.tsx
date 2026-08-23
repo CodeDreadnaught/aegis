@@ -40,7 +40,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
             autoComplete="email"
             className={
               isDark
-                ? "h-12 border-zinc-800 bg-zinc-950/70 pl-10 text-zinc-50 placeholder:text-zinc-500 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                ? "h-12 border-slate-700/80 bg-slate-950/72 pl-10 text-slate-50 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20"
                 : "h-12 border-slate-200 bg-slate-50/80 pl-10 text-slate-950 shadow-inner focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
             }
             id="email"
@@ -70,7 +70,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
             autoComplete="current-password"
             className={
               isDark
-                ? "h-12 border-zinc-800 bg-zinc-950/70 pl-10 text-zinc-50 placeholder:text-zinc-500 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
+                ? "h-12 border-slate-700/80 bg-slate-950/72 pl-10 text-slate-50 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20"
                 : "h-12 border-slate-200 bg-slate-50/80 pl-10 text-slate-950 shadow-inner focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
             }
             id="password"
@@ -88,7 +88,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
       <Button
         className={
           isDark
-            ? "mt-2 h-12 justify-between bg-emerald-500/10 px-4 text-emerald-400 ring-1 ring-emerald-500/25 hover:bg-emerald-500/20"
+            ? "mt-2 h-12 justify-between bg-cyan-400/10 px-4 text-cyan-200 ring-1 ring-cyan-300/25 hover:bg-cyan-400/18 hover:text-cyan-100"
             : "mt-2 h-12 justify-between bg-slate-950 px-4 text-white shadow-xl shadow-slate-950/18 hover:bg-emerald-800"
         }
         disabled={pending}
