@@ -1,11 +1,11 @@
 import {
   Bell,
   CaretRight,
-  ShieldCheck,
   SignOut,
   UserCircle,
 } from "@phosphor-icons/react/ssr";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { MobileNavigation } from "@/components/app-shell/mobile-navigation";
 import { NavigationLinks } from "@/components/app-shell/navigation-links";
 import { PremiumMotion } from "@/components/motion/premium-motion";
@@ -29,9 +29,7 @@ export function AppShell({ children, user }: AppShellProps) {
           data-motion="reveal"
         >
           <div className="flex items-center gap-3">
-            <div className="grid size-11 place-items-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-emerald-950/30">
-              <ShieldCheck aria-hidden="true" className="size-6" weight="fill" />
-            </div>
+            <BrandLogo className="shadow-lg shadow-emerald-950/30" />
             <div>
               <p className="text-lg font-semibold tracking-normal">AEGIS</p>
               <p className="text-xs text-sidebar-foreground/62">

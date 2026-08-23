@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { List, ShieldCheck } from "@phosphor-icons/react";
+import { List } from "@phosphor-icons/react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { NavigationLinks } from "@/components/app-shell/navigation-links";
 import type { UserRole } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,7 @@ export function MobileNavigation({ role }: MobileNavigationProps) {
       <SheetContent className="border-sidebar-border bg-sidebar text-sidebar-foreground" side="left">
         <SheetHeader className="border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-              <ShieldCheck aria-hidden="true" className="size-6" weight="fill" />
-            </div>
+            <BrandLogo className="size-10 shadow-none" />
             <SheetTitle>AEGIS</SheetTitle>
           </div>
           <SheetDescription className="text-sidebar-foreground/65">
