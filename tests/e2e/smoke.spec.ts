@@ -21,5 +21,6 @@ test("root renders login shell for unauthenticated users", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "AEGIS" })).toBeVisible();
-  await expect(page.getByText("Secure Access")).toBeVisible();
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  await expect(page.getByLabel("Password")).toBeVisible();
 });
