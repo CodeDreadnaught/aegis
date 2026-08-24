@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import {
   Bell,
-  ChartBar,
+  ChartLineUp,
   Cpu,
   Gauge,
-  MagnifyingGlass,
   Pulse,
   ShieldWarning,
   TrendUp,
@@ -21,19 +20,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { getDashboardOverview } from "@/features/dashboard/queries";
+  DashboardAssetTable,
+  type DashboardAssetRow,
+} from "@/features/dashboard/dashboard-asset-table";
+import { DashboardControls } from "@/features/dashboard/dashboard-controls";
+import {
+  getDashboardOverview,
+  type DashboardRange,
+} from "@/features/dashboard/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
   title: "AEGIS - Dashboard",
+};
+
+type DashboardPageProps = {
+  searchParams: Promise<{ range?: string | string[] }>;
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en", {
@@ -46,8 +49,12 @@ const timeFormatter = new Intl.DateTimeFormat("en", {
   minute: "2-digit",
 });
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: DashboardPageProps) {
   await requirePermission("viewEquipment");
+  const params = await searchParams;
+  const range = parseRange(params.range);
   const {
     latestAlerts,
     latestMaintenance,
@@ -56,7 +63,7 @@ export default async function DashboardPage() {
     predictionTrend,
     recentActivity,
     stats,
-  } = await getDashboardOverview();
+  } = await getDashboardOverview(range);
 
   const averageHealth = average(
     latestPredictions.map((prediction) => Number(prediction.healthScore))
@@ -94,7 +101,7 @@ export default async function DashboardPage() {
   const signalBars = latestReadings
     .slice()
     .reverse()
-    .slice(-8)
+    .slice(-7)
     .map((reading) => ({
       id: reading.id,
       label: reading.equipment.assetTag.replace("AEG-", ""),
@@ -108,118 +115,202 @@ export default async function DashboardPage() {
   );
   const maxPressure = Math.max(1, ...signalBars.map((reading) => reading.pressure));
   const maxFlow = Math.max(1, ...signalBars.map((reading) => reading.flow));
-  const heatmapCells = Array.from({ length: 42 }, (_, index) => {
-    const prediction = predictionTrend[index % Math.max(1, predictionTrend.length)];
-    const probability = prediction
-      ? Number(prediction.failureProbability) * 100
-      : index % 7 * 8;
-
-    return {
-      id: `heat-${index}`,
-      intensity: Math.min(100, Math.max(8, probability)),
-    };
-  });
+  const assetRows: DashboardAssetRow[] = latestPredictions.map((prediction) => ({
+    asset: prediction.equipment.assetTag,
+    category: formatEquipmentCategory(prediction.equipment.category),
+    health: Number(prediction.healthScore),
+    name: prediction.equipment.name,
+    risk: prediction.riskLevel,
+    updated: compactDateFormatter.format(prediction.createdAt),
+  }));
   const kpis = [
     {
       label: "Fleet",
       value: stats.equipmentCount,
       detail: `${activeRate}% active`,
       icon: Gauge,
-      variant: "bg-zinc-950 text-white",
+      tone: "bg-zinc-950 text-white",
+      delta: "Live",
     },
     {
       label: "AI Coverage",
       value: `${predictionCoverage}%`,
       detail: `${predictedAssetCoverage} assets`,
       icon: Cpu,
-      variant: "bg-white text-zinc-950",
+      tone: "bg-white text-zinc-950",
+      delta: `${latestPredictions.length} runs`,
     },
     {
       label: "Health",
       value: latestPredictions.length ? `${Math.round(averageHealth)}%` : "N/A",
-      detail: `${modelScore}% model score`,
+      detail: "Average score",
       icon: Pulse,
-      variant: "bg-emerald-50 text-emerald-900",
+      tone: "bg-emerald-50 text-emerald-900",
+      delta: `${modelScore}% stable`,
     },
     {
-      label: "Open Risk",
+      label: "Risk",
       value: interventionLoad,
       detail: `${stats.activeAlertCount} alerts`,
       icon: ShieldWarning,
-      variant: "bg-red-50 text-red-900",
+      tone: "bg-red-50 text-red-900",
+      delta: `${stats.maintenanceDueCount} jobs`,
     },
   ];
 
   return (
     <PremiumMotion profile="dashboard">
       <div className="grid gap-4">
-        <section className="grid gap-3 xl:grid-cols-[1fr_auto]">
-          <div className="min-w-0" data-motion="reveal">
+        <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div data-motion="reveal">
             <p className="text-sm font-medium text-zinc-500">Dashboard</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
               Equipment Intelligence
             </h1>
           </div>
-          <div
-            className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm"
-            data-motion="reveal"
-          >
-            {["Live", "7D", "30D"].map((item, index) => (
-              <span
-                className={
-                  index === 0
-                    ? "rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white"
-                    : "rounded-full px-4 py-2 text-sm font-medium text-zinc-500"
-                }
-                key={item}
-              >
-                {item}
-              </span>
-            ))}
+          <div data-motion="reveal">
+            <DashboardControls activeRange={String(range)} />
           </div>
         </section>
 
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((kpi) => {
-            const Icon = kpi.icon;
+        <section className="grid gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
+          <div className="grid gap-3 md:grid-cols-2">
+            {kpis.map((kpi) => {
+              const Icon = kpi.icon;
 
-            return (
-              <Card
-                className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
-                data-motion="metric"
-                key={kpi.label}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-zinc-500">
-                        {kpi.label}
-                      </p>
-                      <p className="mt-3 text-4xl font-semibold tracking-normal text-zinc-950">
-                        {kpi.value}
-                      </p>
+              return (
+                <Card
+                  className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+                  data-motion="metric"
+                  key={kpi.label}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-zinc-500">
+                          {kpi.label}
+                        </p>
+                        <p className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">
+                          {kpi.value}
+                        </p>
+                      </div>
+                      <div
+                        className={`grid size-9 place-items-center rounded-full ${kpi.tone}`}
+                      >
+                        <Icon aria-hidden="true" className="size-4" />
+                      </div>
                     </div>
-                    <div
-                      className={`grid size-10 place-items-center rounded-full ${kpi.variant}`}
-                    >
-                      <Icon aria-hidden="true" className="size-5" />
+                    <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                      <span className="text-zinc-500">{kpi.detail}</span>
+                      <span className="rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
+                        {kpi.delta}
+                      </span>
                     </div>
-                  </div>
-                  <p className="mt-3 text-sm text-zinc-500">{kpi.detail}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </section>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-        <section className="grid gap-4 xl:grid-cols-[1.5fr_0.85fr]">
           <Card
             className="rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
-                <CardTitle>Prediction Trend</CardTitle>
+                <CardTitle>Risk Breakdown</CardTitle>
+                <p className="text-sm text-zinc-500">Prediction distribution</p>
+              </div>
+              <Badge
+                className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                variant="outline"
+              >
+                {range}D
+              </Badge>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-4 pt-0 sm:grid-cols-[13rem_1fr] xl:grid-cols-1">
+              <div className="relative mx-auto grid size-48 place-items-center">
+                <Ring value={percentage(stats.riskCounts.low, totalRisk)} tone="#86efac" />
+                <Ring
+                  inset="inset-5"
+                  value={percentage(stats.riskCounts.medium, totalRisk)}
+                  tone="#18181b"
+                />
+                <Ring
+                  inset="inset-10"
+                  value={percentage(stats.riskCounts.high, totalRisk)}
+                  tone="#ef4444"
+                />
+                <div className="relative grid size-24 place-items-center rounded-full bg-white shadow-inner">
+                  <div className="text-center">
+                    <p className="text-3xl font-semibold">{highRiskShare}%</p>
+                    <p className="text-[11px] font-medium text-zinc-500">High</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid content-center gap-3">
+                <RiskRow label="Low" value={stats.riskCounts.low} tone="bg-emerald-400" />
+                <RiskRow label="Medium" value={stats.riskCounts.medium} tone="bg-zinc-950" />
+                <RiskRow label="High" value={stats.riskCounts.high} tone="bg-red-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4">
+            <Card
+              className="rounded-lg border-zinc-200 bg-emerald-50 shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                <div>
+                  <CardTitle>AI Score</CardTitle>
+                  <p className="text-sm text-emerald-800/70">Model confidence</p>
+                </div>
+                <ChartLineUp
+                  aria-hidden="true"
+                  className="size-5 text-emerald-800"
+                />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <p className="text-5xl font-semibold tracking-normal text-zinc-950">
+                  {modelScore}%
+                </p>
+                <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
+                  <div
+                    className="h-full rounded-full bg-zinc-950"
+                    style={{ width: `${modelScore}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="rounded-lg border-zinc-200 bg-white shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle>Interventions</CardTitle>
+              </CardHeader>
+              <CardContent className="gap-2 p-4 pt-0">
+                <FocusItem icon={Bell} label="Alerts" value={stats.activeAlertCount} />
+                <FocusItem
+                  icon={Wrench}
+                  label="Maintenance"
+                  value={stats.maintenanceDueCount}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[1.48fr_0.72fr]">
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+              <div>
+                <CardTitle>Telemetry Flow</CardTitle>
                 <p className="text-sm text-zinc-500">Health and failure risk</p>
               </div>
               <Badge
@@ -229,18 +320,18 @@ export default async function DashboardPage() {
                 {predictionTrend.length} samples
               </Badge>
             </CardHeader>
-            <CardContent className="gap-4 p-4 pt-0">
+            <CardContent className="p-4 pt-0">
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                 <svg
-                  aria-label="Prediction trend"
+                  aria-label="Telemetry flow"
                   className="h-72 w-full overflow-visible"
                   preserveAspectRatio="none"
                   role="img"
-                  viewBox="0 0 640 260"
+                  viewBox="0 0 680 260"
                 >
                   <defs>
                     <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#18181b" stopOpacity="0.16" />
+                      <stop offset="0%" stopColor="#18181b" stopOpacity="0.15" />
                       <stop offset="100%" stopColor="#18181b" stopOpacity="0" />
                     </linearGradient>
                   </defs>
@@ -251,7 +342,7 @@ export default async function DashboardPage() {
                       strokeDasharray="5 8"
                       strokeWidth="1"
                       x1="0"
-                      x2="640"
+                      x2="680"
                       y1={line * 60 + 10}
                       y2={line * 60 + 10}
                     />
@@ -272,7 +363,7 @@ export default async function DashboardPage() {
                     className="aegis-line-trace aegis-line-trace-delayed"
                     fill="none"
                     points={failurePoints.points}
-                    stroke="#ef4444"
+                    stroke="#86efac"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="3"
@@ -301,60 +392,17 @@ export default async function DashboardPage() {
             data-motion="panel"
           >
             <CardHeader className="pb-2">
-              <CardTitle>Risk Score</CardTitle>
-              <p className="text-sm text-zinc-500">Current prediction mix</p>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="grid gap-4 sm:grid-cols-[13rem_1fr] xl:grid-cols-1">
-                <div className="relative mx-auto grid size-48 place-items-center rounded-full bg-zinc-100">
-                  <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      background: `conic-gradient(#18181b ${modelScore}%, #f4f4f5 0)`,
-                    }}
-                  />
-                  <div className="relative grid size-36 place-items-center rounded-full bg-white shadow-inner">
-                    <div className="text-center">
-                      <p className="text-5xl font-semibold tracking-normal">
-                        {modelScore}
-                      </p>
-                      <p className="text-xs font-medium text-zinc-500">Score</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid content-center gap-3">
-                  <RiskRow label="Low" value={stats.riskCounts.low} tone="bg-emerald-500" />
-                  <RiskRow label="Medium" value={stats.riskCounts.medium} tone="bg-zinc-950" />
-                  <RiskRow label="High" value={stats.riskCounts.high} tone="bg-red-500" />
-                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-xs font-medium text-zinc-500">High Risk</p>
-                    <p className="mt-1 text-2xl font-semibold text-zinc-950">
-                      {highRiskShare}%
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr_0.8fr]">
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="pb-2">
               <CardTitle>Sensor Stack</CardTitle>
               <p className="text-sm text-zinc-500">Vibration, pressure, flow</p>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className="flex h-64 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
+              <div className="flex h-72 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
                 {signalBars.map((reading) => (
                   <div
                     className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
                     key={reading.id}
                   >
-                    <div className="flex h-48 w-full max-w-10 items-end justify-center gap-1">
+                    <div className="flex h-52 w-full max-w-10 items-end justify-center gap-1">
                       <span
                         className="aegis-graph-bar w-2 rounded-full bg-zinc-950"
                         style={{
@@ -368,7 +416,7 @@ export default async function DashboardPage() {
                         }}
                       />
                       <span
-                        className="aegis-graph-bar w-2 rounded-full bg-sky-200"
+                        className="aegis-graph-bar w-2 rounded-full bg-zinc-300"
                         style={{
                           height: `${percentage(reading.flow, maxFlow)}%`,
                         }}
@@ -382,139 +430,18 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+        </section>
 
+        <section className="grid gap-4 xl:grid-cols-[1.44fr_0.76fr]">
           <Card
             className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle>Risk Heatmap</CardTitle>
-                <p className="text-sm text-zinc-500">Model intensity</p>
-              </div>
-              <ChartBar aria-hidden="true" className="size-5 text-zinc-500" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="grid grid-cols-7 gap-2">
-                {heatmapCells.map((cell) => (
-                  <span
-                    aria-hidden="true"
-                    className="aegis-heat-cell aspect-square rounded-md border border-zinc-200"
-                    key={cell.id}
-                    style={{
-                      backgroundColor: heatColor(cell.intensity),
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <MiniStat label="Low" value={stats.riskCounts.low} />
-                <MiniStat label="Med" value={stats.riskCounts.medium} />
-                <MiniStat label="High" value={stats.riskCounts.high} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="rounded-lg border-zinc-200 bg-zinc-950 text-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="pb-2">
-              <CardTitle>Operations</CardTitle>
-              <p className="text-sm text-zinc-400">Immediate focus</p>
-            </CardHeader>
-            <CardContent className="gap-3 p-4 pt-0">
-              <FocusItem
-                icon={Bell}
-                label="Alerts"
-                value={stats.activeAlertCount}
-              />
-              <FocusItem
-                icon={Wrench}
-                label="Maintenance"
-                value={stats.maintenanceDueCount}
-              />
-              <FocusItem
-                icon={TrendUp}
-                label="Failure Avg"
-                value={`${Math.round(averageFailureProbability)}%`}
-              />
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[1.45fr_0.85fr]">
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Asset Performance</CardTitle>
-                <p className="text-sm text-zinc-500">Latest predictions</p>
-              </div>
-              <div className="hidden h-9 items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-xs text-zinc-500 sm:flex">
-                <MagnifyingGlass aria-hidden="true" className="size-3.5" />
-                Filter
-              </div>
+              <CardTitle>Asset Performance</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-zinc-200 bg-zinc-50/70">
-                      <TableHead>Asset</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Health</TableHead>
-                      <TableHead>Risk</TableHead>
-                      <TableHead>Updated</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {latestPredictions.map((prediction) => (
-                      <TableRow
-                        className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                        key={prediction.id}
-                      >
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-zinc-950">
-                              {prediction.equipment.assetTag}
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              {prediction.equipment.name}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-zinc-600">
-                          {formatEquipmentCategory(prediction.equipment.category)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
-                              <span
-                                className="block h-full rounded-full bg-zinc-950"
-                                style={{
-                                  width: `${Number(prediction.healthScore)}%`,
-                                }}
-                              />
-                            </span>
-                            <span className="text-sm font-medium">
-                              {Number(prediction.healthScore)}%
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <RiskBadge risk={prediction.riskLevel} />
-                        </TableCell>
-                        <TableCell className="text-zinc-500">
-                          {compactDateFormatter.format(prediction.createdAt)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <DashboardAssetTable rows={assetRows} />
             </CardContent>
           </Card>
 
@@ -524,35 +451,19 @@ export default async function DashboardPage() {
               data-motion="panel"
             >
               <CardHeader className="pb-2">
-                <CardTitle>Alerts</CardTitle>
+                <CardTitle>Maintenance Plans</CardTitle>
               </CardHeader>
-              <CardContent className="gap-2 p-4 pt-0">
-                {latestAlerts.length ? (
-                  latestAlerts.map((alert) => (
-                    <div
-                      className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                      key={alert.id}
-                    >
-                      <div className="flex items-start gap-2">
-                        <WarningCircle
-                          aria-hidden="true"
-                          className="mt-0.5 size-4 text-red-500"
-                          weight="fill"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-zinc-950">
-                            {alert.equipment.assetTag}
-                          </p>
-                          <p className="line-clamp-2 text-xs text-zinc-500">
-                            {alert.message}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <EmptyState label="No active alerts" />
-                )}
+              <CardContent className="gap-4 p-4 pt-0">
+                {latestMaintenance.slice(0, 3).map((record) => (
+                  <PlanRow
+                    key={record.id}
+                    label={record.equipment.assetTag}
+                    meta={record.status.replaceAll("_", " ")}
+                    value={record.nextDueDate ? "Due" : "Logged"}
+                    width={record.nextDueDate ? 74 : 48}
+                  />
+                ))}
+                {!latestMaintenance.length && <EmptyState label="No maintenance" />}
               </CardContent>
             </Card>
 
@@ -561,33 +472,39 @@ export default async function DashboardPage() {
               data-motion="panel"
             >
               <CardHeader className="pb-2">
-                <CardTitle>Maintenance</CardTitle>
+                <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent className="gap-2 p-4 pt-0">
-                {latestMaintenance.slice(0, 4).map((record) => (
+                {recentActivity.slice(0, 5).map((activity) => (
                   <div
-                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                    key={record.id}
+                    className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+                    key={activity.id}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-950">
-                        {record.equipment.assetTag}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        {record.status.replaceAll("_", " ")}
+                    <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+                      <TrendUp aria-hidden="true" className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="truncate text-sm font-semibold text-zinc-950">
+                          {activity.type}
+                        </p>
+                        <span className="shrink-0 text-xs text-zinc-500">
+                          {timeFormatter.format(activity.timestamp)}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-zinc-500">
+                        {activity.detail}
                       </p>
                     </div>
-                    <span className="text-xs font-medium text-zinc-500">
-                      {compactDateFormatter.format(record.performedAt)}
-                    </span>
                   </div>
                 ))}
+                {!recentActivity.length && <EmptyState label="No activity" />}
               </CardContent>
             </Card>
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+        <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
           <Card
             className="rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
@@ -603,22 +520,13 @@ export default async function DashboardPage() {
                 );
 
                 return (
-                  <div className="grid gap-2" key={category.category}>
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-medium text-zinc-700">
-                        {formatEquipmentCategory(category.category)}
-                      </span>
-                      <span className="text-zinc-500">{category.count}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
-                      <div
-                        className="h-full rounded-full bg-zinc-950"
-                        style={{
-                          width: `${percentage(category.count, total)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
+                  <PlanRow
+                    key={category.category}
+                    label={formatEquipmentCategory(category.category)}
+                    meta={`${category.count} assets`}
+                    value={`${percentage(category.count, total)}%`}
+                    width={percentage(category.count, total)}
+                  />
                 );
               })}
             </CardContent>
@@ -629,29 +537,32 @@ export default async function DashboardPage() {
             data-motion="panel"
           >
             <CardHeader className="pb-2">
-              <CardTitle>Activity</CardTitle>
+              <CardTitle>Alerts</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 p-4 pt-0 md:grid-cols-2">
-              {recentActivity.map((activity) => (
+              {latestAlerts.map((alert) => (
                 <div
                   className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                  key={activity.id}
+                  key={alert.id}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <WarningCircle
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 text-red-500"
+                      weight="fill"
+                    />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-zinc-950">
-                        {activity.type}
+                        {alert.equipment.assetTag}
                       </p>
-                      <p className="truncate text-xs text-zinc-500">
-                        {activity.detail}
+                      <p className="line-clamp-2 text-xs text-zinc-500">
+                        {alert.message}
                       </p>
                     </div>
-                    <span className="shrink-0 text-xs font-medium text-zinc-500">
-                      {timeFormatter.format(activity.timestamp)}
-                    </span>
                   </div>
                 </div>
               ))}
+              {!latestAlerts.length && <EmptyState label="No active alerts" />}
             </CardContent>
           </Card>
         </section>
@@ -660,12 +571,23 @@ export default async function DashboardPage() {
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: number }) {
+function Ring({
+  inset = "inset-0",
+  tone,
+  value,
+}: {
+  inset?: string;
+  tone: string;
+  value: number;
+}) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <p className="text-xs font-medium text-zinc-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-zinc-950">{value}</p>
-    </div>
+    <span
+      aria-hidden="true"
+      className={`absolute ${inset} rounded-full aegis-ring-sweep`}
+      style={{
+        background: `conic-gradient(${tone} ${value}%, #edf7e9 0)`,
+      }}
+    />
   );
 }
 
@@ -676,15 +598,15 @@ function FocusItem({
 }: {
   icon: typeof Bell;
   label: string;
-  value: number | string;
+  value: number;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/8 p-3">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
       <div className="flex items-center gap-3">
-        <div className="grid size-9 place-items-center rounded-full bg-white text-zinc-950">
+        <div className="grid size-9 place-items-center rounded-full bg-white text-zinc-950 shadow-sm">
           <Icon aria-hidden="true" className="size-4" />
         </div>
-        <span className="text-sm text-zinc-300">{label}</span>
+        <span className="text-sm font-medium text-zinc-600">{label}</span>
       </div>
       <span className="text-2xl font-semibold">{value}</span>
     </div>
@@ -711,20 +633,35 @@ function RiskRow({
   );
 }
 
-function RiskBadge({ risk }: { risk: string }) {
-  const className =
-    risk === "HIGH"
-      ? "border-red-200 bg-red-50 text-red-700"
-      : risk === "MEDIUM"
-        ? "border-zinc-300 bg-zinc-100 text-zinc-800"
-        : "border-emerald-200 bg-emerald-50 text-emerald-700";
-
+function PlanRow({
+  label,
+  meta,
+  value,
+  width,
+}: {
+  label: string;
+  meta: string;
+  value: string;
+  width: number;
+}) {
   return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
-    >
-      {risk}
-    </span>
+    <div className="grid gap-2">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-zinc-950">{label}</p>
+          <p className="truncate text-xs text-zinc-500">{meta}</p>
+        </div>
+        <span className="shrink-0 text-xs font-semibold text-zinc-500">
+          {value}
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
+        <div
+          className="h-full rounded-full bg-zinc-950"
+          style={{ width: `${Math.min(100, Math.max(0, width))}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -734,6 +671,16 @@ function EmptyState({ label }: { label: string }) {
       {label}
     </div>
   );
+}
+
+function parseRange(value: string | string[] | undefined): DashboardRange {
+  const range = Array.isArray(value) ? value[0] : value;
+
+  if (range === "1" || range === "7" || range === "30") {
+    return Number(range) as DashboardRange;
+  }
+
+  return 7;
 }
 
 function average(values: number[]) {
@@ -767,7 +714,7 @@ function readParameter(parameters: unknown, key: string) {
 }
 
 function buildLinePoints(values: number[]) {
-  const width = 640;
+  const width = 680;
   const height = 230;
   const top = 12;
   const fallback = values.length ? values : [0];
@@ -792,20 +739,4 @@ function buildLinePoints(values: number[]) {
     coordinates,
     points,
   };
-}
-
-function heatColor(intensity: number) {
-  if (intensity > 70) {
-    return "rgb(239 68 68 / 0.78)";
-  }
-
-  if (intensity > 42) {
-    return "rgb(24 24 27 / 0.82)";
-  }
-
-  if (intensity > 22) {
-    return "rgb(134 239 172 / 0.82)";
-  }
-
-  return "rgb(244 244 245)";
 }

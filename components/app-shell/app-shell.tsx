@@ -2,7 +2,7 @@ import {
   Bell,
   CaretRight,
   MagnifyingGlass,
-  SignOut,
+  Power,
   UserCircle,
 } from "@phosphor-icons/react/ssr";
 
@@ -49,7 +49,7 @@ export function AppShell({ children, user }: AppShellProps) {
 
       <div className="lg:pl-[18.5rem]">
         <header className="sticky top-0 z-30 px-3 pt-3 lg:px-5">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/92 px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.07)] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/92 px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.07)] backdrop-blur-xl">
             <div className="flex min-w-0 items-center gap-3">
               <div className="lg:hidden">
                 <MobileNavigation role={user.role} />
@@ -95,7 +95,7 @@ export function AppShell({ children, user }: AppShellProps) {
                   type="submit"
                   variant="outline"
                 >
-                  <SignOut aria-hidden="true" className="size-4" />
+                  <Power aria-hidden="true" className="size-4" weight="bold" />
                   <span className="sr-only">Logout</span>
                 </Button>
               </form>

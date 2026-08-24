@@ -2,7 +2,12 @@ import "server-only";
 
 import { prisma } from "@/server/db/client";
 
-export async function getDashboardOverview() {
+export type DashboardRange = 1 | 7 | 30;
+
+export async function getDashboardOverview(range: DashboardRange = 7) {
+  const since = new Date();
+  since.setDate(since.getDate() - range);
+
   const [
     equipmentCount,
     activeEquipmentCount,
@@ -40,6 +45,7 @@ export async function getDashboardOverview() {
       _count: { _all: true },
     }),
     prisma.prediction.findMany({
+      where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 8,
       select: {
@@ -60,6 +66,7 @@ export async function getDashboardOverview() {
       },
     }),
     prisma.prediction.findMany({
+      where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 12,
       select: {
@@ -71,6 +78,7 @@ export async function getDashboardOverview() {
       },
     }),
     prisma.operationalReading.findMany({
+      where: { recordedAt: { gte: since } },
       orderBy: { recordedAt: "desc" },
       take: 10,
       select: {
@@ -89,6 +97,7 @@ export async function getDashboardOverview() {
       },
     }),
     prisma.maintenanceRecord.findMany({
+      where: { performedAt: { gte: since } },
       orderBy: { performedAt: "desc" },
       take: 8,
       select: {
@@ -107,6 +116,7 @@ export async function getDashboardOverview() {
       },
     }),
     prisma.alert.findMany({
+      where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 6,
       select: {
