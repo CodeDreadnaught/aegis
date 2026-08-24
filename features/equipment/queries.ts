@@ -78,17 +78,30 @@ export async function getEquipmentDetails(id: string) {
   return prisma.equipment.findUnique({
     where: { id },
     include: {
+      _count: {
+        select: {
+          maintenanceRecords: true,
+          operationalReadings: true,
+          predictions: true,
+        },
+      },
       operationalReadings: {
         orderBy: { recordedAt: "desc" },
-        take: 5,
+        take: 12,
       },
       maintenanceRecords: {
         orderBy: { performedAt: "desc" },
-        take: 5,
+        take: 8,
       },
       predictions: {
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 8,
+        include: {
+          recommendations: {
+            orderBy: { createdAt: "desc" },
+            take: 2,
+          },
+        },
       },
     },
   });

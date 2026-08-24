@@ -2,32 +2,42 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  CalendarCheck,
-  ChartLine,
+  ArrowLeft,
   ChartLineUp,
+  Gauge,
+  MapPin,
   PencilSimple,
+  Pulse,
   ShieldWarning,
+  TrendUp,
+  WarningCircle,
+  Wrench,
 } from "@phosphor-icons/react/ssr";
 
 import { ActionToastForm } from "@/components/action-toast-form";
-import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { decommissionEquipmentAction } from "@/features/equipment/actions";
 import { getEquipmentDetails } from "@/features/equipment/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
+import type { EquipmentStatus, RiskLevel } from "@/generated/prisma/enums";
 import { requirePermission } from "@/server/auth/session";
 
 type EquipmentDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
+
+const chartWidth = 680;
+const chartHeight = 240;
 
 export const metadata: Metadata = {
   title: "AEGIS - Equipment Profile",
@@ -44,19 +54,65 @@ export default async function EquipmentDetailsPage({
     notFound();
   }
 
+  const latestPrediction = equipment.predictions[0];
+  const latestReading = equipment.operationalReadings[0];
+  const latestMaintenance = equipment.maintenanceRecords[0];
   const decommission = decommissionEquipmentAction.bind(null, equipment.id);
+  const readings = equipment.operationalReadings.slice().reverse();
+  const predictions = equipment.predictions.slice().reverse();
+  const health = Math.round(asNumber(latestPrediction?.healthScore));
+  const failure = Math.round(asNumber(latestPrediction?.failureProbability) * 100);
+  const vibration = readings.map((reading) =>
+    readParameter(reading.parameters, "vibrationMmS")
+  );
+  const pressure = readings.map((reading) =>
+    readParameter(reading.parameters, "pressureBar")
+  );
+  const flow = readings.map((reading) =>
+    readParameter(reading.parameters, "flowRateBpd")
+  );
+  const healthTrend = predictions.map((prediction) =>
+    asNumber(prediction.healthScore)
+  );
+  const failureTrend = predictions.map(
+    (prediction) => asNumber(prediction.failureProbability) * 100
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <PageHeader
-          description={`${equipment.assetTag} is tracked with linked readings, maintenance history and prediction outputs.`}
-          eyebrow={formatEquipmentCategory(equipment.category)}
-          title={equipment.name}
-        />
-        <div className="flex flex-col gap-2 sm:flex-row">
+    <div className="grid gap-4">
+      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div data-motion="reveal">
           <Link
-            className={buttonVariants({ variant: "outline" })}
+            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 transition-colors hover:text-zinc-950"
+            href="/equipment"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            Equipment
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={equipment.status} />
+            {latestPrediction && <RiskBadge risk={latestPrediction.riskLevel} />}
+          </div>
+          <h1 className="mt-3 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+            {equipment.name}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-zinc-500">
+            <span>{equipment.assetTag}</span>
+            <span className="hidden h-1 w-1 rounded-full bg-zinc-300 sm:block" />
+            <span>{formatEquipmentCategory(equipment.category)}</span>
+            <span className="hidden h-1 w-1 rounded-full bg-zinc-300 sm:block" />
+            <span className="inline-flex items-center gap-1">
+              <MapPin aria-hidden="true" className="size-4" />
+              {equipment.location}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row" data-motion="reveal">
+          <Link
+            className={buttonVariants({
+              variant: "outline",
+              className: "h-11 rounded-full border-zinc-200 bg-white px-5",
+            })}
             href={`/equipment/${equipment.id}/edit`}
           >
             <PencilSimple />
@@ -71,7 +127,7 @@ export default async function EquipmentDetailsPage({
             <button
               className={buttonVariants({
                 variant: "destructive",
-                className: "w-full sm:w-fit",
+                className: "h-11 w-full rounded-full px-5 sm:w-fit",
               })}
               type="submit"
             >
@@ -80,113 +136,483 @@ export default async function EquipmentDetailsPage({
             </button>
           </ActionToastForm>
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <Card className="premium-panel motion-card">
-          <CardHeader>
-            <CardTitle>Asset profile</CardTitle>
-            <CardDescription>
-              Canonical equipment metadata used by operational workflows.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <ProfileField label="Asset tag" value={equipment.assetTag} />
-            <ProfileField
-              label="Status"
-              value={formatEquipmentCategory(equipment.status)}
-            />
-            <ProfileField label="Location" value={equipment.location} />
-            <ProfileField
-              label="Manufacturer"
-              value={equipment.manufacturer ?? "Not recorded"}
-            />
-            <ProfileField
-              label="Model"
-              value={equipment.model ?? "Not recorded"}
-            />
-            <ProfileField
-              label="Serial number"
-              value={equipment.serialNumber ?? "Not recorded"}
-            />
-            <ProfileField
-              label="Installed"
-              value={
-                equipment.installationDate
-                  ? equipment.installationDate.toLocaleDateString("en-GB")
-                  : "Not recorded"
-              }
-            />
-            <div className="sm:col-span-2">
-              <ProfileField
-                label="Description"
-                value={equipment.description ?? "No description recorded"}
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr_0.9fr]">
+        <Card
+          className="overflow-hidden rounded-lg border-zinc-900 bg-zinc-950 text-white shadow-[0_24px_80px_rgba(24,24,27,0.14)]"
+          data-motion="panel"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-400">AI health</p>
+                <p className="mt-3 text-5xl font-semibold tracking-normal">
+                  {latestPrediction ? `${health}%` : "N/A"}
+                </p>
+              </div>
+              <div className="grid size-11 place-items-center rounded-full border border-white/10 bg-white/10">
+                <Pulse aria-hidden="true" className="size-5 text-emerald-300" />
+              </div>
+            </div>
+            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+              <DarkTile
+                label="Failure"
+                value={latestPrediction ? `${failure}%` : "N/A"}
               />
+              <DarkTile label="Readings" value={equipment._count.operationalReadings} />
+              <DarkTile label="Predictions" value={equipment._count.predictions} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="motion-card">
-          <CardHeader>
-            <CardTitle>Traceability</CardTitle>
-            <CardDescription>
-              Linked operational evidence available for this asset.
-            </CardDescription>
+        <Card
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="metric"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle>Live Signal</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <SummaryPill
-              icon={ChartLine}
-              label="Recent readings"
-              value={equipment.operationalReadings.length}
+          <CardContent className="grid gap-3">
+            <SignalRow
+              label="Vibration"
+              unit="mm/s"
+              value={readParameter(latestReading?.parameters, "vibrationMmS")}
             />
-            <SummaryPill
-              icon={CalendarCheck}
-              label="Maintenance entries"
-              value={equipment.maintenanceRecords.length}
+            <SignalRow
+              label="Pressure"
+              unit="bar"
+              value={readParameter(latestReading?.parameters, "pressureBar")}
             />
-            <SummaryPill
-              icon={ChartLineUp}
-              label="Predictions"
-              value={equipment.predictions.length}
+            <SignalRow
+              label="Flow"
+              unit="bpd"
+              value={readParameter(latestReading?.parameters, "flowRateBpd")}
             />
           </CardContent>
         </Card>
-      </div>
+
+        <Card
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="metric"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle>Maintenance</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <InfoLine
+              icon={Wrench}
+              label="Latest"
+              value={latestMaintenance?.type ?? "No record"}
+            />
+            <InfoLine
+              icon={WarningCircle}
+              label="Status"
+              value={
+                latestMaintenance
+                  ? formatEquipmentCategory(latestMaintenance.status)
+                  : "Pending"
+              }
+            />
+            <InfoLine
+              icon={Gauge}
+              label="Next due"
+              value={formatDate(latestMaintenance?.nextDueDate)}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Telemetry Trend</CardTitle>
+              <p className="text-sm text-zinc-500">
+                Vibration, pressure and flow
+              </p>
+            </div>
+            <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            <MultiLineChart
+              emptyLabel="No readings available"
+              series={[
+                { color: "#18181b", label: "Vibration", values: vibration },
+                { color: "#10b981", label: "Pressure", values: pressure },
+                { color: "#94a3b8", label: "Flow", values: flow },
+              ]}
+            />
+          </CardContent>
+        </Card>
+
+        <Card
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Prediction Curve</CardTitle>
+              <p className="text-sm text-zinc-500">
+                Health and failure probability
+              </p>
+            </div>
+            <TrendUp aria-hidden="true" className="size-5 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            <MultiLineChart
+              emptyLabel="No predictions available"
+              max={100}
+              series={[
+                { color: "#18181b", label: "Health", values: healthTrend },
+                { color: "#ef4444", label: "Failure", values: failureTrend },
+              ]}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle>Maintenance Timeline</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {equipment.maintenanceRecords.map((record) => (
+              <div
+                className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+                key={record.id}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-zinc-950">{record.type}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {formatDate(record.performedAt)}
+                    </p>
+                  </div>
+                  <Badge
+                    className="rounded-full border-zinc-200 bg-white text-zinc-700"
+                    variant="outline"
+                  >
+                    {formatEquipmentCategory(record.status)}
+                  </Badge>
+                </div>
+                <p className="mt-3 text-sm text-zinc-600">
+                  {record.description}
+                </p>
+              </div>
+            ))}
+            {!equipment.maintenanceRecords.length && (
+              <EmptyState label="No maintenance records" />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle>Recent Readings</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {equipment.operationalReadings.length ? (
+              <div className="overflow-x-auto px-4 pb-4">
+                <Table className="min-w-[720px]">
+                  <TableHeader>
+                    <TableRow className="border-zinc-200 bg-zinc-50">
+                      <TableHead>Recorded</TableHead>
+                      <TableHead>Vibration</TableHead>
+                      <TableHead>Pressure</TableHead>
+                      <TableHead>Flow</TableHead>
+                      <TableHead>Source</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {equipment.operationalReadings.map((reading) => (
+                      <TableRow
+                        className="border-zinc-100 hover:bg-zinc-50"
+                        key={reading.id}
+                      >
+                        <TableCell className="font-medium text-zinc-950">
+                          {formatDate(reading.recordedAt)}
+                        </TableCell>
+                        <TableCell>
+                          {formatNumber(
+                            readParameter(reading.parameters, "vibrationMmS")
+                          )}{" "}
+                          mm/s
+                        </TableCell>
+                        <TableCell>
+                          {formatNumber(
+                            readParameter(reading.parameters, "pressureBar")
+                          )}{" "}
+                          bar
+                        </TableCell>
+                        <TableCell>
+                          {formatNumber(
+                            readParameter(reading.parameters, "flowRateBpd")
+                          )}{" "}
+                          bpd
+                        </TableCell>
+                        <TableCell className="text-zinc-500">
+                          {reading.sourceType}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="px-4 pb-4">
+                <EmptyState label="No readings available" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
 
-function ProfileField({ label, value }: { label: string; value: string }) {
+function DarkTile({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg border bg-background/70 p-3">
-      <div className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="rounded-lg border border-white/10 bg-white/10 p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
         {label}
-      </div>
-      <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
+      </p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
     </div>
   );
 }
 
-type SummaryIcon = typeof ChartLine;
+function SignalRow({
+  label,
+  unit,
+  value,
+}: {
+  label: string;
+  unit: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-zinc-950">{label}</span>
+        <span className="text-xs font-medium text-zinc-500">{unit}</span>
+      </div>
+      <p className="mt-2 text-2xl font-semibold text-zinc-950">
+        {formatNumber(value)}
+      </p>
+    </div>
+  );
+}
 
-function SummaryPill({
+function InfoLine({
   icon: Icon,
   label,
   value,
 }: {
-  icon: SummaryIcon;
+  icon: typeof Wrench;
   label: string;
-  value: number;
+  value: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border bg-background/70 p-3 transition-all duration-300 hover:border-primary/40 hover:shadow-sm">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
       <div className="flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </div>
-        <span className="text-sm font-medium text-foreground">{label}</span>
+        <span className="grid size-9 place-items-center rounded-full bg-white text-zinc-950">
+          <Icon aria-hidden="true" className="size-4" />
+        </span>
+        <span className="text-sm font-medium text-zinc-500">{label}</span>
       </div>
-      <Badge variant="secondary">{value}</Badge>
+      <span className="max-w-[12rem] truncate text-sm font-semibold text-zinc-950">
+        {value}
+      </span>
     </div>
   );
+}
+
+function MultiLineChart({
+  emptyLabel,
+  max,
+  series,
+}: {
+  emptyLabel: string;
+  max?: number;
+  series: Array<{ color: string; label: string; values: number[] }>;
+}) {
+  const values = series.flatMap((item) => item.values).filter(Number.isFinite);
+  const chartMax = max ?? Math.max(1, ...values);
+
+  if (!values.length) {
+    return <EmptyState label={emptyLabel} />;
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="aspect-[16/7] overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+        <svg
+          aria-hidden="true"
+          className="h-full w-full"
+          preserveAspectRatio="none"
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        >
+          {[0, 1, 2, 3].map((line) => (
+            <line
+              key={line}
+              stroke="#e4e4e7"
+              strokeDasharray="5 7"
+              strokeWidth="1"
+              x1="0"
+              x2={chartWidth}
+              y1={(chartHeight / 3) * line}
+              y2={(chartHeight / 3) * line}
+            />
+          ))}
+          {series.map((item) => {
+            const path = buildPath(item.values, chartMax);
+
+            if (!path) {
+              return null;
+            }
+
+            return (
+              <path
+                d={path}
+                fill="none"
+                key={item.label}
+                stroke={item.color}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="5"
+              />
+            );
+          })}
+        </svg>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {series.map((item) => (
+          <span
+            className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600"
+            key={item.label}
+          >
+            <span
+              className="size-2.5 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: EquipmentStatus }) {
+  const className =
+    status === "ACTIVE"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : status === "MAINTENANCE"
+        ? "border-zinc-300 bg-zinc-100 text-zinc-800"
+        : "border-red-200 bg-red-50 text-red-700";
+
+  return (
+    <span
+      className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
+    >
+      {formatEquipmentCategory(status)}
+    </span>
+  );
+}
+
+function RiskBadge({ risk }: { risk: RiskLevel }) {
+  const className =
+    risk === "HIGH"
+      ? "border-red-200 bg-red-50 text-red-700"
+      : risk === "MEDIUM"
+        ? "border-zinc-300 bg-zinc-100 text-zinc-800"
+        : "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+  return (
+    <span
+      className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
+    >
+      {risk}
+    </span>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
+      {label}
+    </div>
+  );
+}
+
+function buildPath(values: number[], max: number) {
+  const validValues = values.filter(Number.isFinite);
+
+  if (!validValues.length) {
+    return "";
+  }
+
+  if (validValues.length === 1) {
+    const y = chartHeight - (validValues[0] / max) * chartHeight;
+    return `M 0 ${y} L ${chartWidth} ${y}`;
+  }
+
+  return validValues
+    .map((value, index) => {
+      const x = (index / (validValues.length - 1)) * chartWidth;
+      const y = chartHeight - (value / max) * chartHeight;
+
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+}
+
+function readParameter(parameters: unknown, key: string) {
+  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
+    return 0;
+  }
+
+  const value = (parameters as Record<string, unknown>)[key];
+
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function asNumber(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (value && typeof value === "object" && "toString" in value) {
+    const parsed = Number(value.toString());
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
+function formatNumber(value: number) {
+  return value
+    ? new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(value)
+    : "N/A";
+}
+
+function formatDate(value: Date | null | undefined) {
+  return value
+    ? new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(value)
+    : "Not scheduled";
 }

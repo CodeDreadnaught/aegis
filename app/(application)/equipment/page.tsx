@@ -9,7 +9,6 @@ import {
   MapPin,
   Plus,
   Pulse,
-  WarningCircle,
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
@@ -79,11 +78,26 @@ export default async function EquipmentPage({
 
     return nextDueDate ? nextDueDate < now : false;
   }).length;
+  const dueSoonCount = equipment.filter((item) => {
+    const nextDueDate = item.maintenanceRecords[0]?.nextDueDate;
+
+    if (!nextDueDate || nextDueDate < now) {
+      return false;
+    }
+
+    return (
+      nextDueDate.getTime() - now.getTime() <=
+      1000 * 60 * 60 * 24 * 30
+    );
+  }).length;
   const highRiskCount = equipment.filter(
     (item) => item.predictions[0]?.riskLevel === "HIGH"
   ).length;
+  const monitoredCount = equipment.filter(
+    (item) => item._count.operationalReadings > 0
+  ).length;
   const readingCoverage = percentage(
-    equipment.filter((item) => item._count.operationalReadings > 0).length,
+    monitoredCount,
     equipment.length
   );
   const predictionCoverage = percentage(
@@ -154,6 +168,7 @@ export default async function EquipmentPage({
                 defaultValue={query}
                 id="q"
                 name="q"
+                placeholder="Search tag, asset name or location"
               />
             </div>
             <select
@@ -205,35 +220,45 @@ export default async function EquipmentPage({
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr_0.8fr]">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.95fr_0.85fr]">
+        <Card
+          className="overflow-hidden rounded-lg border-zinc-900 bg-zinc-950 text-white shadow-[0_24px_80px_rgba(24,24,27,0.14)]"
+          data-motion="panel"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-400">Fleet readiness</p>
+                <p className="mt-3 text-5xl font-semibold tracking-normal">
+                  {equipment.length ? Math.round(averageHealth) : 0}%
+                </p>
+              </div>
+              <div className="grid size-11 place-items-center rounded-full border border-white/10 bg-white/10">
+                <Pulse aria-hidden="true" className="size-5 text-emerald-300" />
+              </div>
+            </div>
+            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+              <SummaryTile label="Assets" value={equipment.length} />
+              <SummaryTile label="Live" value={monitoredCount} />
+              <SummaryTile label="High Risk" value={highRiskCount} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
           <MetricCard
-            detail={`${activeCount} active / ${readingCoverage}% with readings`}
+            detail={`${activeCount} active / ${readingCoverage}% monitored`}
             icon={Factory}
-            label="Assets"
+            label="Coverage"
             tone="bg-zinc-950 text-white"
-            value={equipment.length}
+            value={`${predictionCoverage}%`}
           />
           <MetricCard
-            detail={`${overdueMaintenanceCount} overdue`}
+            detail={`${overdueMaintenanceCount} overdue / ${dueSoonCount} due soon`}
             icon={Wrench}
             label="Maintenance"
             tone="bg-white text-zinc-950"
             value={maintenanceCount}
-          />
-          <MetricCard
-            detail="Latest prediction average"
-            icon={Pulse}
-            label="Health"
-            tone="bg-emerald-50 text-emerald-900"
-            value={equipment.length ? `${Math.round(averageHealth)}%` : "N/A"}
-          />
-          <MetricCard
-            detail={`${predictionCoverage}% AI coverage`}
-            icon={WarningCircle}
-            label="Risk"
-            tone="bg-red-50 text-red-900"
-            value={highRiskCount}
           />
         </div>
 
@@ -313,11 +338,11 @@ export default async function EquipmentPage({
         className="rounded-lg border-zinc-200 bg-white shadow-sm"
         data-motion="panel"
       >
-        <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
           <div>
             <CardTitle>Equipment Register</CardTitle>
             <p className="text-sm text-zinc-500">
-              Health, risk, readings and maintenance
+              Health, risk and maintenance exposure
             </p>
           </div>
           <Badge
@@ -330,15 +355,14 @@ export default async function EquipmentPage({
         <CardContent className="p-0">
           {equipment.length ? (
             <div className="overflow-x-auto px-4 pb-4">
-              <Table>
+              <Table className="min-w-[980px]">
                 <TableHeader>
-                  <TableRow className="border-zinc-200 bg-zinc-50/70">
+                  <TableRow className="border-zinc-200 bg-zinc-50">
                     <TableHead>Asset</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Classification</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead>Risk</TableHead>
-                    <TableHead>Readings</TableHead>
+                    <TableHead>Telemetry</TableHead>
                     <TableHead>Maintenance</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
@@ -353,7 +377,7 @@ export default async function EquipmentPage({
 
                     return (
                       <TableRow
-                        className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                        className="border-zinc-100 transition-all duration-300 hover:bg-zinc-50"
                         key={item.id}
                       >
                         <TableCell>
@@ -368,23 +392,30 @@ export default async function EquipmentPage({
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-zinc-600">
-                          {formatEquipmentCategory(item.category)}
-                        </TableCell>
                         <TableCell>
-                          <StatusBadge status={item.status} />
+                          <div className="grid gap-2">
+                            <span className="text-sm font-semibold text-zinc-950">
+                              {formatEquipmentCategory(item.category)}
+                            </span>
+                            <StatusBadge status={item.status} />
+                          </div>
                         </TableCell>
                         <TableCell>
                           {prediction ? (
-                            <div className="flex items-center gap-2">
-                              <span className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
+                            <div className="grid min-w-[8rem] gap-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-semibold text-zinc-950">
+                                  {health}%
+                                </span>
+                                <span className="text-xs text-zinc-400">
+                                  Health
+                                </span>
+                              </div>
+                              <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
                                 <span
                                   className="block h-full rounded-full bg-zinc-950"
                                   style={{ width: `${health}%` }}
                                 />
-                              </span>
-                              <span className="text-sm font-medium">
-                                {health}%
                               </span>
                             </div>
                           ) : (
@@ -404,7 +435,10 @@ export default async function EquipmentPage({
                           )}
                         </TableCell>
                         <TableCell className="text-zinc-600">
-                          {item._count.operationalReadings}
+                          <span className="font-semibold text-zinc-950">
+                            {item._count.operationalReadings}
+                          </span>{" "}
+                          readings
                           {item.operationalReadings[0] && (
                             <p className="text-xs text-zinc-400">
                               {compactDateFormatter.format(
@@ -414,7 +448,10 @@ export default async function EquipmentPage({
                           )}
                         </TableCell>
                         <TableCell className="text-zinc-600">
-                          {item._count.maintenanceRecords}
+                          <span className="font-semibold text-zinc-950">
+                            {item._count.maintenanceRecords}
+                          </span>{" "}
+                          records
                           {item.maintenanceRecords[0] && (
                             <p className="text-xs text-zinc-400">
                               {formatEquipmentCategory(
@@ -492,6 +529,17 @@ function MetricCard({
         <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/10 p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+    </div>
   );
 }
 
