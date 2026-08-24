@@ -23,16 +23,16 @@ export function LoginScreen() {
               priority
               quality={95}
               sizes="(min-width: 1024px) 52vw, 100vw"
-              src="/login-aegis-illustration.png"
+              src="/login-aegis-color-illustration.png"
             />
             <div
-              className="absolute inset-x-0 bottom-0 px-5 pb-5 text-center text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.82)] sm:px-7 sm:pb-7 md:px-8 md:pb-8 md:text-left lg:px-10 lg:pb-10"
+              className="absolute inset-x-0 top-0 px-5 pt-5 text-center text-zinc-950 [text-shadow:0_2px_18px_rgba(255,255,255,0.72)] sm:px-7 sm:pt-7 md:px-8 md:pt-8 md:text-left lg:px-10 lg:pt-10"
               data-motion="reveal"
             >
               <h2 className="text-4xl font-semibold leading-none tracking-normal sm:text-5xl md:text-6xl lg:text-7xl">
                 AEGIS
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-base font-medium leading-6 text-white/92 sm:mt-4 sm:text-lg sm:leading-7 md:mx-0 lg:text-xl lg:leading-8">
+              <p className="mx-auto mt-3 max-w-xl text-base font-medium leading-6 text-zinc-800 sm:mt-4 sm:text-lg sm:leading-7 md:mx-0 lg:text-xl lg:leading-8">
                 AI-Driven Equipment Guardian for Intelligent Surveillance
               </p>
             </div>
