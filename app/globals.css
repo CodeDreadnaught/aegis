@@ -206,6 +206,11 @@
     box-shadow: 0 12px 28px rgb(24 24 27 / 0.12);
   }
 
+  .aegis-ring-sweep {
+    animation: aegis-ring-in 980ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: center;
+  }
+
   @keyframes aegis-bar-rise {
     from {
       transform: scaleY(0.12);
@@ -242,6 +247,17 @@
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes aegis-ring-in {
+    from {
+      opacity: 0;
+      transform: rotate(-18deg) scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(0deg) scale(1);
     }
   }
 
@@ -317,7 +333,8 @@
     .aegis-graph-bar,
     .aegis-line-trace,
     .aegis-chart-dot,
-    .aegis-heat-cell {
+    .aegis-heat-cell,
+    .aegis-ring-sweep {
       animation: none;
       stroke-dashoffset: 0;
     }

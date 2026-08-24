@@ -55,6 +55,14 @@ export async function getDashboardOverview(range: DashboardRange = 7) {
         healthScore: true,
         modelVersion: true,
         createdAt: true,
+        recommendations: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            message: true,
+            priority: true,
+          },
+        },
         equipment: {
           select: {
             assetTag: true,

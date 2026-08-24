@@ -17,8 +17,11 @@ import { cn } from "@/lib/utils";
 export type DashboardAssetRow = {
   asset: string;
   category: string;
+  failure: number;
   health: number;
+  location: string;
   name: string;
+  recommendation: string;
   risk: string;
   updated: string;
 };
@@ -41,7 +44,9 @@ export function DashboardAssetTable({ rows }: DashboardAssetTableProps) {
         !normalizedQuery ||
         row.asset.toLowerCase().includes(normalizedQuery) ||
         row.name.toLowerCase().includes(normalizedQuery) ||
-        row.category.toLowerCase().includes(normalizedQuery);
+        row.category.toLowerCase().includes(normalizedQuery) ||
+        row.location.toLowerCase().includes(normalizedQuery) ||
+        row.recommendation.toLowerCase().includes(normalizedQuery);
       const matchesRisk = risk === "ALL" || row.risk === risk;
 
       return matchesQuery && matchesRisk;
@@ -80,14 +85,15 @@ export function DashboardAssetTable({ rows }: DashboardAssetTableProps) {
           ))}
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto px-4 pb-4">
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-200 bg-zinc-50/70">
               <TableHead>Asset</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead>Health</TableHead>
+              <TableHead>Failure</TableHead>
               <TableHead>Risk</TableHead>
+              <TableHead>Action</TableHead>
               <TableHead>Updated</TableHead>
             </TableRow>
           </TableHeader>
@@ -101,9 +107,9 @@ export function DashboardAssetTable({ rows }: DashboardAssetTableProps) {
                   <div>
                     <p className="font-medium text-zinc-950">{row.asset}</p>
                     <p className="text-xs text-zinc-500">{row.name}</p>
+                    <p className="text-xs text-zinc-400">{row.location}</p>
                   </div>
                 </TableCell>
-                <TableCell className="text-zinc-600">{row.category}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
@@ -116,7 +122,23 @@ export function DashboardAssetTable({ rows }: DashboardAssetTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-20 overflow-hidden rounded-full bg-zinc-100">
+                      <span
+                        className="block h-full rounded-full bg-red-500"
+                        style={{ width: `${row.failure}%` }}
+                      />
+                    </span>
+                    <span className="text-sm font-medium">{row.failure}%</span>
+                  </div>
+                </TableCell>
+                <TableCell>
                   <RiskBadge risk={row.risk} />
+                </TableCell>
+                <TableCell className="max-w-[18rem]">
+                  <p className="line-clamp-2 text-xs text-zinc-500">
+                    {row.recommendation}
+                  </p>
                 </TableCell>
                 <TableCell className="text-zinc-500">{row.updated}</TableCell>
               </TableRow>

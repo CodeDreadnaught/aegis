@@ -118,8 +118,13 @@ export default async function DashboardPage({
   const assetRows: DashboardAssetRow[] = latestPredictions.map((prediction) => ({
     asset: prediction.equipment.assetTag,
     category: formatEquipmentCategory(prediction.equipment.category),
+    failure: Math.round(Number(prediction.failureProbability) * 100),
     health: Number(prediction.healthScore),
+    location: prediction.equipment.location,
     name: prediction.equipment.name,
+    recommendation:
+      prediction.recommendations[0]?.message ??
+      "Continue monitoring and planned maintenance.",
     risk: prediction.riskLevel,
     updated: compactDateFormatter.format(prediction.createdAt),
   }));
@@ -680,7 +685,7 @@ function parseRange(value: string | string[] | undefined): DashboardRange {
     return Number(range) as DashboardRange;
   }
 
-  return 7;
+  return 1;
 }
 
 function average(values: number[]) {
