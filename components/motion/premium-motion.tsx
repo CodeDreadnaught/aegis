@@ -1,7 +1,7 @@
 "use client";
 
 import { createScope, createTimeline, stagger } from "animejs";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type PremiumMotionProps = {
   children: React.ReactNode;
@@ -15,28 +15,32 @@ export function PremiumMotion({
   profile = "workspace",
 }: PremiumMotionProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const [motionReady, setMotionReady] = useState(false);
 
   useEffect(() => {
     const root = rootRef.current;
 
-    if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      !root ||
+      profile === "login" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       return;
     }
 
     const scope = createScope({ root }).add(() => {
-      const isLogin = profile === "login";
       const timeline = createTimeline({
         defaults: {
-          ease: isLogin ? "outCubic" : "outExpo",
+          ease: "outExpo",
         },
       });
 
       if (root.querySelector("[data-motion='reveal']")) {
         timeline.add("[data-motion='reveal']", {
           opacity: [0, 1],
-          translateY: [isLogin ? 10 : 18, 0],
-          duration: isLogin ? 520 : 720,
-          delay: stagger(isLogin ? 55 : 75),
+          translateY: [18, 0],
+          duration: 720,
+          delay: stagger(75),
         });
       }
 
@@ -45,12 +49,12 @@ export function PremiumMotion({
           "[data-motion='panel']",
           {
             opacity: [0, 1],
-            translateY: [isLogin ? 12 : 24, 0],
-            scale: [isLogin ? 0.995 : 0.985, 1],
-            duration: isLogin ? 620 : 760,
-            delay: stagger(isLogin ? 65 : 85),
+            translateY: [24, 0],
+            scale: [0.985, 1],
+            duration: 760,
+            delay: stagger(85),
           },
-          isLogin ? "-=360" : "-=520"
+          "-=520"
         );
       }
 
@@ -67,26 +71,45 @@ export function PremiumMotion({
           "-=560"
         );
       }
-
-      if (profile === "login" && root.querySelector("[data-motion='signal']")) {
-        timeline.add(
-          "[data-motion='signal']",
-          {
-            opacity: [0.25, 0.72],
-            scaleX: [0.82, 1],
-            duration: 900,
-            delay: stagger(90),
-          },
-          "-=520"
-        );
-      }
     });
 
     return () => scope.revert();
   }, [profile]);
 
+  useEffect(() => {
+    if (profile !== "login") {
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    let timer: number | undefined;
+    const frame = window.requestAnimationFrame(() => {
+      timer = window.setTimeout(() => {
+        setMotionReady(true);
+      }, 120);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+
+      if (timer) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, [profile]);
+
   return (
-    <div className={className} data-motion-root={profile} ref={rootRef}>
+    <div
+      className={className}
+      data-motion-ready={
+        profile === "login" && motionReady ? "true" : undefined
+      }
+      data-motion-root={profile}
+      ref={rootRef}
+    >
       {children}
     </div>
   );

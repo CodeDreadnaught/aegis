@@ -174,6 +174,83 @@
     transform-origin: left center;
     background: linear-gradient(90deg, transparent, oklch(0.72 0.13 166), oklch(0.7 0.1 206), transparent);
   }
+
+  [data-motion-root="login"] [data-motion^="login-"] {
+    transition-property: opacity, transform;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  [data-motion-root="login"] [data-motion="login-shell"] {
+    opacity: 0.98;
+    transform: translate3d(0, 10px, 0) scale(0.996);
+    transition-duration: 780ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-visual"] {
+    opacity: 0.94;
+    transform: translate3d(-12px, 0, 0);
+    transition-duration: 780ms;
+    transition-delay: 40ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-image"] {
+    opacity: 1;
+    transform: scale(1.024);
+    transition-duration: 1200ms;
+    transition-delay: 40ms;
+    transform-origin: center;
+  }
+
+  [data-motion-root="login"] [data-motion="login-panel"] {
+    opacity: 0.94;
+    transform: translate3d(12px, 0, 0);
+    transition-duration: 760ms;
+    transition-delay: 60ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-brand"] {
+    opacity: 0.84;
+    transform: translate3d(0, 10px, 0);
+    transition-duration: 640ms;
+    transition-delay: 100ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-email-field"],
+  [data-motion-root="login"] [data-motion="login-password-field"] {
+    opacity: 0.86;
+    transform: translate3d(0, 10px, 0);
+    transition-duration: 620ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-email-field"] {
+    transition-delay: 160ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-password-field"] {
+    transition-delay: 220ms;
+  }
+
+  [data-motion-root="login"] [data-motion="login-submit"] {
+    opacity: 0.86;
+    transform: translate3d(0, 12px, 0) scale(0.985);
+    transition-duration: 640ms;
+    transition-delay: 280ms;
+  }
+
+  [data-motion-root="login"][data-motion-ready="true"] [data-motion^="login-"] {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-motion-root="login"] [data-motion^="login-"] {
+      opacity: 1;
+      transform: none;
+      transition: none;
+      will-change: auto;
+    }
+  }
 }
 
 .dark {

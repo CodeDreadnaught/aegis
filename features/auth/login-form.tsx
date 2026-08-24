@@ -43,7 +43,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
 
   return (
     <form action={formAction} className="grid gap-4">
-      <div className="grid gap-2">
+      <div className="grid gap-2" data-motion="login-email-field">
         <Label className={labelClassName} htmlFor="email">
           Email address
         </Label>
@@ -57,7 +57,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
           value={email}
         />
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-2" data-motion="login-password-field">
         <Label className={labelClassName} htmlFor="password">
           Password
         </Label>
@@ -95,6 +95,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
             ? "mt-2 h-12 justify-center rounded-full bg-zinc-50 px-5 text-zinc-950 hover:bg-zinc-200"
             : "mt-2 h-12 justify-center gap-2 rounded-full bg-zinc-950 px-5 text-white shadow-none hover:bg-zinc-800"
         }
+        data-motion="login-submit"
         disabled={pending || !canSubmit}
         type="submit"
       >
