@@ -1,14 +1,9 @@
-import {
-  Bell,
-  CaretRight,
-  MagnifyingGlass,
-  Power,
-  UserCircle,
-} from "@phosphor-icons/react/ssr";
+import { Bell, Power, UserCircle } from "@phosphor-icons/react/ssr";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { MobileNavigation } from "@/components/app-shell/mobile-navigation";
 import { NavigationLinks } from "@/components/app-shell/navigation-links";
+import { TopBreadcrumb } from "@/components/app-shell/top-breadcrumb";
 import { PremiumMotion } from "@/components/motion/premium-motion";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/features/auth/actions";
@@ -44,7 +39,6 @@ export function AppShell({ children, user }: AppShellProps) {
         <div className="mt-2" data-motion="reveal">
           <NavigationLinks role={user.role} />
         </div>
-
       </aside>
 
       <div className="lg:pl-[18.5rem]">
@@ -54,16 +48,7 @@ export function AppShell({ children, user }: AppShellProps) {
               <div className="lg:hidden">
                 <MobileNavigation role={user.role} />
               </div>
-              <div className="hidden items-center gap-2 text-xs font-medium text-zinc-500 sm:flex">
-                <span>AEGIS</span>
-                <CaretRight aria-hidden="true" className="size-3" />
-                <span>Dashboard</span>
-              </div>
-            </div>
-
-            <div className="hidden h-10 min-w-[18rem] items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-500 md:flex">
-              <MagnifyingGlass aria-hidden="true" className="size-4" />
-              <span>Search assets</span>
+              <TopBreadcrumb />
             </div>
 
             <div className="ml-auto flex items-center gap-2">

@@ -1,18 +1,34 @@
 import { prisma } from "@/server/db/client";
+import type {
+  EquipmentCategory,
+  EquipmentStatus,
+} from "@/generated/prisma/enums";
 
-export async function getEquipmentList(query?: string) {
+type EquipmentListFilters = {
+  category?: EquipmentCategory;
+  status?: EquipmentStatus;
+};
+
+export async function getEquipmentList(
+  query?: string,
+  filters: EquipmentListFilters = {}
+) {
   const search = query?.trim();
 
   return prisma.equipment.findMany({
-    where: search
-      ? {
-          OR: [
-            { assetTag: { contains: search, mode: "insensitive" } },
-            { name: { contains: search, mode: "insensitive" } },
-            { location: { contains: search, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      ...(filters.category ? { category: filters.category } : {}),
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { assetTag: { contains: search, mode: "insensitive" } },
+              { name: { contains: search, mode: "insensitive" } },
+              { location: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     orderBy: [{ status: "asc" }, { assetTag: "asc" }],
     take: 50,
     select: {
@@ -23,6 +39,37 @@ export async function getEquipmentList(query?: string) {
       status: true,
       location: true,
       updatedAt: true,
+      _count: {
+        select: {
+          maintenanceRecords: true,
+          operationalReadings: true,
+        },
+      },
+      maintenanceRecords: {
+        orderBy: { performedAt: "desc" },
+        take: 1,
+        select: {
+          nextDueDate: true,
+          status: true,
+        },
+      },
+      operationalReadings: {
+        orderBy: { recordedAt: "desc" },
+        take: 1,
+        select: {
+          recordedAt: true,
+        },
+      },
+      predictions: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          failureProbability: true,
+          healthScore: true,
+          riskLevel: true,
+          createdAt: true,
+        },
+      },
     },
   });
 }
