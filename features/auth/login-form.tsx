@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { ArrowRight, Eye, EyeSlash, SpinnerGap } from "@phosphor-icons/react";
 
 import { loginAction, type LoginActionState } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
   const [email, setEmail] = useState(state.fields?.email ?? "");
   const [password, setPassword] = useState(state.fields?.password ?? "");
   const [showPassword, setShowPassword] = useState(false);
+  const submittingRef = useRef(false);
   const isDark = surface === "dark";
   const labelClassName = isDark
     ? "text-xs font-semibold uppercase tracking-widest text-zinc-400"
@@ -34,6 +35,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
       return;
     }
 
+    submittingRef.current = false;
     toast.error({
       id: "login-error",
       title: "Sign in failed",
@@ -42,7 +44,18 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
   }, [state]);
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form
+      action={formAction}
+      className="grid gap-4"
+      onSubmit={(event) => {
+        if (submittingRef.current || !canSubmit) {
+          event.preventDefault();
+          return;
+        }
+
+        submittingRef.current = true;
+      }}
+    >
       <div className="grid gap-2" data-motion="login-email-field">
         <Label className={labelClassName} htmlFor="email">
           Email address
@@ -100,7 +113,11 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
         type="submit"
       >
         {pending ? "Signing in" : "Login"}
-        <ArrowRight aria-hidden="true" className="size-4" />
+        {pending ? (
+          <SpinnerGap aria-hidden="true" className="size-4 animate-spin" />
+        ) : (
+          <ArrowRight aria-hidden="true" className="size-4" />
+        )}
       </Button>
     </form>
   );
