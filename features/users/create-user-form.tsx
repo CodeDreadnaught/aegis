@@ -1,7 +1,7 @@
 "use client";
 
 import { UserCirclePlus } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import type { UserRole, UserStatus } from "@/generated/prisma/enums";
 
 import { Button } from "@/components/ui/button";
@@ -20,17 +20,44 @@ import {
   userStatusLabels,
   userStatusOptions,
 } from "@/features/users/validation";
+import { getActionErrorMessage } from "@/lib/action-error";
+import { toast } from "@/components/ui/toast";
 
 export function CreateUserForm({
   action,
 }: {
   action: (formData: FormData) => void | Promise<void>;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pending, startTransition] = useTransition();
   const [role, setRole] = useState<UserRole>("MAINTENANCE_ENGINEER");
   const [status, setStatus] = useState<UserStatus>("ACTIVE");
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    startTransition(async () => {
+      try {
+        await action(new FormData(form));
+        formRef.current?.reset();
+        setRole("MAINTENANCE_ENGINEER");
+        setStatus("ACTIVE");
+        toast.success({
+          title: "User created",
+          description: "The operator account is now available.",
+        });
+      } catch (error) {
+        toast.error({
+          title: "User was not created",
+          description: getActionErrorMessage(error),
+        });
+      }
+    });
+  }
+
   return (
-    <form action={action} className="space-y-4">
+    <form className="space-y-4" onSubmit={handleSubmit} ref={formRef}>
       <input name="role" type="hidden" value={role} />
       <input name="status" type="hidden" value={status} />
 
@@ -105,9 +132,9 @@ export function CreateUserForm({
           </Select>
         </div>
       </div>
-      <Button className="w-full" type="submit">
+      <Button className="w-full" disabled={pending} type="submit">
         <UserCirclePlus />
-        Create user
+        {pending ? "Creating user" : "Create user"}
       </Button>
     </form>
   );

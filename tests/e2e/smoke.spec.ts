@@ -24,4 +24,23 @@ test("root renders login shell for unauthenticated users", async ({ page }) => {
   await expect(page.getByLabel("Email address")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Show password" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Login" })).toBeDisabled();
+});
+
+test("failed login keeps submitted fields and shows a toast", async ({ page }) => {
+  await page.goto("/");
+
+  const email = page.getByLabel("Email address");
+  const password = page.getByRole("textbox", { name: "Password" });
+  const login = page.getByRole("button", { name: "Login" });
+
+  await email.fill("wrong.operator@aegis.demo");
+  await expect(login).toBeDisabled();
+  await password.fill("WrongPassword123!");
+  await expect(login).toBeEnabled();
+  await login.click();
+
+  await expect(page.locator("h2").filter({ hasText: "Sign in failed" })).toBeVisible();
+  await expect(email).toHaveValue("wrong.operator@aegis.demo");
+  await expect(password).toHaveValue("WrongPassword123!");
 });

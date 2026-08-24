@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bell, CheckCircle, Warning } from "@phosphor-icons/react/ssr";
 
+import { ActionToastForm } from "@/components/action-toast-form";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -112,8 +113,11 @@ export default async function AlertsPage() {
                     <TableCell className="pr-6">
                       <div className="flex justify-end gap-2">
                         {alert.status === "ACTIVE" && (
-                          <form
+                          <ActionToastForm
                             action={acknowledgeAlertAction.bind(null, alert.id)}
+                            errorTitle="Alert was not acknowledged"
+                            successDescription="The alert moved into the acknowledged queue."
+                            successTitle="Alert acknowledged"
                           >
                             <button
                               className={buttonVariants({
@@ -124,10 +128,15 @@ export default async function AlertsPage() {
                             >
                               Acknowledge
                             </button>
-                          </form>
+                          </ActionToastForm>
                         )}
                         {alert.status !== "RESOLVED" && (
-                          <form action={resolveAlertAction.bind(null, alert.id)}>
+                          <ActionToastForm
+                            action={resolveAlertAction.bind(null, alert.id)}
+                            errorTitle="Alert was not resolved"
+                            successDescription="The alert has been marked as resolved."
+                            successTitle="Alert resolved"
+                          >
                             <button
                               className={buttonVariants({
                                 variant: "ghost",
@@ -137,7 +146,7 @@ export default async function AlertsPage() {
                             >
                               Resolve
                             </button>
-                          </form>
+                          </ActionToastForm>
                         )}
                       </div>
                     </TableCell>

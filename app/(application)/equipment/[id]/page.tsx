@@ -9,6 +9,7 @@ import {
   ShieldWarning,
 } from "@phosphor-icons/react/ssr";
 
+import { ActionToastForm } from "@/components/action-toast-form";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -61,7 +62,12 @@ export default async function EquipmentDetailsPage({
             <PencilSimple />
             Edit
           </Link>
-          <form action={decommission}>
+          <ActionToastForm
+            action={decommission}
+            errorTitle="Equipment was not decommissioned"
+            successDescription="The asset status has been updated."
+            successTitle="Equipment decommissioned"
+          >
             <button
               className={buttonVariants({
                 variant: "destructive",
@@ -72,7 +78,7 @@ export default async function EquipmentDetailsPage({
               <ShieldWarning />
               Decommission
             </button>
-          </form>
+          </ActionToastForm>
         </div>
       </div>
 

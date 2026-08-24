@@ -1,4 +1,7 @@
-import { Wrench } from "@phosphor-icons/react/ssr";
+"use client";
+
+import { useRef, useTransition, type FormEvent } from "react";
+import { Wrench } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +18,8 @@ import {
   formatMaintenanceStatus,
   maintenanceStatuses,
 } from "@/features/maintenance/validation";
+import { getActionErrorMessage } from "@/lib/action-error";
+import { toast } from "@/components/ui/toast";
 
 type MaintenanceFormProps = {
   action: (formData: FormData) => Promise<void>;
@@ -26,7 +31,30 @@ type MaintenanceFormProps = {
 };
 
 export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pending, startTransition] = useTransition();
   const today = new Date().toISOString().slice(0, 10);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    startTransition(async () => {
+      try {
+        await action(new FormData(form));
+        formRef.current?.reset();
+        toast.success({
+          title: "Maintenance saved",
+          description: "The maintenance record was added.",
+        });
+      } catch (error) {
+        toast.error({
+          title: "Maintenance was not saved",
+          description: getActionErrorMessage(error),
+        });
+      }
+    });
+  }
 
   return (
     <Card className="premium-panel motion-card">
@@ -41,7 +69,7 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={action} className="grid gap-4">
+        <form className="grid gap-4" onSubmit={handleSubmit} ref={formRef}>
           <div className="grid gap-2">
             <Label htmlFor="equipmentId">Equipment</Label>
             <select
@@ -106,9 +134,9 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
               required
             />
           </div>
-          <Button disabled={!equipment.length} type="submit">
+          <Button disabled={!equipment.length || pending} type="submit">
             <Wrench />
-            Save maintenance
+            {pending ? "Saving maintenance" : "Save maintenance"}
           </Button>
         </form>
       </CardContent>

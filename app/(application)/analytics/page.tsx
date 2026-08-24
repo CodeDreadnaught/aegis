@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Brain, ChartLineUp, ShieldWarning } from "@phosphor-icons/react/ssr";
 
+import { ActionToastForm } from "@/components/action-toast-form";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -123,7 +124,12 @@ export default async function AnalyticsPage() {
                           )}
                         </TableCell>
                         <TableCell className="pr-6 text-right">
-                          <form action={runPredictionAction.bind(null, reading.id)}>
+                          <ActionToastForm
+                            action={runPredictionAction.bind(null, reading.id)}
+                            errorTitle="Prediction was not run"
+                            successDescription="The model output and recommendation were saved."
+                            successTitle="Prediction complete"
+                          >
                             <button
                               className={buttonVariants({
                                 variant: "outline",
@@ -134,7 +140,7 @@ export default async function AnalyticsPage() {
                               <Brain />
                               Run
                             </button>
-                          </form>
+                          </ActionToastForm>
                         </TableCell>
                       </TableRow>
                     );

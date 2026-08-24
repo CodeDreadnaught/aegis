@@ -24,18 +24,19 @@ export function PremiumMotion({
     }
 
     const scope = createScope({ root }).add(() => {
+      const isLogin = profile === "login";
       const timeline = createTimeline({
         defaults: {
-          ease: "outElastic(1, .8)",
+          ease: isLogin ? "outCubic" : "outExpo",
         },
       });
 
       if (root.querySelector("[data-motion='reveal']")) {
         timeline.add("[data-motion='reveal']", {
           opacity: [0, 1],
-          translateY: [18, 0],
-          duration: 720,
-          delay: stagger(75),
+          translateY: [isLogin ? 10 : 18, 0],
+          duration: isLogin ? 520 : 720,
+          delay: stagger(isLogin ? 55 : 75),
         });
       }
 
@@ -44,12 +45,12 @@ export function PremiumMotion({
           "[data-motion='panel']",
           {
             opacity: [0, 1],
-            translateY: [24, 0],
-            scale: [0.985, 1],
-            duration: 760,
-            delay: stagger(85),
+            translateY: [isLogin ? 12 : 24, 0],
+            scale: [isLogin ? 0.995 : 0.985, 1],
+            duration: isLogin ? 620 : 760,
+            delay: stagger(isLogin ? 65 : 85),
           },
-          "-=520"
+          isLogin ? "-=360" : "-=520"
         );
       }
 

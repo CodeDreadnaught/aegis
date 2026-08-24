@@ -9,19 +9,30 @@ import { createSession, destroyCurrentSession } from "@/server/auth/session";
 
 export type LoginActionState = {
   error?: string;
+  fields?: {
+    email: string;
+    password: string;
+  };
 };
 
 export async function loginAction(
   _previousState: LoginActionState,
   formData: FormData
 ): Promise<LoginActionState> {
+  const fields = {
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  };
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
+    email: fields.email,
+    password: fields.password,
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid login details." };
+    return {
+      error: parsed.error.issues[0]?.message ?? "Invalid login details.",
+      fields,
+    };
   }
 
   const user = await prisma.user.findUnique({
@@ -34,18 +45,18 @@ export async function loginAction(
   });
 
   if (!user || user.status !== "ACTIVE") {
-    return { error: "Invalid email or password." };
+    return { error: "Invalid email or password.", fields };
   }
 
   const validPassword = await compare(parsed.data.password, user.passwordHash);
 
   if (!validPassword) {
-    return { error: "Invalid email or password." };
+    return { error: "Invalid email or password.", fields };
   }
 
   await createSession(user.id);
 
-  redirect("/dashboard");
+  redirect("/dashboard?toast=login-success");
 }
 
 export async function logoutAction() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import type { UserRole, UserStatus } from "@/generated/prisma/enums";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
   userStatusLabels,
   userStatusOptions,
 } from "@/features/users/validation";
+import { getActionErrorMessage } from "@/lib/action-error";
+import { toast } from "@/components/ui/toast";
 
 export function UserAccessForm({
   action,
@@ -29,13 +31,34 @@ export function UserAccessForm({
   status: UserStatus;
   userId: string;
 }) {
+  const [pending, startTransition] = useTransition();
   const [role, setRole] = useState<UserRole>(initialRole);
   const [status, setStatus] = useState<UserStatus>(initialStatus);
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    startTransition(async () => {
+      try {
+        await action(new FormData(form));
+        toast.success({
+          title: "Access updated",
+          description: "The user permissions were saved.",
+        });
+      } catch (error) {
+        toast.error({
+          title: "Access was not updated",
+          description: getActionErrorMessage(error),
+        });
+      }
+    });
+  }
+
   return (
     <form
-      action={action}
       className="ml-auto grid max-w-md gap-2 sm:grid-cols-[1fr_1fr_auto]"
+      onSubmit={handleSubmit}
     >
       <input name="userId" type="hidden" value={userId} />
       <input name="role" type="hidden" value={role} />
@@ -81,8 +104,8 @@ export function UserAccessForm({
         </SelectContent>
       </Select>
 
-      <Button type="submit" variant="outline">
-        Save
+      <Button disabled={pending} type="submit" variant="outline">
+        {pending ? "Saving" : "Save"}
       </Button>
     </form>
   );

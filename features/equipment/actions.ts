@@ -32,7 +32,7 @@ export async function createEquipmentAction(formData: FormData) {
   });
 
   revalidatePath("/equipment");
-  redirect(`/equipment/${equipment.id}`);
+  redirect(`/equipment/${equipment.id}?toast=equipment-created`);
 }
 
 export async function updateEquipmentAction(id: string, formData: FormData) {
@@ -46,7 +46,7 @@ export async function updateEquipmentAction(id: string, formData: FormData) {
 
   revalidatePath("/equipment");
   revalidatePath(`/equipment/${id}`);
-  redirect(`/equipment/${id}`);
+  redirect(`/equipment/${id}?toast=equipment-updated`);
 }
 
 export async function decommissionEquipmentAction(id: string) {

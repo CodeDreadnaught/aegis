@@ -1,4 +1,7 @@
-import { Database } from "@phosphor-icons/react/ssr";
+"use client";
+
+import { useRef, useTransition, type FormEvent } from "react";
+import { Database } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +18,8 @@ import {
   productTypes,
   sourceTypes,
 } from "@/features/operational-readings/validation";
+import { getActionErrorMessage } from "@/lib/action-error";
+import { toast } from "@/components/ui/toast";
 
 type ReadingFormProps = {
   action: (formData: FormData) => Promise<void>;
@@ -26,7 +31,30 @@ type ReadingFormProps = {
 };
 
 export function ReadingForm({ action, equipment }: ReadingFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pending, startTransition] = useTransition();
   const now = new Date().toISOString().slice(0, 16);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    startTransition(async () => {
+      try {
+        await action(new FormData(form));
+        formRef.current?.reset();
+        toast.success({
+          title: "Reading saved",
+          description: "The operational data point was recorded.",
+        });
+      } catch (error) {
+        toast.error({
+          title: "Reading was not saved",
+          description: getActionErrorMessage(error),
+        });
+      }
+    });
+  }
 
   return (
     <Card className="premium-panel motion-card">
@@ -41,7 +69,11 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={action} className="grid gap-4 md:grid-cols-2">
+        <form
+          className="grid gap-4 md:grid-cols-2"
+          onSubmit={handleSubmit}
+          ref={formRef}
+        >
           <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="equipmentId">Equipment</Label>
             <select
@@ -135,9 +167,9 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
             step="0.1"
           />
           <div className="md:col-span-2">
-            <Button disabled={!equipment.length} type="submit">
+            <Button disabled={!equipment.length || pending} type="submit">
               <Database />
-              Save reading
+              {pending ? "Saving reading" : "Save reading"}
             </Button>
           </div>
         </form>

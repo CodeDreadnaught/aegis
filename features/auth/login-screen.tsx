@@ -29,10 +29,13 @@ export function LoginScreen() {
 
           <aside
             className="flex items-center justify-center px-6 py-8 sm:px-10 sm:py-10 md:px-8 lg:px-14 xl:min-h-full xl:px-16"
-            data-motion="reveal"
+            data-motion="panel"
           >
             <div className="w-full max-w-[21.25rem] md:max-w-[22rem]">
-              <div className="mb-8 text-center sm:mb-10 md:mb-9" data-motion="reveal">
+              <div
+                className="mb-8 text-center sm:mb-10 md:mb-9"
+                data-motion="reveal"
+              >
                 <BrandLogo className="mx-auto mb-5 size-10 rounded-none shadow-none sm:size-11" />
                 <h1 className="text-4xl font-semibold leading-none tracking-normal text-zinc-950 sm:text-5xl md:text-4xl lg:text-5xl">
                   AEGIS
