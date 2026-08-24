@@ -45,33 +45,6 @@ export function AppShell({ children, user }: AppShellProps) {
           <NavigationLinks role={user.role} />
         </div>
 
-        <div
-          className="absolute inset-x-3 bottom-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-          data-motion="reveal"
-        >
-          <div className="mb-3 flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-full bg-zinc-950 text-white">
-              <UserCircle aria-hidden="true" className="size-5" weight="fill" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{user.name}</p>
-              <p className="truncate text-[11px] uppercase text-zinc-500">
-                {roleLabel}
-              </p>
-            </div>
-          </div>
-          <form action={logoutAction}>
-            <Button
-              className="h-10 w-full justify-between rounded-full border-zinc-300 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white"
-              size="sm"
-              type="submit"
-              variant="outline"
-            >
-              Logout
-              <SignOut aria-hidden="true" className="size-4" />
-            </Button>
-          </form>
-        </div>
       </aside>
 
       <div className="lg:pl-[18.5rem]">
@@ -115,6 +88,17 @@ export function AppShell({ children, user }: AppShellProps) {
                   </p>
                 </div>
               </div>
+              <form action={logoutAction}>
+                <Button
+                  className="size-10 rounded-full border-zinc-200 bg-white hover:bg-zinc-950 hover:text-white"
+                  size="icon"
+                  type="submit"
+                  variant="outline"
+                >
+                  <SignOut aria-hidden="true" className="size-4" />
+                  <span className="sr-only">Logout</span>
+                </Button>
+              </form>
             </div>
           </div>
         </header>
