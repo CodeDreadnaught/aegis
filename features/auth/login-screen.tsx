@@ -25,17 +25,6 @@ export function LoginScreen() {
               sizes="(min-width: 1024px) 52vw, 100vw"
               src="/login-aegis-color-illustration.png"
             />
-            <div
-              className="absolute inset-x-0 top-0 px-5 pt-5 text-center text-zinc-950 [text-shadow:0_2px_18px_rgba(255,255,255,0.72)] sm:px-7 sm:pt-7 md:px-8 md:pt-8 md:text-left lg:px-10 lg:pt-10"
-              data-motion="reveal"
-            >
-              <h2 className="text-4xl font-semibold leading-none tracking-normal sm:text-5xl md:text-6xl lg:text-7xl">
-                AEGIS
-              </h2>
-              <p className="mx-auto mt-3 max-w-xl text-base font-medium leading-6 text-zinc-800 sm:mt-4 sm:text-lg sm:leading-7 md:mx-0 lg:text-xl lg:leading-8">
-                AI-Driven Equipment Guardian for Intelligent Surveillance
-              </p>
-            </div>
           </div>
 
           <aside
@@ -43,8 +32,16 @@ export function LoginScreen() {
             data-motion="reveal"
           >
             <div className="w-full max-w-[21.25rem] md:max-w-[22rem]">
-              <BrandLogo className="mx-auto mb-8 size-10 rounded-none shadow-none sm:mb-10 sm:size-11 md:mb-8" />
-              <div>
+              <div className="mb-8 text-center sm:mb-10 md:mb-9" data-motion="reveal">
+                <BrandLogo className="mx-auto mb-5 size-10 rounded-none shadow-none sm:size-11" />
+                <h1 className="text-4xl font-semibold leading-none tracking-normal text-zinc-950 sm:text-5xl md:text-4xl lg:text-5xl">
+                  AEGIS
+                </h1>
+                <p className="mx-auto mt-4 max-w-[20rem] text-sm font-medium leading-6 text-zinc-600 sm:text-base sm:leading-7">
+                  AI-Driven Equipment Guardian for Intelligent Surveillance
+                </p>
+              </div>
+              <div data-motion="reveal">
                 <LoginForm />
               </div>
             </div>
