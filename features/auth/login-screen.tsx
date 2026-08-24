@@ -25,6 +25,17 @@ export function LoginScreen() {
               sizes="(min-width: 1024px) 52vw, 100vw"
               src="/login-upstream-ai-maintenance.png"
             />
+            <div
+              className="absolute inset-x-0 bottom-0 px-6 pb-7 text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.82)] sm:px-8 sm:pb-9 lg:px-10 lg:pb-10"
+              data-motion="reveal"
+            >
+              <h2 className="text-5xl font-semibold leading-none tracking-normal sm:text-6xl lg:text-7xl">
+                AEGIS
+              </h2>
+              <p className="mt-4 max-w-xl text-lg font-medium leading-7 text-white/92 sm:text-xl sm:leading-8">
+                AI-Driven Equipment Guardian for Intelligent Surveillance
+              </p>
+            </div>
           </div>
 
           <aside

@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { ArrowRight } from "@phosphor-icons/react";
+import { useActionState, useState } from "react";
+import { ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
 
 import { loginAction, type LoginActionState } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ type LoginFormProps = {
 
 export function LoginForm({ surface = "light" }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const [showPassword, setShowPassword] = useState(false);
   const isDark = surface === "dark";
   const labelClassName = isDark
     ? "text-xs font-semibold uppercase tracking-widest text-zinc-400"
@@ -35,7 +36,6 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
           className={inputClassName}
           id="email"
           name="email"
-          placeholder="yourname@mail.com"
           type="email"
         />
       </div>
@@ -43,14 +43,31 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
         <Label className={labelClassName} htmlFor="password">
           Password
         </Label>
-        <Input
-          autoComplete="current-password"
-          className={inputClassName}
-          id="password"
-          name="password"
-          placeholder="********"
-          type="password"
-        />
+        <div className="relative">
+          <Input
+            autoComplete="current-password"
+            className={`${inputClassName} pr-12`}
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+          />
+          <button
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className={
+              isDark
+                ? "absolute right-4 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition-colors hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-200/30"
+                : "absolute right-4 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full text-zinc-500 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950/20"
+            }
+            onClick={() => setShowPassword((current) => !current)}
+            type="button"
+          >
+            {showPassword ? (
+              <EyeSlash aria-hidden="true" className="size-4" />
+            ) : (
+              <Eye aria-hidden="true" className="size-4" />
+            )}
+          </button>
+        </div>
       </div>
       {state.error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

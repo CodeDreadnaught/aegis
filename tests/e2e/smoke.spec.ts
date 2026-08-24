@@ -28,5 +28,6 @@ test("root renders login shell for unauthenticated users", async ({ page }) => {
     page.getByRole("heading", { name: "Login to your account" })
   ).toBeVisible();
   await expect(page.getByLabel("Email address")).toBeVisible();
-  await expect(page.getByLabel("Password")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show password" })).toBeVisible();
 });
