@@ -20,6 +20,7 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
   const [email, setEmail] = useState(state.fields?.email ?? "");
   const [password, setPassword] = useState(state.fields?.password ?? "");
   const [showPassword, setShowPassword] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const submittingRef = useRef(false);
   const isDark = surface === "dark";
   const labelClassName = isDark
@@ -29,6 +30,16 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
     ? "h-12 rounded-full border-zinc-800 bg-zinc-900/72 px-5 text-zinc-50 placeholder:text-zinc-500 focus-visible:border-zinc-200 focus-visible:ring-zinc-200/18"
     : "h-12 rounded-full border-zinc-200 bg-zinc-50 px-5 text-zinc-950 shadow-none placeholder:text-zinc-400 focus-visible:border-zinc-950 focus-visible:ring-zinc-950/12";
   const canSubmit = email.trim().length > 0 && password.length > 0;
+
+  const syncFieldsFromForm = (form = formRef.current) => {
+    if (!form) {
+      return;
+    }
+
+    const formData = new FormData(form);
+    setEmail(String(formData.get("email") ?? ""));
+    setPassword(String(formData.get("password") ?? ""));
+  };
 
   useEffect(() => {
     if (!state.error) {
@@ -43,10 +54,30 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
     });
   }, [state]);
 
+  useEffect(() => {
+    const form = formRef.current;
+
+    if (!form) {
+      return;
+    }
+
+    const sync = () => syncFieldsFromForm(form);
+
+    sync();
+    form.addEventListener("input", sync);
+    form.addEventListener("change", sync);
+
+    return () => {
+      form.removeEventListener("input", sync);
+      form.removeEventListener("change", sync);
+    };
+  }, []);
+
   return (
     <form
       action={formAction}
       className="grid gap-4"
+      onInput={(event) => syncFieldsFromForm(event.currentTarget)}
       onSubmit={(event) => {
         if (submittingRef.current || !canSubmit) {
           event.preventDefault();
@@ -65,7 +96,6 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
           className={inputClassName}
           id="email"
           name="email"
-          onChange={(event) => setEmail(event.target.value)}
           type="email"
           value={email}
         />
@@ -80,7 +110,6 @@ export function LoginForm({ surface = "light" }: LoginFormProps) {
             className={`${inputClassName} pr-12`}
             id="password"
             name="password"
-            onChange={(event) => setPassword(event.target.value)}
             type={showPassword ? "text" : "password"}
             value={password}
           />

@@ -17,7 +17,7 @@ export function NavigationLinks({ onNavigate, role }: NavigationLinksProps) {
   const navigationItems = getNavigationItems(role);
 
   return (
-    <nav className="grid gap-1.5">
+    <nav className="grid gap-1">
       {navigationItems.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -26,9 +26,9 @@ export function NavigationLinks({ onNavigate, role }: NavigationLinksProps) {
         return (
           <Link
             className={cn(
-              "group relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/8 hover:text-sidebar-accent-foreground",
+              "group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-500 transition-all duration-200 hover:bg-zinc-50 hover:text-zinc-950",
               isActive &&
-                "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-emerald-950/25"
+                "bg-zinc-950 text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)]"
             )}
             href={item.href}
             key={item.href}
@@ -37,7 +37,7 @@ export function NavigationLinks({ onNavigate, role }: NavigationLinksProps) {
             {isActive && (
               <span
                 aria-hidden="true"
-                className="absolute left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-sidebar-primary-foreground/70"
+                className="absolute left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-white/70"
               />
             )}
             <Icon

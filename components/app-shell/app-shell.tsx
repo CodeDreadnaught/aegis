@@ -1,6 +1,7 @@
 import {
   Bell,
   CaretRight,
+  MagnifyingGlass,
   SignOut,
   UserCircle,
 } from "@phosphor-icons/react/ssr";
@@ -22,56 +23,46 @@ export function AppShell({ children, user }: AppShellProps) {
   const roleLabel = user.role.replaceAll("_", " ");
 
   return (
-    <PremiumMotion className="aegis-workspace min-h-dvh" profile="workspace">
-      <aside className="fixed inset-y-3 left-3 hidden w-72 rounded-lg border border-white/10 bg-[linear-gradient(180deg,oklch(0.18_0.026_248),oklch(0.12_0.018_248))] p-3 text-sidebar-foreground shadow-2xl shadow-slate-950/35 lg:block">
-        <div
-          className="mb-4 rounded-md border border-white/10 bg-white/[0.045] p-3"
-          data-motion="reveal"
-        >
-          <div className="flex items-center gap-3">
-            <BrandLogo className="shadow-lg shadow-emerald-950/30" />
-            <div>
-              <p className="text-lg font-semibold tracking-normal">AEGIS</p>
-              <p className="text-xs text-sidebar-foreground/62">
-                Intelligent Surveillance
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-1">
-            {["Live", "Risk", "AI"].map((item) => (
-              <div
-                className="rounded-md border border-white/10 bg-white/[0.055] px-2 py-1.5 text-center text-[11px] font-medium text-sidebar-foreground/70"
-                key={item}
-              >
-                {item}
-              </div>
-            ))}
+    <PremiumMotion
+      className="min-h-dvh bg-[#f6f6f4] text-zinc-950"
+      profile="workspace"
+    >
+      <aside className="fixed inset-y-3 left-3 hidden w-[17rem] rounded-lg border border-zinc-200 bg-white p-3 shadow-[0_24px_80px_rgba(24,24,27,0.08)] lg:block">
+        <div className="flex items-center gap-3 px-2 py-2" data-motion="reveal">
+          <BrandLogo className="size-10 rounded-lg bg-transparent shadow-none" />
+          <div className="min-w-0">
+            <p className="text-base font-semibold tracking-normal">AEGIS</p>
+            <p className="truncate text-xs text-zinc-500">
+              Intelligent Surveillance
+            </p>
           </div>
         </div>
-        <div className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/42">
-          Command
+
+        <div className="mt-5 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+          Menu
         </div>
-        <div data-motion="reveal">
+        <div className="mt-2" data-motion="reveal">
           <NavigationLinks role={user.role} />
         </div>
+
         <div
-          className="absolute inset-x-3 bottom-3 rounded-md border border-white/10 bg-white/[0.055] p-3"
+          className="absolute inset-x-3 bottom-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
           data-motion="reveal"
         >
           <div className="mb-3 flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-md bg-white/10 text-sidebar-foreground">
+            <div className="grid size-9 place-items-center rounded-full bg-zinc-950 text-white">
               <UserCircle aria-hidden="true" className="size-5" weight="fill" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{user.name}</p>
-              <p className="truncate text-[11px] text-sidebar-foreground/58">
+              <p className="truncate text-[11px] uppercase text-zinc-500">
                 {roleLabel}
               </p>
             </div>
           </div>
           <form action={logoutAction}>
             <Button
-              className="w-full justify-between"
+              className="h-10 w-full justify-between rounded-full border-zinc-300 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white"
               size="sm"
               type="submit"
               variant="outline"
@@ -82,37 +73,44 @@ export function AppShell({ children, user }: AppShellProps) {
           </form>
         </div>
       </aside>
-      <div className="lg:pl-[19.5rem]">
-        <header className="sticky top-0 z-30 px-3 pt-3 lg:px-6">
-          <div className="aegis-panel flex items-center justify-between gap-4 px-4 py-3">
-            <div className="flex items-center gap-3">
+
+      <div className="lg:pl-[18.5rem]">
+        <header className="sticky top-0 z-30 px-3 pt-3 lg:px-5">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/92 px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.07)] backdrop-blur-xl">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="lg:hidden">
                 <MobileNavigation role={user.role} />
               </div>
-              <div>
-                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <span>AEGIS</span>
-                  <CaretRight aria-hidden="true" className="size-3" />
-                  <span>Operations Console</span>
-                </div>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  AI-Driven Equipment Guardian
-                </p>
+              <div className="hidden items-center gap-2 text-xs font-medium text-zinc-500 sm:flex">
+                <span>AEGIS</span>
+                <CaretRight aria-hidden="true" className="size-3" />
+                <span>Dashboard</span>
               </div>
             </div>
+
+            <div className="hidden h-10 min-w-[18rem] items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-500 md:flex">
+              <MagnifyingGlass aria-hidden="true" className="size-4" />
+              <span>Search assets</span>
+            </div>
+
             <div className="ml-auto flex items-center gap-2">
-              <div className="hidden items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 sm:flex">
-                <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.75)]" />
-                Production ready
-              </div>
-              <Button size="icon" variant="outline">
+              <Button
+                className="size-10 rounded-full border-zinc-200 bg-white"
+                size="icon"
+                variant="outline"
+              >
                 <Bell aria-hidden="true" className="size-4" />
                 <span className="sr-only">View notifications</span>
               </Button>
-              <div className="hidden items-center gap-3 rounded-md border border-border/70 bg-white/70 px-3 py-1.5 text-right lg:flex">
-                <div>
-                  <p className="text-sm font-semibold">{user.name}</p>
-                  <p className="text-[11px] uppercase text-muted-foreground">
+              <div className="hidden items-center gap-3 rounded-full border border-zinc-200 bg-zinc-50 py-1 pl-1 pr-3 lg:flex">
+                <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+                  <UserCircle aria-hidden="true" className="size-5" weight="fill" />
+                </div>
+                <div className="min-w-0">
+                  <p className="max-w-36 truncate text-sm font-semibold">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-[11px] uppercase text-zinc-500">
                     {roleLabel}
                   </p>
                 </div>
@@ -120,9 +118,9 @@ export function AppShell({ children, user }: AppShellProps) {
             </div>
           </div>
         </header>
-        <div className="mx-auto w-full max-w-7xl px-3 py-6 lg:px-6">
+        <main className="mx-auto w-full max-w-[1480px] px-3 py-4 lg:px-5">
           <div data-motion="reveal">{children}</div>
-        </div>
+        </main>
       </div>
     </PremiumMotion>
   );

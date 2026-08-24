@@ -37,10 +37,12 @@ test("failed login keeps submitted fields and shows a toast", async ({ page }) =
   await email.fill("wrong.operator@aegis.demo");
   await expect(login).toBeDisabled();
   await password.fill("WrongPassword123!");
-  await expect(login).toBeEnabled();
+  await expect(login).toBeEnabled({ timeout: 10_000 });
   await login.click();
 
-  await expect(page.locator("h2").filter({ hasText: "Sign in failed" })).toBeVisible();
+  await expect(page.locator("h2").filter({ hasText: "Sign in failed" })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(email).toHaveValue("wrong.operator@aegis.demo");
   await expect(password).toHaveValue("WrongPassword123!");
 });

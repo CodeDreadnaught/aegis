@@ -35,14 +35,24 @@ export async function loginAction(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: parsed.data.email },
-    select: {
-      id: true,
-      passwordHash: true,
-      status: true,
-    },
-  });
+  let user: {
+    id: string;
+    passwordHash: string;
+    status: string;
+  } | null;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+      select: {
+        id: true,
+        passwordHash: true,
+        status: true,
+      },
+    });
+  } catch {
+    return { error: "Unable to sign in right now.", fields };
+  }
 
   if (!user || user.status !== "ACTIVE") {
     return { error: "Invalid email or password.", fields };

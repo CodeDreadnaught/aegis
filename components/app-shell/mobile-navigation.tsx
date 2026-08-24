@@ -29,14 +29,14 @@ export function MobileNavigation({ role }: MobileNavigationProps) {
         <List aria-hidden="true" className="size-5" />
         <span className="sr-only">Open navigation</span>
       </SheetTrigger>
-      <SheetContent className="border-sidebar-border bg-sidebar text-sidebar-foreground" side="left">
-        <SheetHeader className="border-b border-sidebar-border">
+      <SheetContent className="border-zinc-200 bg-white text-zinc-950" side="left">
+        <SheetHeader className="border-b border-zinc-200">
           <div className="flex items-center gap-3">
-            <BrandLogo className="size-10 shadow-none" />
+            <BrandLogo className="size-10 rounded-lg bg-transparent shadow-none" />
             <SheetTitle>AEGIS</SheetTitle>
           </div>
-          <SheetDescription className="text-sidebar-foreground/65">
-            Intelligent Predictive Maintenance
+          <SheetDescription className="text-zinc-500">
+            Intelligent Surveillance
           </SheetDescription>
         </SheetHeader>
         <div className="px-3">
