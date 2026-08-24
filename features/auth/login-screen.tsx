@@ -23,7 +23,7 @@ export function LoginScreen() {
               priority
               quality={95}
               sizes="(min-width: 1024px) 52vw, 100vw"
-              src="/login-upstream-ai-maintenance.png"
+              src="/login-aegis-illustration.png"
             />
             <div
               className="absolute inset-x-0 bottom-0 px-5 pb-5 text-center text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.82)] sm:px-7 sm:pb-7 md:px-8 md:pb-8 md:text-left lg:px-10 lg:pb-10"
