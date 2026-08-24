@@ -8,7 +8,11 @@ export async function getDashboardOverview() {
     activeEquipmentCount,
     maintenanceDueCount,
     activeAlertCount,
+    equipmentStatusCounts,
+    categoryCounts,
+    maintenanceStatusCounts,
     latestPredictions,
+    predictionTrend,
     latestReadings,
     latestMaintenance,
     latestAlerts,
@@ -22,13 +26,28 @@ export async function getDashboardOverview() {
       },
     }),
     prisma.alert.count({ where: { status: "ACTIVE" } }),
+    prisma.equipment.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
+    prisma.equipment.groupBy({
+      by: ["category"],
+      _count: { _all: true },
+      orderBy: { _count: { category: "desc" } },
+    }),
+    prisma.maintenanceRecord.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
     prisma.prediction.findMany({
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 8,
       select: {
         id: true,
+        failureProbability: true,
         riskLevel: true,
         healthScore: true,
+        modelVersion: true,
         createdAt: true,
         equipment: {
           select: {
@@ -40,43 +59,68 @@ export async function getDashboardOverview() {
         },
       },
     }),
+    prisma.prediction.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: {
+        id: true,
+        riskLevel: true,
+        healthScore: true,
+        failureProbability: true,
+        createdAt: true,
+      },
+    }),
     prisma.operationalReading.findMany({
       orderBy: { recordedAt: "desc" },
-      take: 3,
+      take: 10,
       select: {
         id: true,
         recordedAt: true,
+        sourceType: true,
+        parameters: true,
         equipment: {
           select: {
             assetTag: true,
             name: true,
+            category: true,
+            location: true,
           },
         },
       },
     }),
     prisma.maintenanceRecord.findMany({
       orderBy: { performedAt: "desc" },
-      take: 3,
+      take: 8,
       select: {
         id: true,
         type: true,
+        status: true,
         performedAt: true,
+        nextDueDate: true,
         equipment: {
           select: {
             assetTag: true,
             name: true,
+            location: true,
           },
         },
       },
     }),
     prisma.alert.findMany({
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: 6,
       select: {
         id: true,
         message: true,
         severity: true,
+        status: true,
         createdAt: true,
+        equipment: {
+          select: {
+            assetTag: true,
+            name: true,
+          },
+        },
       },
     }),
   ]);
@@ -100,8 +144,28 @@ export async function getDashboardOverview() {
       maintenanceDueCount,
       activeAlertCount,
       riskCounts,
+      equipmentStatusCounts: Object.fromEntries(
+        equipmentStatusCounts.map((status) => [
+          status.status,
+          status._count._all,
+        ])
+      ),
+      categoryCounts: categoryCounts.map((category) => ({
+        category: category.category,
+        count: category._count._all,
+      })),
+      maintenanceStatusCounts: Object.fromEntries(
+        maintenanceStatusCounts.map((status) => [
+          status.status,
+          status._count._all,
+        ])
+      ),
     },
     latestPredictions,
+    predictionTrend,
+    latestReadings,
+    latestMaintenance,
+    latestAlerts,
     recentActivity: [
       ...latestReadings.map((reading) => ({
         id: `reading-${reading.id}`,
