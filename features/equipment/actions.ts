@@ -60,3 +60,15 @@ export async function decommissionEquipmentAction(id: string) {
   revalidatePath("/equipment");
   revalidatePath(`/equipment/${id}`);
 }
+
+export async function recommissionEquipmentAction(id: string) {
+  await requirePermission("updateEquipment");
+
+  await prisma.equipment.update({
+    where: { id },
+    data: { status: "ACTIVE" },
+  });
+
+  revalidatePath("/equipment");
+  revalidatePath(`/equipment/${id}`);
+}

@@ -8,6 +8,7 @@ import {
   MapPin,
   PencilSimple,
   Pulse,
+  ShieldCheck,
   ShieldWarning,
   TrendUp,
   WarningCircle,
@@ -26,7 +27,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { decommissionEquipmentAction } from "@/features/equipment/actions";
+import {
+  decommissionEquipmentAction,
+  recommissionEquipmentAction,
+} from "@/features/equipment/actions";
 import { getEquipmentDetails } from "@/features/equipment/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import type { EquipmentStatus, RiskLevel } from "@/generated/prisma/enums";
@@ -57,7 +61,10 @@ export default async function EquipmentDetailsPage({
   const latestPrediction = equipment.predictions[0];
   const latestReading = equipment.operationalReadings[0];
   const latestMaintenance = equipment.maintenanceRecords[0];
-  const decommission = decommissionEquipmentAction.bind(null, equipment.id);
+  const isDecommissioned = equipment.status === "DECOMMISSIONED";
+  const statusAction = (
+    isDecommissioned ? recommissionEquipmentAction : decommissionEquipmentAction
+  ).bind(null, equipment.id);
   const readings = equipment.operationalReadings.slice().reverse();
   const predictions = equipment.predictions.slice().reverse();
   const health = Math.round(asNumber(latestPrediction?.healthScore));
@@ -119,20 +126,30 @@ export default async function EquipmentDetailsPage({
             Edit
           </Link>
           <ActionToastForm
-            action={decommission}
-            errorTitle="Equipment was not decommissioned"
+            action={statusAction}
+            errorTitle={
+              isDecommissioned
+                ? "Equipment was not recommissioned"
+                : "Equipment was not decommissioned"
+            }
             successDescription="The asset status has been updated."
-            successTitle="Equipment decommissioned"
+            successTitle={
+              isDecommissioned
+                ? "Equipment recommissioned"
+                : "Equipment decommissioned"
+            }
           >
             <button
               className={buttonVariants({
-                variant: "destructive",
-                className: "h-11 w-full rounded-full px-5 sm:w-fit",
+                variant: isDecommissioned ? "outline" : "destructive",
+                className: isDecommissioned
+                  ? "h-11 w-full rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-950 hover:text-white sm:w-fit"
+                  : "h-11 w-full rounded-full px-5 sm:w-fit",
               })}
               type="submit"
             >
-              <ShieldWarning />
-              Decommission
+              {isDecommissioned ? <ShieldCheck /> : <ShieldWarning />}
+              {isDecommissioned ? "Recommission" : "Decommission"}
             </button>
           </ActionToastForm>
         </div>

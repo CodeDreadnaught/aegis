@@ -1,11 +1,12 @@
 import type { Equipment } from "@/generated/prisma/client";
+import Link from "next/link";
 
 import {
   equipmentCategories,
   equipmentStatuses,
   formatEquipmentCategory,
 } from "@/features/equipment/validation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -18,12 +19,14 @@ import { Textarea } from "@/components/ui/textarea";
 
 type EquipmentFormProps = {
   action: (formData: FormData) => Promise<void>;
+  cancelHref?: string;
   equipment?: Equipment;
   submitLabel: string;
 };
 
 export function EquipmentForm({
   action,
+  cancelHref,
   equipment,
   submitLabel,
 }: EquipmentFormProps) {
@@ -105,13 +108,25 @@ export function EquipmentForm({
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" name="description" defaultValue={equipment?.description ?? ""} />
           </div>
-          <div className="md:col-span-2">
+          <div className="flex flex-col gap-2 sm:flex-row md:col-span-2">
             <Button
               className="rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800"
               type="submit"
             >
               {submitLabel}
             </Button>
+            {cancelHref && (
+              <Link
+                className={buttonVariants({
+                  variant: "outline",
+                  className:
+                    "rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-50",
+                })}
+                href={cancelHref}
+              >
+                Cancel edit
+              </Link>
+            )}
           </div>
         </form>
       </CardContent>

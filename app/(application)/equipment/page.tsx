@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight,
   ChartBar,
   Factory,
   HardHat,
@@ -384,8 +383,8 @@ export default async function EquipmentPage({
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="grid gap-2">
+                        <TableCell className="text-center">
+                          <div className="inline-grid justify-items-center gap-2">
                             <span className="text-sm font-semibold text-zinc-950">
                               {formatEquipmentCategory(item.category)}
                             </span>
@@ -454,16 +453,10 @@ export default async function EquipmentPage({
                         </TableCell>
                         <TableCell className="text-right">
                           <Link
-                            className={buttonVariants({
-                              variant: "ghost",
-                              size: "sm",
-                              className:
-                                "rounded-full text-zinc-600 hover:bg-zinc-950 hover:text-white",
-                            })}
+                            className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
                             href={`/equipment/${item.id}`}
                           >
-                            Details
-                            <ArrowRight />
+                            View more
                           </Link>
                         </TableCell>
                       </TableRow>
@@ -556,7 +549,7 @@ function StatusBadge({ status }: { status: EquipmentStatus }) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
+      className={`inline-flex w-fit items-center justify-center rounded-full border px-2.5 py-1 text-center text-xs font-semibold ${className}`}
     >
       {formatEquipmentCategory(status)}
     </span>
