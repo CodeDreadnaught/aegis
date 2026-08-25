@@ -162,6 +162,20 @@ export default async function DashboardPage({
       delta: `${stats.maintenanceDueCount} jobs`,
     },
   ];
+  const totalCategoryCount = stats.categoryCounts.reduce(
+    (sum, item) => sum + item.count,
+    0
+  );
+  const visibleCategoryCounts = stats.categoryCounts.slice(0, 6);
+  const hiddenCategoryCount = stats.categoryCounts
+    .slice(6)
+    .reduce((sum, item) => sum + item.count, 0);
+  const assetMixRows = hiddenCategoryCount
+    ? [
+        ...visibleCategoryCounts,
+        { category: "Other", count: hiddenCategoryCount },
+      ]
+    : visibleCategoryCounts;
 
   return (
     <PremiumMotion profile="dashboard">
@@ -178,7 +192,7 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="grid items-start gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
+        <section className="grid gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
           <div className="grid gap-3 md:grid-cols-2">
             {kpis.map((kpi) => {
               const Icon = kpi.icon;
@@ -207,7 +221,7 @@ export default async function DashboardPage({
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2 text-xs">
                       <span className="text-zinc-500">{kpi.detail}</span>
-                      <span className="rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
+                      <span className="shrink-0 whitespace-nowrap rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
                         {kpi.delta}
                       </span>
                     </div>
@@ -218,7 +232,7 @@ export default async function DashboardPage({
           </div>
 
           <Card
-            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -263,7 +277,7 @@ export default async function DashboardPage({
 
           <div className="grid gap-4">
             <Card
-              className="h-fit rounded-lg border-zinc-200 bg-emerald-50 shadow-sm"
+              className="rounded-lg border-zinc-200 bg-emerald-50 shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -290,7 +304,7 @@ export default async function DashboardPage({
             </Card>
 
             <Card
-              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+              className="rounded-lg border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="pb-2">
@@ -326,69 +340,73 @@ export default async function DashboardPage({
               </Badge>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <svg
-                  aria-label="Telemetry flow"
-                  className="h-72 w-full overflow-visible"
-                  preserveAspectRatio="none"
-                  role="img"
-                  viewBox="0 0 680 260"
-                >
-                  <defs>
-                    <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#18181b" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#18181b" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  {[0, 1, 2, 3, 4].map((line) => (
-                    <line
-                      key={line}
-                      stroke="#e4e4e7"
-                      strokeDasharray="5 8"
-                      strokeWidth="1"
-                      x1="0"
-                      x2="680"
-                      y1={line * 60 + 10}
-                      y2={line * 60 + 10}
+              {predictionTrend.length ? (
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <svg
+                    aria-label="Telemetry flow"
+                    className="h-72 w-full overflow-visible"
+                    preserveAspectRatio="none"
+                    role="img"
+                    viewBox="0 0 680 260"
+                  >
+                    <defs>
+                      <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="#18181b" stopOpacity="0.15" />
+                        <stop offset="100%" stopColor="#18181b" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {[0, 1, 2, 3, 4].map((line) => (
+                      <line
+                        key={line}
+                        stroke="#e4e4e7"
+                        strokeDasharray="5 8"
+                        strokeWidth="1"
+                        x1="0"
+                        x2="680"
+                        y1={line * 60 + 10}
+                        y2={line * 60 + 10}
+                      />
+                    ))}
+                    {healthPoints.area && (
+                      <path d={healthPoints.area} fill="url(#health-fill)" />
+                    )}
+                    <polyline
+                      className="aegis-line-trace"
+                      fill="none"
+                      points={healthPoints.points}
+                      stroke="#18181b"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="5"
                     />
-                  ))}
-                  {healthPoints.area && (
-                    <path d={healthPoints.area} fill="url(#health-fill)" />
-                  )}
-                  <polyline
-                    className="aegis-line-trace"
-                    fill="none"
-                    points={healthPoints.points}
-                    stroke="#18181b"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="5"
-                  />
-                  <polyline
-                    className="aegis-line-trace aegis-line-trace-delayed"
-                    fill="none"
-                    points={failurePoints.points}
-                    stroke="#86efac"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="3"
-                  />
-                  {healthPoints.coordinates.map((point) => (
-                    <circle
-                      className="aegis-chart-dot"
-                      cx={point.x}
-                      cy={point.y}
-                      fill="#18181b"
-                      key={`${point.x}-${point.y}`}
-                      r="4"
+                    <polyline
+                      className="aegis-line-trace aegis-line-trace-delayed"
+                      fill="none"
+                      points={failurePoints.points}
+                      stroke="#86efac"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="3"
                     />
-                  ))}
-                </svg>
-                <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-                  <span>Health</span>
-                  <span>Failure Risk</span>
+                    {healthPoints.coordinates.map((point) => (
+                      <circle
+                        className="aegis-chart-dot"
+                        cx={point.x}
+                        cy={point.y}
+                        fill="#18181b"
+                        key={`${point.x}-${point.y}`}
+                        r="4"
+                      />
+                    ))}
+                  </svg>
+                  <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
+                    <span>Health</span>
+                    <span>Failure Risk</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <EmptyState label="No prediction trend yet" />
+              )}
             </CardContent>
           </Card>
 
@@ -401,38 +419,42 @@ export default async function DashboardPage({
               <p className="text-sm text-zinc-500">Vibration, pressure, flow</p>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className="flex h-72 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
-                {signalBars.map((reading) => (
-                  <div
-                    className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
-                    key={reading.id}
-                  >
-                    <div className="flex h-52 w-full max-w-10 items-end justify-center gap-1">
-                      <span
-                        className="aegis-graph-bar w-2 rounded-full bg-zinc-950"
-                        style={{
-                          height: `${percentage(reading.vibration, maxVibration)}%`,
-                        }}
-                      />
-                      <span
-                        className="aegis-graph-bar w-2 rounded-full bg-emerald-300"
-                        style={{
-                          height: `${percentage(reading.pressure, maxPressure)}%`,
-                        }}
-                      />
-                      <span
-                        className="aegis-graph-bar w-2 rounded-full bg-zinc-300"
-                        style={{
-                          height: `${percentage(reading.flow, maxFlow)}%`,
-                        }}
-                      />
+              {signalBars.length ? (
+                <div className="flex h-72 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
+                  {signalBars.map((reading) => (
+                    <div
+                      className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
+                      key={reading.id}
+                    >
+                      <div className="flex h-52 w-full max-w-10 items-end justify-center gap-1">
+                        <span
+                          className="aegis-graph-bar w-2 rounded-full bg-zinc-950"
+                          style={{
+                            height: `${percentage(reading.vibration, maxVibration)}%`,
+                          }}
+                        />
+                        <span
+                          className="aegis-graph-bar w-2 rounded-full bg-emerald-300"
+                          style={{
+                            height: `${percentage(reading.pressure, maxPressure)}%`,
+                          }}
+                        />
+                        <span
+                          className="aegis-graph-bar w-2 rounded-full bg-zinc-300"
+                          style={{
+                            height: `${percentage(reading.flow, maxFlow)}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="truncate text-[10px] font-medium text-zinc-500">
+                        {reading.label}
+                      </span>
                     </div>
-                    <span className="truncate text-[10px] font-medium text-zinc-500">
-                      {reading.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState label="No sensor readings yet" />
+              )}
             </CardContent>
           </Card>
         </section>
@@ -518,22 +540,22 @@ export default async function DashboardPage({
               <CardTitle>Asset Mix</CardTitle>
             </CardHeader>
             <CardContent className="gap-3 p-4 pt-0">
-              {stats.categoryCounts.map((category) => {
-                const total = Math.max(
-                  1,
-                  stats.categoryCounts.reduce((sum, item) => sum + item.count, 0)
-                );
-
+              {assetMixRows.map((category) => {
                 return (
                   <PlanRow
                     key={category.category}
-                    label={formatEquipmentCategory(category.category)}
+                    label={
+                      category.category === "Other"
+                        ? "Other"
+                        : formatEquipmentCategory(category.category)
+                    }
                     meta={`${category.count} assets`}
-                    value={`${percentage(category.count, total)}%`}
-                    width={percentage(category.count, total)}
+                    value={`${percentage(category.count, totalCategoryCount)}%`}
+                    width={percentage(category.count, totalCategoryCount)}
                   />
                 );
               })}
+              {!assetMixRows.length && <EmptyState label="No asset mix data" />}
             </CardContent>
           </Card>
 

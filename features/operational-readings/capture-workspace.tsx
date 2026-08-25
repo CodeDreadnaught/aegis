@@ -49,7 +49,7 @@ export function CaptureWorkspace({
     : "No equipment selected";
 
   return (
-    <section className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+    <section className="grid min-w-0 items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
       <ReadingForm
         action={action}
         equipment={equipment}

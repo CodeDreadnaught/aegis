@@ -116,6 +116,16 @@ export default async function EquipmentPage({
       value: equipment.filter((asset) => asset.category === item).length,
     }))
     .filter((item) => item.value > 0);
+  const visibleCategoryCounts = categoryCounts.slice(0, 5);
+  const hiddenCategoryCount = categoryCounts
+    .slice(5)
+    .reduce((sum, item) => sum + item.value, 0);
+  const fleetMixRows = hiddenCategoryCount
+    ? [
+        ...visibleCategoryCounts,
+        { label: "Other", value: hiddenCategoryCount },
+      ]
+    : visibleCategoryCounts;
   const criticalAssets = equipment
     .filter((item) => item.predictions[0])
     .slice()
@@ -283,7 +293,7 @@ export default async function EquipmentPage({
                 />
               ))}
             </div>
-            {categoryCounts.map((item) => (
+            {fleetMixRows.map((item) => (
               <DistributionRow
                 key={item.label}
                 label={item.label}
@@ -291,7 +301,7 @@ export default async function EquipmentPage({
                 value={item.value}
               />
             ))}
-            {!categoryCounts.length && <EmptyState label="No assets" />}
+            {!fleetMixRows.length && <EmptyState label="No assets" />}
           </CardContent>
         </Card>
 
