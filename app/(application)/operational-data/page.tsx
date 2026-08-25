@@ -267,19 +267,19 @@ function MetricCard({
       className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-2 break-words text-2xl font-semibold tracking-normal text-zinc-950 sm:text-3xl">
+            <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className="grid size-9 place-items-center rounded-full bg-zinc-950 text-white">
+          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
+        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
   );

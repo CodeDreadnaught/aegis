@@ -182,15 +182,15 @@ export default async function EquipmentDetailsPage({
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section className="grid items-start gap-4 xl:grid-cols-2">
         <Card
           className="rounded-lg border-zinc-200 bg-white shadow-sm xl:col-span-2"
           data-motion="metric"
         >
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle>Asset Identity</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-3">
+          <CardContent className="grid gap-2.5 md:grid-cols-3">
             <IdentityTile
               icon={Gauge}
               label="Manufacturer"
@@ -210,13 +210,13 @@ export default async function EquipmentDetailsPage({
         </Card>
 
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle>Live Signal</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid gap-2.5">
             <SignalRow
               label="Vibration"
               unit="mm/s"
@@ -236,13 +236,13 @@ export default async function EquipmentDetailsPage({
         </Card>
 
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-1">
             <CardTitle>Maintenance</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid gap-2.5">
             <InfoLine
               icon={Wrench}
               label="Latest"
@@ -440,19 +440,19 @@ function DetailMetricCard({
       className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">
+            <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className="grid size-9 place-items-center rounded-full bg-zinc-950 text-white">
+          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
+        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
   );
@@ -467,15 +467,43 @@ function SignalRow({
   unit: string;
   value: number;
 }) {
+  const hasValue = Number.isFinite(value);
+
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-zinc-950">{label}</span>
-        <span className="text-xs font-medium text-zinc-500">{unit}</span>
+    <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-[0_12px_34px_rgba(24,24,27,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_44px_rgba(24,24,27,0.08)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-zinc-950">{label}</p>
+          <p className="mt-1 text-xs font-medium text-zinc-500">
+            Live telemetry
+          </p>
+        </div>
+        <span className="grid size-9 place-items-center rounded-full bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200">
+          <Pulse aria-hidden="true" className="size-4" />
+        </span>
       </div>
-      <p className="mt-2 text-2xl font-semibold text-zinc-950">
-        {formatNumber(value)}
-      </p>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <p className="text-3xl font-semibold leading-none text-zinc-950">
+          {formatNumber(value)}
+          {hasValue ? (
+            <span className="ml-2 align-baseline text-sm font-semibold text-zinc-500">
+              {unit}
+            </span>
+          ) : null}
+        </p>
+        <span className="flex h-8 items-end gap-1" aria-hidden="true">
+          {[36, 68, 48, 82, 56].map((height, index) => (
+            <span
+              className="w-1 rounded-full bg-zinc-950/70"
+              key={height}
+              style={{
+                height: `${hasValue ? height : 18 + index * 3}%`,
+                opacity: hasValue ? 0.35 + index * 0.11 : 0.16,
+              }}
+            />
+          ))}
+        </span>
+      </div>
     </div>
   );
 }
@@ -490,16 +518,16 @@ function IdentityTile({
   value: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-      <div className="flex items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-zinc-950">
+    <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-[0_12px_34px_rgba(24,24,27,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_44px_rgba(24,24,27,0.08)]">
+      <div className="flex items-center gap-2.5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200">
           <Icon aria-hidden="true" className="size-4" />
         </span>
-        <span className="truncate text-sm font-medium text-zinc-500">
+        <span className="truncate text-sm font-semibold text-zinc-500">
           {label}
         </span>
       </div>
-      <p className="mt-4 truncate text-xl font-semibold text-zinc-950">
+      <p className="mt-4 truncate text-lg font-semibold text-zinc-950">
         {value}
       </p>
     </div>
@@ -516,12 +544,12 @@ function InfoLine({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-zinc-950">
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-[0_12px_34px_rgba(24,24,27,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_44px_rgba(24,24,27,0.08)]">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200">
           <Icon aria-hidden="true" className="size-4" />
         </span>
-        <span className="truncate text-sm font-medium text-zinc-500">
+        <span className="truncate text-sm font-semibold text-zinc-500">
           {label}
         </span>
       </div>
