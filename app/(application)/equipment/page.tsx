@@ -363,7 +363,7 @@ export default async function EquipmentPage({
                     <TableHead>Classification</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead>Risk</TableHead>
-                    <TableHead>Telemetry</TableHead>
+                    <TableHead className="text-center">Telemetry</TableHead>
                     <TableHead>Maintenance</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
@@ -435,7 +435,7 @@ export default async function EquipmentPage({
                             <span className="text-sm text-zinc-400">Pending</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-zinc-600">
+                        <TableCell className="text-center text-zinc-600">
                           <span className="font-semibold text-zinc-950">
                             {item._count.operationalReadings}
                           </span>{" "}
