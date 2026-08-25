@@ -370,10 +370,10 @@ export default async function EquipmentDetailsPage({
                 <Table className="min-w-[720px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
-                      <TableHead>Recorded</TableHead>
-                      <TableHead>Vibration</TableHead>
-                      <TableHead>Pressure</TableHead>
-                      <TableHead>Flow</TableHead>
+                      <TableHead className="text-center">Recorded</TableHead>
+                      <TableHead className="text-center">Vibration</TableHead>
+                      <TableHead className="text-center">Pressure</TableHead>
+                      <TableHead className="text-center">Flow</TableHead>
                       <TableHead>Source</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -383,22 +383,22 @@ export default async function EquipmentDetailsPage({
                         className="border-zinc-100 hover:bg-zinc-50"
                         key={reading.id}
                       >
-                        <TableCell className="font-medium text-zinc-950">
+                        <TableCell className="text-center font-medium text-zinc-950">
                           {formatDate(reading.recordedAt)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {formatNumber(
                             readParameter(reading.parameters, "vibrationMmS")
                           )}{" "}
                           mm/s
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {formatNumber(
                             readParameter(reading.parameters, "pressureBar")
                           )}{" "}
                           bar
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {formatNumber(
                             readParameter(reading.parameters, "flowRateBpd")
                           )}{" "}
