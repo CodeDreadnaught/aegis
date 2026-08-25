@@ -360,12 +360,12 @@ export default async function EquipmentPage({
                 <TableHeader>
                   <TableRow className="border-zinc-200 bg-zinc-50">
                     <TableHead>Asset</TableHead>
-                    <TableHead>Classification</TableHead>
-                    <TableHead>Health</TableHead>
-                    <TableHead>Risk</TableHead>
+                    <TableHead className="text-center">Classification</TableHead>
+                    <TableHead className="text-center">Health</TableHead>
+                    <TableHead className="text-center">Risk</TableHead>
                     <TableHead className="text-center">Telemetry</TableHead>
-                    <TableHead>Maintenance</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-center">Maintenance</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -401,9 +401,9 @@ export default async function EquipmentPage({
                             <StatusBadge status={item.status} />
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {prediction ? (
-                            <div className="grid min-w-[8rem] gap-2">
+                            <div className="mx-auto grid min-w-[8rem] max-w-[9rem] gap-2">
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-sm font-semibold text-zinc-950">
                                   {health}%
@@ -423,9 +423,9 @@ export default async function EquipmentPage({
                             <span className="text-sm text-zinc-400">Pending</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {prediction ? (
-                            <div className="grid gap-1">
+                            <div className="inline-grid justify-items-center gap-1">
                               <RiskBadge risk={prediction.riskLevel} />
                               <span className="text-xs text-zinc-500">
                                 {failure}% failure
@@ -448,7 +448,7 @@ export default async function EquipmentPage({
                             </p>
                           )}
                         </TableCell>
-                        <TableCell className="text-zinc-600">
+                        <TableCell className="text-center text-zinc-600">
                           <span className="font-semibold text-zinc-950">
                             {item._count.maintenanceRecords}
                           </span>{" "}
@@ -461,7 +461,7 @@ export default async function EquipmentPage({
                             </p>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <Link
                             className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
                             href={`/equipment/${item.id}`}
