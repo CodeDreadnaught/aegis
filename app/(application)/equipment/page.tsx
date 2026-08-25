@@ -135,17 +135,18 @@ export default async function EquipmentPage({
             Asset Fleet
           </h1>
         </div>
-        <Link
-          className={buttonVariants({
-            className:
-              "hidden h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 lg:inline-flex",
-          })}
-          data-motion="reveal"
-          href="/equipment/new"
-        >
-          <Plus />
-          Register
-        </Link>
+        <div className="hidden lg:block" data-motion="reveal">
+          <Link
+            className={buttonVariants({
+              className:
+                "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+            })}
+            href="/equipment/new"
+          >
+            <Plus />
+            Register
+          </Link>
+        </div>
       </section>
 
       <Card
@@ -204,16 +205,18 @@ export default async function EquipmentPage({
             >
               Apply
             </button>
-            <Link
-              className={buttonVariants({
-                className:
-                  "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 lg:hidden",
-              })}
-              href="/equipment/new"
-            >
-              <Plus />
-              Register
-            </Link>
+            <div className="lg:hidden">
+              <Link
+                className={buttonVariants({
+                  className:
+                    "h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+                })}
+                href="/equipment/new"
+              >
+                <Plus />
+                Register
+              </Link>
+            </div>
             {(query || status || category) && (
               <Link
                 className={buttonVariants({
