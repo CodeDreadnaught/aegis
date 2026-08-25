@@ -2,11 +2,7 @@ import { z } from "zod";
 
 export const productTypes = ["H", "L", "M"] as const;
 
-export const sourceTypes = [
-  "MANUAL_ENTRY",
-  "SENSOR_IMPORT",
-  "DEMO_MANUAL_ENTRY",
-] as const;
+export const sourceTypes = ["MANUAL_ENTRY", "SENSOR_IMPORT"] as const;
 
 const optionalNumber = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
