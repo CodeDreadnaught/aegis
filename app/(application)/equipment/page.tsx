@@ -138,7 +138,7 @@ export default async function EquipmentPage({
         <Link
           className={buttonVariants({
             className:
-              "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+              "hidden h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 lg:inline-flex",
           })}
           data-motion="reveal"
           href="/equipment/new"
@@ -204,6 +204,16 @@ export default async function EquipmentPage({
             >
               Apply
             </button>
+            <Link
+              className={buttonVariants({
+                className:
+                  "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 lg:hidden",
+              })}
+              href="/equipment/new"
+            >
+              <Plus />
+              Register
+            </Link>
             {(query || status || category) && (
               <Link
                 className={buttonVariants({
