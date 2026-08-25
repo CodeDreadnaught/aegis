@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 type PremiumMotionProps = {
   children: React.ReactNode;
   className?: string;
-  profile?: "workspace" | "login" | "dashboard";
+  profile?: "workspace" | "login" | "overview";
 };
 
 export function PremiumMotion({

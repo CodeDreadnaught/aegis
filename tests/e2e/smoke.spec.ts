@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-test("protected dashboard redirects unauthenticated users to home", async ({
+test("protected overview redirects unauthenticated users to home", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/overview");
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "AEGIS" })).toBeVisible();

@@ -66,7 +66,7 @@ export async function loginAction(
 
   await createSession(user.id);
 
-  redirect("/dashboard?toast=login-success");
+  redirect("/overview?toast=login-success");
 }
 
 export async function logoutAction() {

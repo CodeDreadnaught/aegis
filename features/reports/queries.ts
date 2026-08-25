@@ -7,6 +7,7 @@ export async function getReportsWorkspace() {
     prisma.equipment.findMany({
       orderBy: { assetTag: "asc" },
       select: {
+        id: true,
         assetTag: true,
         name: true,
         category: true,
@@ -24,6 +25,7 @@ export async function getReportsWorkspace() {
         nextDueDate: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
           },
@@ -41,6 +43,7 @@ export async function getReportsWorkspace() {
         createdAt: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
           },
@@ -57,6 +60,7 @@ export async function getReportsWorkspace() {
         createdAt: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
           },

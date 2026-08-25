@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   ChartLineUp,
   Gauge,
   MapPin,
@@ -16,6 +15,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { ActionToastForm } from "@/components/action-toast-form";
+import { BackButton } from "@/components/back-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,13 +89,7 @@ export default async function EquipmentDetailsPage({
     <div className="grid gap-4">
       <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div data-motion="reveal">
-          <Link
-            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 transition-colors hover:text-zinc-950"
-            href="/equipment"
-          >
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            Equipment
-          </Link>
+          <BackButton className="mb-4" />
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={equipment.status} />
             {latestPrediction && <RiskBadge risk={latestPrediction.riskLevel} />}

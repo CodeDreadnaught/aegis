@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-export type DashboardAssetRow = {
+export type OverviewAssetRow = {
   asset: string;
   category: string;
   failure: number;
@@ -26,13 +26,13 @@ export type DashboardAssetRow = {
   updated: string;
 };
 
-type DashboardAssetTableProps = {
-  rows: DashboardAssetRow[];
+type OverviewAssetTableProps = {
+  rows: OverviewAssetRow[];
 };
 
 const riskFilters = ["ALL", "HIGH", "MEDIUM", "LOW"] as const;
 
-export function DashboardAssetTable({ rows }: DashboardAssetTableProps) {
+export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
   const [query, setQuery] = useState("");
   const [risk, setRisk] = useState<(typeof riskFilters)[number]>("ALL");
 
@@ -62,7 +62,7 @@ export function DashboardAssetTable({ rows }: DashboardAssetTableProps) {
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
           />
           <Input
-            aria-label="Search dashboard assets"
+            aria-label="Search overview assets"
             className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
             onChange={(event) => setQuery(event.target.value)}
             value={query}

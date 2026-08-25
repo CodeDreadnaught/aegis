@@ -56,21 +56,19 @@ export function UserAccessForm({
   }
 
   return (
-    <form
-      className="ml-auto grid max-w-md gap-2 sm:grid-cols-[1fr_1fr_auto]"
-      onSubmit={handleSubmit}
-    >
+    <form className="ml-auto grid max-w-md gap-2 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleSubmit}>
       <input name="userId" type="hidden" value={userId} />
       <input name="role" type="hidden" value={role} />
       <input name="status" type="hidden" value={status} />
 
       <Select
+        disabled={pending}
         value={role}
         onValueChange={(value) => setRole(value as UserRole)}
       >
         <SelectTrigger
           aria-label="Role"
-          className="w-full bg-background"
+          className="w-full rounded-full border-zinc-200 bg-zinc-50"
           size="sm"
         >
           <SelectValue />
@@ -85,12 +83,13 @@ export function UserAccessForm({
       </Select>
 
       <Select
+        disabled={pending}
         value={status}
         onValueChange={(value) => setStatus(value as UserStatus)}
       >
         <SelectTrigger
           aria-label="Status"
-          className="w-full bg-background"
+          className="w-full rounded-full border-zinc-200 bg-zinc-50"
           size="sm"
         >
           <SelectValue />
@@ -104,7 +103,12 @@ export function UserAccessForm({
         </SelectContent>
       </Select>
 
-      <Button disabled={pending} type="submit" variant="outline">
+      <Button
+        className="rounded-full border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={pending}
+        type="submit"
+        variant="outline"
+      >
         {pending ? "Saving" : "Save"}
       </Button>
     </form>

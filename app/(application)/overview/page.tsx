@@ -20,22 +20,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  DashboardAssetTable,
-  type DashboardAssetRow,
-} from "@/features/dashboard/dashboard-asset-table";
-import { DashboardControls } from "@/features/dashboard/dashboard-controls";
+  OverviewAssetTable,
+  type OverviewAssetRow,
+} from "@/features/overview/overview-asset-table";
+import { OverviewControls } from "@/features/overview/overview-controls";
 import {
-  getDashboardOverview,
-  type DashboardRange,
-} from "@/features/dashboard/queries";
+  getOverviewWorkspace,
+  type OverviewRange,
+} from "@/features/overview/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Dashboard",
+  title: "AEGIS - Overview",
 };
 
-type DashboardPageProps = {
+type OverviewPageProps = {
   searchParams: Promise<{ range?: string | string[] }>;
 };
 
@@ -49,9 +49,9 @@ const timeFormatter = new Intl.DateTimeFormat("en", {
   minute: "2-digit",
 });
 
-export default async function DashboardPage({
+export default async function OverviewPage({
   searchParams,
-}: DashboardPageProps) {
+}: OverviewPageProps) {
   await requirePermission("viewEquipment");
   const params = await searchParams;
   const range = parseRange(params.range);
@@ -63,7 +63,7 @@ export default async function DashboardPage({
     predictionTrend,
     recentActivity,
     stats,
-  } = await getDashboardOverview(range);
+  } = await getOverviewWorkspace(range);
 
   const averageHealth = average(
     latestPredictions.map((prediction) => Number(prediction.healthScore))
@@ -115,7 +115,7 @@ export default async function DashboardPage({
   );
   const maxPressure = Math.max(1, ...signalBars.map((reading) => reading.pressure));
   const maxFlow = Math.max(1, ...signalBars.map((reading) => reading.flow));
-  const assetRows: DashboardAssetRow[] = latestPredictions.map((prediction) => ({
+  const assetRows: OverviewAssetRow[] = latestPredictions.map((prediction) => ({
     asset: prediction.equipment.assetTag,
     category: formatEquipmentCategory(prediction.equipment.category),
     failure: Math.round(Number(prediction.failureProbability) * 100),
@@ -178,17 +178,17 @@ export default async function DashboardPage({
     : visibleCategoryCounts;
 
   return (
-    <PremiumMotion profile="dashboard">
+    <PremiumMotion profile="overview">
       <div className="grid gap-4">
         <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div data-motion="reveal">
-            <p className="text-sm font-medium text-zinc-500">Dashboard</p>
+            <p className="text-sm font-medium text-zinc-500">Overview</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
-              Equipment Intelligence
+              Operational Intelligence
             </h1>
           </div>
           <div data-motion="reveal">
-            <DashboardControls activeRange={String(range)} />
+            <OverviewControls activeRange={String(range)} />
           </div>
         </section>
 
@@ -468,7 +468,7 @@ export default async function DashboardPage({
               <CardTitle>Asset Performance</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <DashboardAssetTable rows={assetRows} />
+              <OverviewAssetTable rows={assetRows} />
             </CardContent>
           </Card>
 
@@ -700,11 +700,11 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-function parseRange(value: string | string[] | undefined): DashboardRange {
+function parseRange(value: string | string[] | undefined): OverviewRange {
   const range = Array.isArray(value) ? value[0] : value;
 
   if (range === "1" || range === "7" || range === "30") {
-    return Number(range) as DashboardRange;
+    return Number(range) as OverviewRange;
   }
 
   return 1;

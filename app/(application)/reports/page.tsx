@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { DownloadSimple, FileCsv, Files } from "@phosphor-icons/react/ssr";
+import Link from "next/link";
+import {
+  Bell,
+  ChartLineUp,
+  DownloadSimple,
+  HardHat,
+  Wrench,
+} from "@phosphor-icons/react/ssr";
 
-import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -28,6 +28,11 @@ export const metadata: Metadata = {
   title: "AEGIS - Reports",
 };
 
+const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+});
+
 export default async function ReportsPage() {
   await requirePermission("viewReports");
   const reports = await getReportsWorkspace();
@@ -41,7 +46,6 @@ export default async function ReportsPage() {
       location: equipment.location,
     }))
   );
-
   const maintenanceCsv = toCsv(
     reports.maintenance.map((record) => ({
       assetTag: record.equipment.assetTag,
@@ -52,159 +56,350 @@ export default async function ReportsPage() {
       nextDueDate: record.nextDueDate?.toISOString() ?? null,
     }))
   );
+  const predictionCsv = toCsv(
+    reports.predictions.map((prediction) => ({
+      assetTag: prediction.equipment.assetTag,
+      equipment: prediction.equipment.name,
+      riskLevel: prediction.riskLevel,
+      healthScore: prediction.healthScore.toString(),
+      failureProbability: prediction.failureProbability.toString(),
+      createdAt: prediction.createdAt.toISOString(),
+    }))
+  );
+  const alertCsv = toCsv(
+    reports.alerts.map((alert) => ({
+      assetTag: alert.equipment.assetTag,
+      equipment: alert.equipment.name,
+      severity: alert.severity,
+      status: alert.status,
+      message: alert.message,
+      createdAt: alert.createdAt.toISOString(),
+    }))
+  );
+  const highRiskReports = reports.predictions.filter(
+    (prediction) => prediction.riskLevel === "HIGH"
+  ).length;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        description="Generate equipment, maintenance, prediction, risk and alert reports with role checks and CSV-ready summaries."
-        eyebrow="Reporting"
-        title="Reports"
-      />
+    <div className="grid gap-4">
+      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div data-motion="reveal">
+          <p className="text-sm font-medium text-zinc-500">Reports</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+            Export Center
+          </h1>
+        </div>
+      </section>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <ReportMetric label="Equipment" value={reports.equipment.length} />
-        <ReportMetric label="Maintenance" value={reports.maintenance.length} />
-        <ReportMetric label="Predictions" value={reports.predictions.length} />
-        <ReportMetric label="Alerts" value={reports.alerts.length} />
-      </div>
+      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
+        <MetricCard
+          detail="Fleet register"
+          icon={HardHat}
+          label="Equipment"
+          value={reports.equipment.length}
+        />
+        <MetricCard
+          detail="Service history"
+          icon={Wrench}
+          label="Maintenance"
+          value={reports.maintenance.length}
+        />
+        <MetricCard
+          detail={`${highRiskReports} high risk`}
+          icon={ChartLineUp}
+          label="Predictions"
+          value={reports.predictions.length}
+        />
+        <MetricCard
+          detail="Response records"
+          icon={Bell}
+          label="Alerts"
+          value={reports.alerts.length}
+        />
+      </section>
 
-      <div className="grid items-start gap-6 xl:grid-cols-2">
-        <ReportCard
-          description="Fleet report with category, status and location."
+      <section className="grid items-start gap-4 xl:grid-cols-2">
+        <ReportPanel
           downloadHref={csvDataHref(equipmentCsv)}
           filename="aegis-equipment-report.csv"
-          icon={Files}
-          title="Equipment Report"
+          rowCount={reports.equipment.length}
+          title="Equipment CSV"
         >
-          <Table>
+          <Table className="w-full table-fixed">
             <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="pl-6">Asset</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-6">Location</TableHead>
+              <TableRow className="border-zinc-200 bg-zinc-50">
+                <TableHead className="w-[36%]">Asset</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="hidden text-center md:table-cell">
+                  Location
+                </TableHead>
+                <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {reports.equipment.slice(0, 8).map((equipment) => (
-                <TableRow key={equipment.assetTag} className="data-row">
-                  <TableCell className="pl-6">
-                    <div className="font-medium text-foreground">
-                      {equipment.assetTag}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {equipment.name}
-                    </div>
-                  </TableCell>
+                <TableRow
+                  className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                  key={equipment.assetTag}
+                >
                   <TableCell>
-                    <Badge variant="secondary">{equipment.status}</Badge>
+                    <p className="font-semibold text-zinc-950">
+                      {equipment.assetTag}
+                    </p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {equipment.name}
+                    </p>
                   </TableCell>
-                  <TableCell className="pr-6">{equipment.location}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                      {equipment.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                    {equipment.location}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Link
+                      className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                      href={`/equipment/${equipment.id}`}
+                    >
+                      View more
+                    </Link>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </ReportCard>
+        </ReportPanel>
 
-        <ReportCard
-          description="Maintenance report with work type, status and due date."
+        <ReportPanel
           downloadHref={csvDataHref(maintenanceCsv)}
           filename="aegis-maintenance-report.csv"
-          icon={FileCsv}
-          title="Maintenance Report"
+          rowCount={reports.maintenance.length}
+          title="Maintenance CSV"
         >
-          <Table>
+          <Table className="w-full table-fixed">
             <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="pl-6">Equipment</TableHead>
+              <TableRow className="border-zinc-200 bg-zinc-50">
+                <TableHead className="w-[32%]">Equipment</TableHead>
                 <TableHead>Work</TableHead>
-                <TableHead className="pr-6">Status</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="hidden text-center md:table-cell">
+                  Performed
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {reports.maintenance.slice(0, 8).map((record) => (
                 <TableRow
+                  className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${record.equipment.assetTag}-${record.performedAt.toISOString()}`}
-                  className="data-row"
                 >
-                  <TableCell className="pl-6">
-                    {record.equipment.assetTag}
+                  <TableCell>
+                    <p className="font-semibold text-zinc-950">
+                      {record.equipment.assetTag}
+                    </p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {record.equipment.name}
+                    </p>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium text-foreground">
+                    <p className="truncate font-semibold text-zinc-950">
                       {record.type}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {record.performedAt.toLocaleDateString("en-GB")}
-                    </div>
+                    </p>
+                    <p className="truncate text-xs text-zinc-500">
+                      Next {record.nextDueDate
+                        ? compactDateFormatter.format(record.nextDueDate)
+                        : "not scheduled"}
+                    </p>
                   </TableCell>
-                  <TableCell className="pr-6">
-                    <Badge variant="secondary">{record.status}</Badge>
+                  <TableCell className="text-center">
+                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                      {record.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                    {compactDateFormatter.format(record.performedAt)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </ReportCard>
-      </div>
+        </ReportPanel>
+
+        <ReportPanel
+          downloadHref={csvDataHref(predictionCsv)}
+          filename="aegis-prediction-report.csv"
+          rowCount={reports.predictions.length}
+          title="Prediction CSV"
+        >
+          <Table className="w-full table-fixed">
+            <TableHeader>
+              <TableRow className="border-zinc-200 bg-zinc-50">
+                <TableHead className="w-[36%]">Equipment</TableHead>
+                <TableHead className="text-center">Risk</TableHead>
+                <TableHead className="text-center">Health</TableHead>
+                <TableHead className="hidden text-center md:table-cell">
+                  Date
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.predictions.slice(0, 8).map((prediction) => (
+                <TableRow
+                  className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                  key={`${prediction.equipment.assetTag}-${prediction.createdAt.toISOString()}`}
+                >
+                  <TableCell>
+                    <p className="font-semibold text-zinc-950">
+                      {prediction.equipment.assetTag}
+                    </p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {prediction.equipment.name}
+                    </p>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                      {prediction.riskLevel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center font-semibold text-zinc-950">
+                    {prediction.healthScore.toString()}%
+                  </TableCell>
+                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                    {compactDateFormatter.format(prediction.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ReportPanel>
+
+        <ReportPanel
+          downloadHref={csvDataHref(alertCsv)}
+          filename="aegis-alert-report.csv"
+          rowCount={reports.alerts.length}
+          title="Alert CSV"
+        >
+          <Table className="w-full table-fixed">
+            <TableHeader>
+              <TableRow className="border-zinc-200 bg-zinc-50">
+                <TableHead className="w-[30%]">Equipment</TableHead>
+                <TableHead className="text-center">Severity</TableHead>
+                <TableHead>Message</TableHead>
+                <TableHead className="hidden text-center md:table-cell">
+                  Status
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.alerts.slice(0, 8).map((alert) => (
+                <TableRow
+                  className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                  key={`${alert.equipment.assetTag}-${alert.createdAt.toISOString()}`}
+                >
+                  <TableCell>
+                    <p className="font-semibold text-zinc-950">
+                      {alert.equipment.assetTag}
+                    </p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {alert.equipment.name}
+                    </p>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                      {alert.severity}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <p className="line-clamp-2 text-sm font-medium text-zinc-950">
+                      {alert.message}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {compactDateFormatter.format(alert.createdAt)}
+                    </p>
+                  </TableCell>
+                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                    {alert.status}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ReportPanel>
+      </section>
     </div>
   );
 }
 
-function ReportMetric({ label, value }: { label: string; value: number }) {
+type ReportIcon = typeof DownloadSimple;
+
+function MetricCard({
+  detail,
+  icon: Icon,
+  label,
+  value,
+}: {
+  detail: string;
+  icon: ReportIcon;
+  label: string;
+  value: number;
+}) {
   return (
-    <Card className="motion-card">
-      <CardContent className="flex-row items-center justify-between gap-3 p-4">
-        <div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-            {value}
+    <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="metric">
+      <CardContent className="px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">{label}</p>
+            <p className="mt-1 text-2xl font-semibold text-zinc-950">{value}</p>
+          </div>
+          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+            <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <DownloadSimple className="size-5" />
-        </div>
+        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
   );
 }
 
-function ReportCard({
+function ReportPanel({
   children,
-  description,
   downloadHref,
   filename,
-  icon: Icon,
+  rowCount,
   title,
 }: {
   children: ReactNode;
-  description: string;
   downloadHref: string;
   filename: string;
-  icon: typeof Files;
+  rowCount: number;
   title: string;
 }) {
   return (
-    <Card className="premium-panel motion-card">
-      <CardHeader className="border-b">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Icon className="size-5 text-primary" />
-              {title}
-            </CardTitle>
-            <CardDescription className="mt-1">{description}</CardDescription>
-          </div>
-          <a
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-            download={filename}
-            href={downloadHref || "data:text/csv;charset=utf-8,"}
-          >
-            <DownloadSimple />
-            CSV
-          </a>
+    <Card className="rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <p className="text-sm text-zinc-500">{rowCount} rows</p>
         </div>
+        <a
+          aria-label={`Download ${title}`}
+          className={buttonVariants({
+            variant: "outline",
+            size: "icon",
+            className:
+              "size-10 rounded-full border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white",
+          })}
+          download={filename}
+          href={downloadHref || "data:text/csv;charset=utf-8,"}
+        >
+          <DownloadSimple aria-hidden="true" className="size-4" />
+        </a>
       </CardHeader>
-      <CardContent className="p-0">{children}</CardContent>
+      <CardContent className="p-0">
+        <div className="px-4 pb-4">{children}</div>
+      </CardContent>
     </Card>
   );
 }

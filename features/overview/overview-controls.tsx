@@ -13,11 +13,11 @@ const ranges = [
   { label: "30D", value: "30" },
 ] as const;
 
-type DashboardControlsProps = {
+type OverviewControlsProps = {
   activeRange: string;
 };
 
-export function DashboardControls({ activeRange }: DashboardControlsProps) {
+export function OverviewControls({ activeRange }: OverviewControlsProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();

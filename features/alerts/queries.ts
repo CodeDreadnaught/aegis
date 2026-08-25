@@ -17,6 +17,7 @@ export async function getAlertsWorkspace() {
       resolvedAt: true,
       equipment: {
         select: {
+          id: true,
           assetTag: true,
           name: true,
         },

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCirclePlus } from "@phosphor-icons/react";
+import { SpinnerGap, UserCirclePlus } from "@phosphor-icons/react";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import type { UserRole, UserStatus } from "@/generated/prisma/enums";
 
@@ -65,6 +65,8 @@ export function CreateUserForm({
         <Label htmlFor="name">Full name</Label>
         <Input
           autoComplete="name"
+          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          disabled={pending}
           id="name"
           name="name"
           placeholder="Ada Okoro"
@@ -75,6 +77,8 @@ export function CreateUserForm({
         <Label htmlFor="email">Email</Label>
         <Input
           autoComplete="email"
+          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          disabled={pending}
           id="email"
           name="email"
           placeholder="ada.okoro@aegis.demo"
@@ -86,6 +90,8 @@ export function CreateUserForm({
         <Label htmlFor="password">Temporary password</Label>
         <Input
           autoComplete="new-password"
+          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          disabled={pending}
           id="password"
           minLength={12}
           name="password"
@@ -98,10 +104,11 @@ export function CreateUserForm({
         <div className="space-y-2">
           <Label>Role</Label>
           <Select
+            disabled={pending}
             value={role}
             onValueChange={(value) => setRole(value as UserRole)}
           >
-            <SelectTrigger className="w-full bg-background">
+            <SelectTrigger className="h-11 w-full rounded-full border-zinc-200 bg-zinc-50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -116,10 +123,11 @@ export function CreateUserForm({
         <div className="space-y-2">
           <Label>Status</Label>
           <Select
+            disabled={pending}
             value={status}
             onValueChange={(value) => setStatus(value as UserStatus)}
           >
-            <SelectTrigger className="w-full bg-background">
+            <SelectTrigger className="h-11 w-full rounded-full border-zinc-200 bg-zinc-50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -132,9 +140,13 @@ export function CreateUserForm({
           </Select>
         </div>
       </div>
-      <Button className="w-full" disabled={pending} type="submit">
-        <UserCirclePlus />
-        {pending ? "Creating user" : "Create user"}
+      <Button
+        className="h-11 w-full rounded-full bg-zinc-950 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={pending}
+        type="submit"
+      >
+        {pending ? <SpinnerGap className="animate-spin" /> : <UserCirclePlus />}
+        {pending ? "Creating" : "Create user"}
       </Button>
     </form>
   );

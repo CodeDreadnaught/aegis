@@ -7,7 +7,7 @@ export default async function Home() {
   const user = await getCurrentUser();
 
   if (user) {
-    redirect("/dashboard");
+    redirect("/overview");
   }
 
   return <LoginScreen />;

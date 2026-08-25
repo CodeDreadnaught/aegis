@@ -10,10 +10,14 @@ export async function getAnalyticsWorkspace() {
       select: {
         id: true,
         recordedAt: true,
+        sourceType: true,
         parameters: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
+            category: true,
+            location: true,
             name: true,
           },
         },
@@ -43,7 +47,10 @@ export async function getAnalyticsWorkspace() {
         createdAt: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
+            category: true,
+            location: true,
             name: true,
           },
         },

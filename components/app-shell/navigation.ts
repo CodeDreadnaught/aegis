@@ -26,7 +26,7 @@ const allRoles = [
 ] as const;
 
 export const navigationItems: NavigationItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: Gauge, roles: allRoles },
+  { href: "/overview", label: "Overview", icon: Gauge, roles: allRoles },
   { href: "/equipment", label: "Equipment", icon: HardHat, roles: allRoles },
   { href: "/operational-data", label: "Operational Data", icon: Database, roles: allRoles },
   { href: "/maintenance", label: "Maintenance", icon: Wrench, roles: allRoles },

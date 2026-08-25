@@ -107,6 +107,6 @@ export async function runPredictionAction(readingId: string) {
   });
 
   revalidatePath("/analytics");
-  revalidatePath("/dashboard");
+  revalidatePath("/overview");
   revalidatePath(`/equipment/${prediction.equipmentId}`);
 }

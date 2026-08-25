@@ -9,14 +9,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -44,150 +37,114 @@ export const metadata: Metadata = {
 
 export default async function UsersPage() {
   const { totals, users } = await getUserAdministrationData();
+  const auditEntries = users.reduce((sum, user) => sum + user._count.auditLogs, 0);
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
-        <div className="absolute right-6 top-5 hidden h-28 w-28 rounded-full bg-primary/10 blur-2xl lg:block" />
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-3">
-            <Badge variant="outline" className="border-primary/25 text-primary">
-              Administrator workspace
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="font-heading text-3xl font-semibold tracking-normal text-foreground md:text-4xl">
-                User Administration
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                Manage authorised AEGIS operators, administrator coverage and
-                account availability without exposing credentials or sensitive
-                authentication material.
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[34rem]">
-            <MetricCard icon={Users} label="Total users" value={totals.total} />
-            <MetricCard
-              icon={CheckCircle}
-              label="Active"
-              value={totals.active}
-            />
-            <MetricCard
-              icon={ShieldCheck}
-              label="Admins"
-              value={totals.administrators}
-            />
-            <MetricCard
-              icon={ClockCounterClockwise}
-              label="Disabled"
-              value={totals.disabled}
-            />
-          </div>
+    <div className="grid gap-4">
+      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div data-motion="reveal">
+          <p className="text-sm font-medium text-zinc-500">Users</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+            Access Control
+          </h1>
         </div>
       </section>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
-        <Card className="rounded-xl border-border/70 shadow-sm transition-all duration-300 hover:shadow-md">
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2">
-              <UserGear className="size-5 text-primary" />
-              Authorised accounts
-            </CardTitle>
-            <CardDescription>
-              Role and status changes are enforced again on the server.
-            </CardDescription>
+      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
+        <MetricCard detail="Authorised accounts" icon={Users} label="Users" value={totals.total} />
+        <MetricCard detail="Available operators" icon={CheckCircle} label="Active" value={totals.active} />
+        <MetricCard detail="Privileged accounts" icon={ShieldCheck} label="Admins" value={totals.administrators} />
+        <MetricCard detail={`${auditEntries} audit entries`} icon={ClockCounterClockwise} label="Disabled" value={totals.disabled} />
+      </section>
+
+      <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Authorised Accounts</CardTitle>
+              <p className="text-sm text-zinc-500">Roles, status and activity</p>
+            </div>
+            <UserGear aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="pl-6">User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead className="pr-6 text-right">Access</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className="group">
-                    <TableCell className="pl-6">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-sm font-semibold text-foreground shadow-inner transition-transform duration-300 group-hover:scale-105">
-                          {userInitials(user.name)}
-                        </div>
-                        <div className="min-w-44">
-                          <div className="font-medium text-foreground">
-                            {user.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {user.email}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {userRoleLabels[user.role]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          user.status === "ACTIVE" ? "default" : "outline"
-                        }
-                        className={
-                          user.status === "ACTIVE"
-                            ? "bg-emerald-600 text-white"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {userStatusLabels[user.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs text-muted-foreground">
-                        {user._count.sessions} sessions
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {user._count.auditLogs} audit entries
-                      </div>
-                    </TableCell>
-                    <TableCell className="pr-6">
-                      <UserAccessForm
-                        action={updateUserAccessAction}
-                        role={user.role}
-                        status={user.status}
-                        userId={user.id}
-                      />
-                    </TableCell>
+            <div className="px-4 pb-4">
+              <Table className="w-full table-fixed">
+                <TableHeader>
+                  <TableRow className="border-zinc-200 bg-zinc-50">
+                    <TableHead className="w-[30%]">User</TableHead>
+                    <TableHead className="hidden text-center md:table-cell">Role</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="hidden text-center lg:table-cell">Activity</TableHead>
+                    <TableHead className="text-center">Access</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow
+                      className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                      key={user.id}
+                    >
+                      <TableCell>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-950 text-sm font-semibold text-white">
+                            {userInitials(user.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-zinc-950">
+                              {user.name}
+                            </p>
+                            <p className="truncate text-xs text-zinc-500">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden text-center md:table-cell">
+                        <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                          {userRoleLabels[user.role]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <StatusBadge status={user.status} />
+                      </TableCell>
+                      <TableCell className="hidden text-center text-sm text-zinc-500 lg:table-cell">
+                        <span className="font-semibold text-zinc-950">
+                          {user._count.sessions}
+                        </span>{" "}
+                        sessions
+                        <p className="text-xs text-zinc-400">
+                          {user._count.auditLogs} audit entries
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <UserAccessForm
+                          action={updateUserAccessAction}
+                          role={user.role}
+                          status={user.status}
+                          userId={user.id}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="h-fit rounded-xl border-border/70 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCirclePlus className="size-5 text-primary" />
-              Create account
-            </CardTitle>
-            <CardDescription>
-              New users receive a hashed password and no credential material is
-              returned to the interface.
-            </CardDescription>
-            <CardAction>
-              <Badge variant="outline">Admin only</Badge>
-            </CardAction>
+        <Card className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Create Account</CardTitle>
+              <p className="text-sm text-zinc-500">Operator access</p>
+            </div>
+            <UserCirclePlus aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <CreateUserForm action={createUserAction} />
           </CardContent>
         </Card>
-      </div>
+      </section>
     </div>
   );
 }
@@ -195,27 +152,43 @@ export default async function UsersPage() {
 type MetricIcon = typeof Users;
 
 function MetricCard({
+  detail,
   icon: Icon,
   label,
   value,
 }: {
+  detail: string;
   icon: MetricIcon;
   label: string;
   value: number;
 }) {
   return (
-    <div className="rounded-lg border bg-background/80 p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-            {value}
+    <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="metric">
+      <CardContent className="px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">{label}</p>
+            <p className="mt-1 text-2xl font-semibold text-zinc-950">{value}</p>
+          </div>
+          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+            <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <div className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </div>
-      </div>
-    </div>
+        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const className =
+    status === "ACTIVE"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-zinc-300 bg-zinc-100 text-zinc-700";
+
+  return (
+    <Badge className={`rounded-full ${className}`} variant="outline">
+      {userStatusLabels[status as keyof typeof userStatusLabels]}
+    </Badge>
   );
 }

@@ -7,7 +7,7 @@ const routeLabels: Record<string, string> = {
   alerts: "Alerts",
   analytics: "Predictive Analytics",
   audit: "Audit",
-  dashboard: "Dashboard",
+  overview: "Overview",
   equipment: "Equipment",
   maintenance: "Maintenance",
   "operational-data": "Operational Data",
@@ -17,7 +17,7 @@ const routeLabels: Record<string, string> = {
 
 export function TopBreadcrumb() {
   const pathname = usePathname();
-  const segment = pathname.split("/").filter(Boolean)[0] ?? "dashboard";
+  const segment = pathname.split("/").filter(Boolean)[0] ?? "overview";
   const label = routeLabels[segment] ?? "Operations Console";
 
   return (

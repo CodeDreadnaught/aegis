@@ -2,9 +2,9 @@ import "server-only";
 
 import { prisma } from "@/server/db/client";
 
-export type DashboardRange = 1 | 7 | 30;
+export type OverviewRange = 1 | 7 | 30;
 
-export async function getDashboardOverview(range: DashboardRange = 7) {
+export async function getOverviewWorkspace(range: OverviewRange = 7) {
   const since = new Date();
   since.setDate(since.getDate() - range);
 

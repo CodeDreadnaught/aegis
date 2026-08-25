@@ -5,7 +5,6 @@ import {
   ChartBar,
   ClockCounterClockwise,
   Factory,
-  Pulse,
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
@@ -59,7 +58,6 @@ export default async function MaintenancePage() {
     { label: "In progress", value: totals.in_progress },
     { label: "Deferred", value: totals.deferred },
   ];
-  const workTypeRows = getWorkTypeRows(records);
 
   return (
     <div className="grid gap-4">
@@ -121,7 +119,7 @@ export default async function MaintenancePage() {
           <CardContent className="p-0">
             {records.length ? (
               <div className="overflow-x-auto px-4 pb-4">
-                <Table className="min-w-[900px]">
+                <Table className="min-w-[980px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
                       <TableHead>Equipment</TableHead>
@@ -129,6 +127,7 @@ export default async function MaintenancePage() {
                       <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-center">Due</TableHead>
                       <TableHead className="text-center">Recorded</TableHead>
+                      <TableHead className="text-center">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -138,17 +137,14 @@ export default async function MaintenancePage() {
                         key={record.id}
                       >
                         <TableCell>
-                          <Link
-                            className="block min-w-[13rem] underline-offset-4 hover:underline"
-                            href={`/equipment/${record.equipment.id}`}
-                          >
+                          <div className="min-w-[13rem]">
                             <p className="font-semibold text-zinc-950">
                               {record.equipment.assetTag}
                             </p>
                             <p className="text-xs text-zinc-500">
                               {record.equipment.name}
                             </p>
-                          </Link>
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="mx-auto max-w-[14rem]">
@@ -173,6 +169,14 @@ export default async function MaintenancePage() {
                           <p className="text-xs text-zinc-500">
                             {record.recordedBy?.name ?? "System"}
                           </p>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Link
+                            className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                            href={`/equipment/${record.equipment.id}`}
+                          >
+                            View more
+                          </Link>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -255,63 +259,11 @@ export default async function MaintenancePage() {
         </div>
       </section>
 
-      <section className="grid items-start gap-4 2xl:grid-cols-[24rem_minmax(0,1fr)]">
+      <section>
         <MaintenanceForm
           action={createMaintenanceRecordAction}
           equipment={equipment}
         />
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Work Type</CardTitle>
-                <p className="text-sm text-zinc-500">Maintenance demand</p>
-              </div>
-              <Wrench aria-hidden="true" className="size-5 text-zinc-500" />
-            </CardHeader>
-            <CardContent className="grid gap-2 p-4 pt-0">
-              {workTypeRows.map((item) => (
-                <DistributionRow
-                  key={item.label}
-                  label={item.label}
-                  total={records.length}
-                  value={item.value}
-                />
-              ))}
-              {!workTypeRows.length && <EmptyState label="No work types" />}
-            </CardContent>
-          </Card>
-
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Intervention Load</CardTitle>
-                <p className="text-sm text-zinc-500">Closure and exposure</p>
-              </div>
-              <Pulse aria-hidden="true" className="size-5 text-zinc-500" />
-            </CardHeader>
-            <CardContent className="grid gap-3 p-4 pt-0">
-              <LoadMeter
-                label="Completed"
-                total={totals.total}
-                value={totals.completed}
-              />
-              <LoadMeter label="Open work" total={totals.total} value={openWorkCount} />
-              <LoadMeter
-                label="Schedule risk"
-                total={Math.max(records.length, 1)}
-                value={overdueCount + dueSoonCount}
-              />
-            </CardContent>
-          </Card>
-        </div>
       </section>
     </div>
   );
@@ -429,36 +381,6 @@ function DistributionRow({
   );
 }
 
-function LoadMeter({
-  label,
-  total,
-  value,
-}: {
-  label: string;
-  total: number;
-  value: number;
-}) {
-  const width = percentage(value, total);
-
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-zinc-950">{label}</p>
-        <p className="text-2xl font-semibold text-zinc-950">{width}%</p>
-      </div>
-      <span className="mt-3 block h-2 overflow-hidden rounded-full bg-white">
-        <span
-          className="block h-full rounded-full bg-zinc-950"
-          style={{ width: `${width}%` }}
-        />
-      </span>
-      <p className="mt-2 text-xs font-medium text-zinc-500">
-        {value} of {total || 0}
-      </p>
-    </div>
-  );
-}
-
 function EmptyState({
   icon: Icon,
   label,
@@ -474,24 +396,6 @@ function EmptyState({
       </div>
     </div>
   );
-}
-
-function getWorkTypeRows(
-  records: Awaited<ReturnType<typeof getMaintenanceWorkspace>>["records"]
-) {
-  const groups = records.reduce<Map<string, number>>((summary, record) => {
-    summary.set(record.type, (summary.get(record.type) ?? 0) + 1);
-    return summary;
-  }, new Map());
-  const rows = Array.from(groups, ([label, value]) => ({ label, value })).sort(
-    (left, right) => right.value - left.value
-  );
-  const visibleRows = rows.slice(0, 5);
-  const hiddenCount = rows.slice(5).reduce((sum, item) => sum + item.value, 0);
-
-  return hiddenCount
-    ? [...visibleRows, { label: "Other", value: hiddenCount }]
-    : visibleRows;
 }
 
 function isDueSoon(dueDate: Date | null, now: Date) {
