@@ -97,7 +97,7 @@ export default async function OperationalDataPage() {
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
               <CardTitle>Recent Readings</CardTitle>
-              <p className="text-sm text-zinc-500">AI4I features and plant context</p>
+              <p className="text-sm text-zinc-500">Model inputs and plant context</p>
             </div>
             <Badge
               className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
@@ -113,7 +113,7 @@ export default async function OperationalDataPage() {
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
                       <TableHead>Equipment</TableHead>
-                      <TableHead className="text-center">AI4I</TableHead>
+                      <TableHead className="text-center">Model Inputs</TableHead>
                       <TableHead className="text-center">Temperature</TableHead>
                       <TableHead className="text-center">Signals</TableHead>
                       <TableHead className="text-center">Source</TableHead>

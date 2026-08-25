@@ -68,14 +68,14 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
       </CardHeader>
       <CardContent>
         <form
-          className="grid gap-4 md:grid-cols-2"
+          className="grid min-w-0 gap-4 md:grid-cols-2"
           onSubmit={handleSubmit}
           ref={formRef}
         >
-          <div className="grid gap-2 md:col-span-2">
+          <div className="grid min-w-0 gap-2 md:col-span-2">
             <Label htmlFor="equipmentId">Equipment</Label>
             <select
-              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
               id="equipmentId"
               name="equipmentId"
               required
@@ -87,9 +87,10 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
               ))}
             </select>
           </div>
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="recordedAt">Recorded at</Label>
             <Input
+              className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
               defaultValue={now}
               id="recordedAt"
               name="recordedAt"
@@ -97,10 +98,10 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
               type="datetime-local"
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="sourceType">Source</Label>
             <select
-              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
               defaultValue="MANUAL_ENTRY"
               id="sourceType"
               name="sourceType"
@@ -112,10 +113,10 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
               ))}
             </select>
           </div>
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="type">Product type</Label>
             <select
-              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
               defaultValue="M"
               id="type"
               name="type"
@@ -166,7 +167,7 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
           />
           <div className="md:col-span-2">
             <Button
-              className="h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
               disabled={!equipment.length || pending}
               type="submit"
             >
@@ -196,10 +197,10 @@ function NumberField({
   step: string;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <Label htmlFor={name}>{label}</Label>
       <Input
-        className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+        className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
         id={name}
         name={name}
         required={required}
