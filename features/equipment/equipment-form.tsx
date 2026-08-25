@@ -106,7 +106,12 @@ export function EquipmentForm({
             <Textarea id="description" name="description" defaultValue={equipment?.description ?? ""} />
           </div>
           <div className="md:col-span-2">
-            <Button type="submit">{submitLabel}</Button>
+            <Button
+              className="rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800"
+              type="submit"
+            >
+              {submitLabel}
+            </Button>
           </div>
         </form>
       </CardContent>

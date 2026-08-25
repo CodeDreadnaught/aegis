@@ -140,16 +140,16 @@ export default async function EquipmentDetailsPage({
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DetailMetricCard
-          detail={latestPrediction ? latestPrediction.riskLevel : "Pending"}
+          detail={latestPrediction ? latestPrediction.riskLevel : "No AI run yet"}
           icon={Pulse}
           label="AI Health"
-          value={latestPrediction ? `${health}%` : "N/A"}
+          value={latestPrediction ? `${health}%` : "Pending"}
         />
         <DetailMetricCard
-          detail="Failure probability"
+          detail={latestPrediction ? "Failure probability" : "Run analytics"}
           icon={WarningCircle}
           label="Risk"
-          value={latestPrediction ? `${failure}%` : "N/A"}
+          value={latestPrediction ? `${failure}%` : "Pending"}
         />
         <DetailMetricCard
           detail="Operational readings"
@@ -165,26 +165,26 @@ export default async function EquipmentDetailsPage({
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.95fr_1fr_1fr]">
+      <section className="grid gap-4 xl:grid-cols-2">
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="rounded-lg border-zinc-200 bg-white shadow-sm xl:col-span-2"
           data-motion="metric"
         >
           <CardHeader className="pb-2">
             <CardTitle>Asset Identity</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            <InfoLine
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            <IdentityTile
               icon={Gauge}
               label="Manufacturer"
               value={equipment.manufacturer ?? "Not recorded"}
             />
-            <InfoLine
+            <IdentityTile
               icon={Pulse}
               label="Model"
               value={equipment.model ?? "Not recorded"}
             />
-            <InfoLine
+            <IdentityTile
               icon={MapPin}
               label="Installed"
               value={formatDate(equipment.installationDate)}
@@ -463,6 +463,32 @@ function SignalRow({
   );
 }
 
+function IdentityTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Wrench;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-zinc-950">
+          <Icon aria-hidden="true" className="size-4" />
+        </span>
+        <span className="truncate text-sm font-medium text-zinc-500">
+          {label}
+        </span>
+      </div>
+      <p className="mt-4 truncate text-xl font-semibold text-zinc-950">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function InfoLine({
   icon: Icon,
   label,
@@ -473,14 +499,16 @@ function InfoLine({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex items-center gap-3">
-        <span className="grid size-9 place-items-center rounded-full bg-white text-zinc-950">
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-zinc-950">
           <Icon aria-hidden="true" className="size-4" />
         </span>
-        <span className="text-sm font-medium text-zinc-500">{label}</span>
+        <span className="truncate text-sm font-medium text-zinc-500">
+          {label}
+        </span>
       </div>
-      <span className="max-w-[12rem] truncate text-sm font-semibold text-zinc-950">
+      <span className="min-w-fit max-w-[14rem] truncate text-sm font-semibold text-zinc-950">
         {value}
       </span>
     </div>
