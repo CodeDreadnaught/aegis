@@ -440,7 +440,7 @@ function DetailMetricCard({
       className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="p-3">
+      <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>

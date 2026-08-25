@@ -117,7 +117,7 @@ export default async function OperationalDataPage() {
                     <TableRow className="border-zinc-200 bg-zinc-50">
                       <TableHead>Equipment</TableHead>
                       <TableHead className="text-center">Model Inputs</TableHead>
-                      <TableHead className="text-center">Temperature</TableHead>
+                      <TableHead className="text-center">Temperature (K)</TableHead>
                       <TableHead className="text-center">Signals</TableHead>
                       <TableHead className="text-center">Source</TableHead>
                       <TableHead className="text-center">Recorded</TableHead>
@@ -165,15 +165,20 @@ export default async function OperationalDataPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-center text-zinc-600">
-                            <p>
-                              <span className="font-semibold text-zinc-950">
-                                {formatNumber(parameters.airTemperatureKelvin)}
-                              </span>{" "}
-                              air K
-                            </p>
-                            <p className="text-xs text-zinc-400">
-                              {formatNumber(parameters.processTemperatureKelvin)} process K
-                            </p>
+                            <div className="inline-grid min-w-24 gap-1 text-left">
+                              <p className="flex items-center justify-between gap-3 text-xs">
+                                <span className="text-zinc-500">Air</span>
+                                <span className="font-semibold text-zinc-950">
+                                  {formatNumber(parameters.airTemperatureKelvin)}
+                                </span>
+                              </p>
+                              <p className="flex items-center justify-between gap-3 text-xs">
+                                <span className="text-zinc-500">Process</span>
+                                <span className="font-semibold text-zinc-950">
+                                  {formatNumber(parameters.processTemperatureKelvin)}
+                                </span>
+                              </p>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center text-zinc-600">
                             <div className="mx-auto grid max-w-[12rem] gap-2">
@@ -267,7 +272,7 @@ function MetricCard({
       className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="p-3">
+      <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
