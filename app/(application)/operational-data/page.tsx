@@ -52,7 +52,7 @@ export default async function OperationalDataPage() {
   );
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4">
       <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div data-motion="reveal">
           <p className="text-sm font-medium text-zinc-500">Operational telemetry</p>
@@ -62,7 +62,7 @@ export default async function OperationalDataPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
         <MetricCard
           detail="Available for capture"
           icon={Factory}
@@ -89,9 +89,9 @@ export default async function OperationalDataPage() {
         />
       </section>
 
-      <section>
+      <section className="min-w-0">
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="min-w-0 max-w-full rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -108,8 +108,8 @@ export default async function OperationalDataPage() {
           </CardHeader>
           <CardContent className="p-0">
             {readings.length ? (
-              <div className="px-4 pb-4">
-                <Table className="min-w-[980px]">
+              <div className="min-w-0 max-w-full px-4 pb-4">
+                <Table className="min-w-[920px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
                       <TableHead>Equipment</TableHead>
@@ -228,13 +228,13 @@ export default async function OperationalDataPage() {
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_26rem]">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <ReadingForm
           action={createOperationalReadingAction}
           equipment={equipment}
         />
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
           <CardHeader className="pb-2">
@@ -296,14 +296,14 @@ function MetricCard({
 }) {
   return (
     <Card
-      className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">
+            <p className="mt-2 break-words text-2xl font-semibold tracking-normal text-zinc-950 sm:text-3xl">
               {value}
             </p>
           </div>

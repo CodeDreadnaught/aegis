@@ -57,7 +57,7 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
 
   return (
     <Card
-      className="rounded-lg border-zinc-200 bg-white shadow-sm"
+      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
       data-motion="panel"
     >
       <CardHeader className="pb-2">
