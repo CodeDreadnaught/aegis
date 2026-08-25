@@ -116,9 +116,9 @@ export default async function EquipmentPage({
       value: equipment.filter((asset) => asset.category === item).length,
     }))
     .filter((item) => item.value > 0);
-  const visibleCategoryCounts = categoryCounts.slice(0, 5);
+  const visibleCategoryCounts = categoryCounts.slice(0, 3);
   const hiddenCategoryCount = categoryCounts
-    .slice(5)
+    .slice(3)
     .reduce((sum, item) => sum + item.value, 0);
   const fleetMixRows = hiddenCategoryCount
     ? [

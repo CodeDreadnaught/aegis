@@ -49,13 +49,7 @@ export function CaptureWorkspace({
     : "No equipment selected";
 
   return (
-    <section className="grid min-w-0 items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-      <ReadingForm
-        action={action}
-        equipment={equipment}
-        onEquipmentChange={setSelectedEquipmentId}
-        selectedEquipmentId={selectedEquipmentId}
-      />
+    <section className="grid min-w-0 items-start gap-4 2xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
       <Card
         className="h-fit min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
         data-motion="metric"
@@ -84,6 +78,12 @@ export function CaptureWorkspace({
           />
         </CardContent>
       </Card>
+      <ReadingForm
+        action={action}
+        equipment={equipment}
+        onEquipmentChange={setSelectedEquipmentId}
+        selectedEquipmentId={selectedEquipmentId}
+      />
     </section>
   );
 }

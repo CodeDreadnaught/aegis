@@ -192,7 +192,7 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
+        <section className="grid items-start gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
           <div className="grid gap-3 md:grid-cols-2">
             {kpis.map((kpi) => {
               const Icon = kpi.icon;
@@ -203,18 +203,18 @@ export default async function DashboardPage({
                   data-motion="metric"
                   key={kpi.label}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="px-3 py-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-zinc-500">
                           {kpi.label}
                         </p>
-                        <p className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">
+                        <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
                           {kpi.value}
                         </p>
                       </div>
                       <div
-                        className={`grid size-9 place-items-center rounded-full ${kpi.tone}`}
+                        className={`grid size-8 place-items-center rounded-full ${kpi.tone}`}
                       >
                         <Icon aria-hidden="true" className="size-4" />
                       </div>
