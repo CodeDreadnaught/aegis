@@ -101,6 +101,12 @@
     background-color: transparent;
   }
 
+  ::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
   ::-webkit-scrollbar-thumb {
     background-color: #000000;
     border: 2px solid transparent;
