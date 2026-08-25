@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   CalendarCheck,
+  ChartBar,
   ClockCounterClockwise,
+  Factory,
+  Pulse,
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
-import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -35,132 +32,287 @@ export const metadata: Metadata = {
   title: "AEGIS - Maintenance",
 };
 
+const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+});
+
 export default async function MaintenancePage() {
   await requirePermission("viewMaintenance");
   const { equipment, records, totals } = await getMaintenanceWorkspace();
+  const now = new Date();
+  const activeAssetCount = equipment.length;
+  const overdueCount = records.filter((record) =>
+    isOverdue(record.nextDueDate, now)
+  ).length;
+  const dueSoonCount = records.filter((record) =>
+    isDueSoon(record.nextDueDate, now)
+  ).length;
+  const completionRate = percentage(totals.completed, totals.total);
+  const openWorkCount = totals.planned + totals.in_progress + totals.deferred;
+  const upcomingRecords = records
+    .filter((record) => record.nextDueDate && record.nextDueDate >= now)
+    .slice(0, 5);
+  const statusRows = [
+    { label: "Completed", value: totals.completed },
+    { label: "Planned", value: totals.planned },
+    { label: "In progress", value: totals.in_progress },
+    { label: "Deferred", value: totals.deferred },
+  ];
+  const workTypeRows = getWorkTypeRows(records);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        description="Record maintenance events, track planned work and keep equipment history available for reporting and risk review."
-        eyebrow="Maintenance control"
-        title="Maintenance"
-      />
+    <div className="grid gap-4">
+      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div data-motion="reveal">
+          <p className="text-sm font-medium text-zinc-500">Maintenance</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+            Service Control
+          </h1>
+        </div>
+      </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={Wrench} label="Records" value={totals.total} />
+      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
         <MetricCard
-          icon={CalendarCheck}
-          label="Planned"
-          value={totals.planned}
+          detail={`${activeAssetCount} serviceable assets`}
+          icon={Factory}
+          label="Assets"
+          value={activeAssetCount}
         />
         <MetricCard
-          icon={ClockCounterClockwise}
-          label="In progress"
-          value={totals.in_progress}
-        />
-        <MetricCard
+          detail={`${completionRate}% closure rate`}
           icon={CalendarCheck}
           label="Completed"
           value={totals.completed}
         />
-      </div>
+        <MetricCard
+          detail={`${dueSoonCount} due soon`}
+          icon={ClockCounterClockwise}
+          label="Open Work"
+          value={openWorkCount}
+        />
+        <MetricCard
+          detail={`${overdueCount} overdue`}
+          icon={Wrench}
+          label="Schedule Risk"
+          value={overdueCount + dueSoonCount}
+        />
+      </section>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
-        <Card className="premium-panel motion-card">
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2">
-              <ClockCounterClockwise className="size-5 text-primary" />
-              Maintenance history
-            </CardTitle>
-            <CardDescription>
-              Recent and planned records ordered by due date and activity date.
-            </CardDescription>
+      <section className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <Card
+          className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Maintenance History</CardTitle>
+              <p className="text-sm text-zinc-500">
+                Work records and next due dates
+              </p>
+            </div>
+            <Badge
+              className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+              variant="outline"
+            >
+              {records.length} records
+            </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {records.length ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="pl-6">Equipment</TableHead>
-                    <TableHead>Work</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Due</TableHead>
-                    <TableHead className="pr-6">Recorded by</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.map((record) => (
-                    <TableRow key={record.id} className="data-row">
-                      <TableCell className="pl-6">
-                        <div className="font-medium text-foreground">
-                          {record.equipment.assetTag}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {record.equipment.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-foreground">
-                          {record.type}
-                        </div>
-                        <div className="max-w-80 truncate text-xs text-muted-foreground">
-                          {record.description}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            record.status === "COMPLETED"
-                              ? "bg-emerald-600 text-white"
-                              : undefined
-                          }
-                          variant={
-                            record.status === "COMPLETED"
-                              ? "default"
-                              : "outline"
-                          }
-                        >
-                          {formatMaintenanceStatus(record.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DueDateBadge dueDate={record.nextDueDate} />
-                      </TableCell>
-                      <TableCell className="pr-6">
-                        <div className="text-sm text-foreground">
-                          {record.recordedBy?.name ?? "System"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {record.performedAt.toLocaleDateString("en-GB")}
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto px-4 pb-4">
+                <Table className="min-w-[900px]">
+                  <TableHeader>
+                    <TableRow className="border-zinc-200 bg-zinc-50">
+                      <TableHead>Equipment</TableHead>
+                      <TableHead className="text-center">Work</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-center">Due</TableHead>
+                      <TableHead className="text-center">Recorded</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="px-6 py-14 text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-lg border bg-muted text-primary">
-                  <Wrench className="size-6" />
-                </div>
-                <h2 className="mt-4 text-base font-semibold text-foreground">
-                  No maintenance records
-                </h2>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                  Record completed work or planned maintenance to build an
-                  auditable equipment history.
-                </p>
+                  </TableHeader>
+                  <TableBody>
+                    {records.map((record) => (
+                      <TableRow
+                        className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                        key={record.id}
+                      >
+                        <TableCell>
+                          <Link
+                            className="block min-w-[13rem] underline-offset-4 hover:underline"
+                            href={`/equipment/${record.equipment.id}`}
+                          >
+                            <p className="font-semibold text-zinc-950">
+                              {record.equipment.assetTag}
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              {record.equipment.name}
+                            </p>
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="mx-auto max-w-[14rem]">
+                            <p className="truncate font-semibold text-zinc-950">
+                              {record.type}
+                            </p>
+                            <p className="truncate text-xs text-zinc-500">
+                              {record.description}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <MaintenanceStatusBadge status={record.status} />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <DueDateBadge dueDate={record.nextDueDate} now={now} />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <p className="font-medium text-zinc-950">
+                            {compactDateFormatter.format(record.performedAt)}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {record.recordedBy?.name ?? "System"}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
+            ) : (
+              <EmptyState icon={Wrench} label="No maintenance records" />
             )}
           </CardContent>
         </Card>
 
+        <div className="grid gap-4">
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+              <div>
+                <CardTitle>Status Mix</CardTitle>
+                <p className="text-sm text-zinc-500">Work state</p>
+              </div>
+              <ChartBar aria-hidden="true" className="size-5 text-zinc-500" />
+            </CardHeader>
+            <CardContent className="grid gap-2 p-4 pt-0">
+              {statusRows.map((item) => (
+                <DistributionRow
+                  key={item.label}
+                  label={item.label}
+                  total={totals.total}
+                  value={item.value}
+                />
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+              <div>
+                <CardTitle>Next Due</CardTitle>
+                <p className="text-sm text-zinc-500">Upcoming service</p>
+              </div>
+              <Badge
+                className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                variant="outline"
+              >
+                {dueSoonCount} soon
+              </Badge>
+            </CardHeader>
+            <CardContent className="grid gap-2 p-4 pt-0">
+              {upcomingRecords.map((record) => (
+                <Link
+                  className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                  href={`/equipment/${record.equipment.id}`}
+                  key={record.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-zinc-950">
+                        {record.equipment.assetTag}
+                      </p>
+                      <p className="truncate text-xs text-zinc-500">
+                        {record.type}
+                      </p>
+                    </div>
+                    <span className="whitespace-nowrap text-sm font-semibold text-zinc-950">
+                      {record.nextDueDate
+                        ? compactDateFormatter.format(record.nextDueDate)
+                        : "N/A"}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+              {!upcomingRecords.length && <EmptyState label="No scheduled work" />}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section className="grid items-start gap-4 2xl:grid-cols-[24rem_minmax(0,1fr)]">
         <MaintenanceForm
           action={createMaintenanceRecordAction}
           equipment={equipment}
         />
-      </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+              <div>
+                <CardTitle>Work Type</CardTitle>
+                <p className="text-sm text-zinc-500">Maintenance demand</p>
+              </div>
+              <Wrench aria-hidden="true" className="size-5 text-zinc-500" />
+            </CardHeader>
+            <CardContent className="grid gap-2 p-4 pt-0">
+              {workTypeRows.map((item) => (
+                <DistributionRow
+                  key={item.label}
+                  label={item.label}
+                  total={records.length}
+                  value={item.value}
+                />
+              ))}
+              {!workTypeRows.length && <EmptyState label="No work types" />}
+            </CardContent>
+          </Card>
+
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+              <div>
+                <CardTitle>Intervention Load</CardTitle>
+                <p className="text-sm text-zinc-500">Closure and exposure</p>
+              </div>
+              <Pulse aria-hidden="true" className="size-5 text-zinc-500" />
+            </CardHeader>
+            <CardContent className="grid gap-3 p-4 pt-0">
+              <LoadMeter
+                label="Completed"
+                total={totals.total}
+                value={totals.completed}
+              />
+              <LoadMeter label="Open work" total={totals.total} value={openWorkCount} />
+              <LoadMeter
+                label="Schedule risk"
+                total={Math.max(records.length, 1)}
+                value={overdueCount + dueSoonCount}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }
@@ -168,43 +320,192 @@ export default async function MaintenancePage() {
 type MetricIcon = typeof Wrench;
 
 function MetricCard({
+  detail,
   icon: Icon,
   label,
   value,
 }: {
+  detail: string;
   icon: MetricIcon;
   label: string;
-  value: number;
+  value: number | string;
 }) {
   return (
-    <Card className="motion-card">
-      <CardContent className="flex-row items-center justify-between gap-3 p-4">
-        <div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
-            {value}
+    <Card
+      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      data-motion="metric"
+    >
+      <CardContent className="px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">{label}</p>
+            <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
+              {value}
+            </p>
+          </div>
+          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+            <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </div>
+        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
   );
 }
 
-function DueDateBadge({ dueDate }: { dueDate: Date | null }) {
+function MaintenanceStatusBadge({ status }: { status: string }) {
+  const className =
+    status === "COMPLETED"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : status === "IN_PROGRESS"
+        ? "border-zinc-200 bg-zinc-950 text-white"
+        : status === "DEFERRED"
+          ? "border-amber-200 bg-amber-50 text-amber-700"
+          : "border-zinc-200 bg-zinc-50 text-zinc-700";
+
+  return (
+    <Badge className={`rounded-full ${className}`} variant="outline">
+      {formatMaintenanceStatus(status)}
+    </Badge>
+  );
+}
+
+function DueDateBadge({ dueDate, now }: { dueDate: Date | null; now: Date }) {
   if (!dueDate) {
-    return <Badge variant="outline">Not scheduled</Badge>;
+    return (
+      <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-500" variant="outline">
+        Not scheduled
+      </Badge>
+    );
   }
 
-  if (isOverdue(dueDate)) {
+  if (isOverdue(dueDate, now)) {
     return (
-      <Badge className="bg-destructive/10 text-destructive" variant="outline">
+      <Badge className="rounded-full border-red-200 bg-red-50 text-red-600" variant="outline">
         Overdue
       </Badge>
     );
   }
 
-  return <Badge variant="secondary">{dueDate.toLocaleDateString("en-GB")}</Badge>;
+  if (isDueSoon(dueDate, now)) {
+    return (
+      <Badge className="rounded-full border-amber-200 bg-amber-50 text-amber-700" variant="outline">
+        {compactDateFormatter.format(dueDate)}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+      {compactDateFormatter.format(dueDate)}
+    </Badge>
+  );
+}
+
+function DistributionRow({
+  label,
+  total,
+  value,
+}: {
+  label: string;
+  total: number;
+  value: number;
+}) {
+  const width = percentage(value, total);
+
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-semibold text-zinc-950">{label}</span>
+        <span className="font-medium text-zinc-500">{value}</span>
+      </div>
+      <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
+        <span
+          className="block h-full rounded-full bg-zinc-950"
+          style={{ width: `${width}%` }}
+        />
+      </span>
+    </div>
+  );
+}
+
+function LoadMeter({
+  label,
+  total,
+  value,
+}: {
+  label: string;
+  total: number;
+  value: number;
+}) {
+  const width = percentage(value, total);
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-zinc-950">{label}</p>
+        <p className="text-2xl font-semibold text-zinc-950">{width}%</p>
+      </div>
+      <span className="mt-3 block h-2 overflow-hidden rounded-full bg-white">
+        <span
+          className="block h-full rounded-full bg-zinc-950"
+          style={{ width: `${width}%` }}
+        />
+      </span>
+      <p className="mt-2 text-xs font-medium text-zinc-500">
+        {value} of {total || 0}
+      </p>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  label,
+}: {
+  icon?: MetricIcon;
+  label: string;
+}) {
+  return (
+    <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-5 text-sm font-medium text-zinc-500">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon aria-hidden="true" className="size-4 text-zinc-400" />}
+        <span>{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function getWorkTypeRows(
+  records: Awaited<ReturnType<typeof getMaintenanceWorkspace>>["records"]
+) {
+  const groups = records.reduce<Map<string, number>>((summary, record) => {
+    summary.set(record.type, (summary.get(record.type) ?? 0) + 1);
+    return summary;
+  }, new Map());
+  const rows = Array.from(groups, ([label, value]) => ({ label, value })).sort(
+    (left, right) => right.value - left.value
+  );
+  const visibleRows = rows.slice(0, 5);
+  const hiddenCount = rows.slice(5).reduce((sum, item) => sum + item.value, 0);
+
+  return hiddenCount
+    ? [...visibleRows, { label: "Other", value: hiddenCount }]
+    : visibleRows;
+}
+
+function isDueSoon(dueDate: Date | null, now: Date) {
+  if (!dueDate || dueDate < now) {
+    return false;
+  }
+
+  return dueDate.getTime() - now.getTime() <= 1000 * 60 * 60 * 24 * 30;
+}
+
+function percentage(value: number, total: number) {
+  if (!total) {
+    return 0;
+  }
+
+  return Math.round((value / total) * 100);
 }

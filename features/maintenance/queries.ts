@@ -15,6 +15,7 @@ export async function getMaintenanceWorkspace() {
         id: true,
         assetTag: true,
         name: true,
+        category: true,
       },
     }),
     prisma.maintenanceRecord.findMany({
@@ -29,7 +30,9 @@ export async function getMaintenanceWorkspace() {
         status: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
+            category: true,
             name: true,
           },
         },
