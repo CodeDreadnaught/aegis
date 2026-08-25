@@ -23,6 +23,7 @@ export async function getOperationalDataWorkspace() {
       take: 25,
       select: {
         id: true,
+        equipmentId: true,
         recordedAt: true,
         sourceType: true,
         parameters: true,

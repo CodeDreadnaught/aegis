@@ -4,7 +4,6 @@ import {
   Factory,
   Gauge,
   Pulse,
-  Waveform,
 } from "@phosphor-icons/react/ssr";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createOperationalReadingAction } from "@/features/operational-readings/actions";
+import { CaptureWorkspace } from "@/features/operational-readings/capture-workspace";
 import { getOperationalDataWorkspace } from "@/features/operational-readings/queries";
-import { ReadingForm } from "@/features/operational-readings/reading-form";
 import { formatSourceType } from "@/features/operational-readings/validation";
 import { requirePermission } from "@/server/auth/session";
 
@@ -35,9 +34,13 @@ const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
 export default async function OperationalDataPage() {
   await requirePermission("recordOperationalData");
   const { equipment, readings } = await getOperationalDataWorkspace();
-  const latestReading = readings[0];
-  const latestParameters = asReadingParameters(latestReading?.parameters);
   const activeSources = new Set(readings.map((reading) => reading.sourceType)).size;
+  const signalReadings = readings.map((reading) => ({
+    assetTag: reading.equipment.assetTag,
+    equipmentId: reading.equipmentId,
+    name: reading.equipment.name,
+    parameters: asReadingParameters(reading.parameters),
+  }));
   const averageVibration = average(
     readings.map((reading) => asReadingParameters(reading.parameters).vibrationMmS)
   );
@@ -228,46 +231,11 @@ export default async function OperationalDataPage() {
         </Card>
       </section>
 
-      <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-        <ReadingForm
-          action={createOperationalReadingAction}
-          equipment={equipment}
-        />
-        <Card
-          className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
-          data-motion="metric"
-        >
-          <CardHeader className="pb-2">
-            <CardTitle>Latest Signal</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <SignalTile
-              label="Vibration"
-              value={
-                latestParameters.vibrationMmS
-                  ? `${latestParameters.vibrationMmS} mm/s`
-                  : "N/A"
-              }
-            />
-            <SignalTile
-              label="Pressure"
-              value={
-                latestParameters.pressureBar
-                  ? `${latestParameters.pressureBar} bar`
-                  : "N/A"
-              }
-            />
-            <SignalTile
-              label="Flow"
-              value={
-                latestParameters.flowRateBpd
-                  ? `${latestParameters.flowRateBpd.toLocaleString("en-GB")} bpd`
-                  : "N/A"
-              }
-            />
-          </CardContent>
-        </Card>
-      </section>
+      <CaptureWorkspace
+        action={createOperationalReadingAction}
+        equipment={equipment}
+        signals={signalReadings}
+      />
     </div>
   );
 }
@@ -314,18 +282,6 @@ function MetricCard({
         <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function SignalTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-zinc-950">{label}</span>
-        <Waveform aria-hidden="true" className="size-4 text-zinc-400" />
-      </div>
-      <p className="mt-2 text-2xl font-semibold text-zinc-950">{value}</p>
-    </div>
   );
 }
 

@@ -110,6 +110,10 @@ export async function createOperationalReadingAction(formData: FormData) {
 
 async function parseSensorImport(formData: FormData) {
   const file = formData.get("sensorImportFile");
+  const selectedEquipmentId =
+    typeof formData.get("equipmentId") === "string"
+      ? formData.get("equipmentId")?.toString().trim()
+      : undefined;
 
   if (!file || typeof file !== "object" || !("text" in file)) {
     throw new Error("Upload a CSV sensor import sheet.");
@@ -153,11 +157,12 @@ async function parseSensorImport(formData: FormData) {
       getCell(row, "equipmentId", "equipment_id") ??
       equipmentByAssetTag.get(
         getCell(row, "assetTag", "asset_tag", "equipmentAssetTag") ?? ""
-      );
+      ) ??
+      selectedEquipmentId;
 
     if (!equipmentId) {
       throw new Error(
-        `Row ${rowNumber} must include a valid equipmentId or assetTag.`
+        `Row ${rowNumber} must include a valid equipmentId or assetTag, or use a selected equipment item.`
       );
     }
 
