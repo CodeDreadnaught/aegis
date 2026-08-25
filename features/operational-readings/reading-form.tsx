@@ -167,7 +167,7 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
           />
           <div className="md:col-span-2">
             <Button
-              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!equipment.length || pending}
               type="submit"
             >
