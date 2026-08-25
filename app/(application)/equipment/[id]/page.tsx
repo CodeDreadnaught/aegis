@@ -138,31 +138,57 @@ export default async function EquipmentDetailsPage({
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr_0.9fr]">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DetailMetricCard
+          detail={latestPrediction ? latestPrediction.riskLevel : "Pending"}
+          icon={Pulse}
+          label="AI Health"
+          value={latestPrediction ? `${health}%` : "N/A"}
+        />
+        <DetailMetricCard
+          detail="Failure probability"
+          icon={WarningCircle}
+          label="Risk"
+          value={latestPrediction ? `${failure}%` : "N/A"}
+        />
+        <DetailMetricCard
+          detail="Operational readings"
+          icon={ChartLineUp}
+          label="Telemetry"
+          value={equipment._count.operationalReadings}
+        />
+        <DetailMetricCard
+          detail="Prediction runs"
+          icon={TrendUp}
+          label="AI Runs"
+          value={equipment._count.predictions}
+        />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1fr_1fr]">
         <Card
-          className="overflow-hidden rounded-lg border-zinc-900 bg-zinc-950 text-white shadow-[0_24px_80px_rgba(24,24,27,0.14)]"
-          data-motion="panel"
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="metric"
         >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-zinc-400">AI health</p>
-                <p className="mt-3 text-5xl font-semibold tracking-normal">
-                  {latestPrediction ? `${health}%` : "N/A"}
-                </p>
-              </div>
-              <div className="grid size-11 place-items-center rounded-full border border-white/10 bg-white/10">
-                <Pulse aria-hidden="true" className="size-5 text-emerald-300" />
-              </div>
-            </div>
-            <div className="mt-6 grid gap-2 sm:grid-cols-3">
-              <DarkTile
-                label="Failure"
-                value={latestPrediction ? `${failure}%` : "N/A"}
-              />
-              <DarkTile label="Readings" value={equipment._count.operationalReadings} />
-              <DarkTile label="Predictions" value={equipment._count.predictions} />
-            </div>
+          <CardHeader className="pb-2">
+            <CardTitle>Asset Identity</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <InfoLine
+              icon={Gauge}
+              label="Manufacturer"
+              value={equipment.manufacturer ?? "Not recorded"}
+            />
+            <InfoLine
+              icon={Pulse}
+              label="Model"
+              value={equipment.model ?? "Not recorded"}
+            />
+            <InfoLine
+              icon={MapPin}
+              label="Installed"
+              value={formatDate(equipment.installationDate)}
+            />
           </CardContent>
         </Card>
 
@@ -381,14 +407,37 @@ export default async function EquipmentDetailsPage({
   );
 }
 
-function DarkTile({ label, value }: { label: string; value: number | string }) {
+function DetailMetricCard({
+  detail,
+  icon: Icon,
+  label,
+  value,
+}: {
+  detail: string;
+  icon: typeof Pulse;
+  label: string;
+  value: number | string;
+}) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/10 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-    </div>
+    <Card
+      className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      data-motion="metric"
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">{label}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-normal text-zinc-950">
+              {value}
+            </p>
+          </div>
+          <div className="grid size-9 place-items-center rounded-full bg-zinc-950 text-white">
+            <Icon aria-hidden="true" className="size-4" />
+          </div>
+        </div>
+        <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
+      </CardContent>
+    </Card>
   );
 }
 

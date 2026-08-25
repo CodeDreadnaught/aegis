@@ -220,47 +220,34 @@ export default async function EquipmentPage({
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.95fr_0.85fr]">
-        <Card
-          className="overflow-hidden rounded-lg border-zinc-900 bg-zinc-950 text-white shadow-[0_24px_80px_rgba(24,24,27,0.14)]"
-          data-motion="panel"
-        >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-zinc-400">Fleet readiness</p>
-                <p className="mt-3 text-5xl font-semibold tracking-normal">
-                  {equipment.length ? Math.round(averageHealth) : 0}%
-                </p>
-              </div>
-              <div className="grid size-11 place-items-center rounded-full border border-white/10 bg-white/10">
-                <Pulse aria-hidden="true" className="size-5 text-emerald-300" />
-              </div>
-            </div>
-            <div className="mt-6 grid gap-2 sm:grid-cols-3">
-              <SummaryTile label="Assets" value={equipment.length} />
-              <SummaryTile label="Live" value={monitoredCount} />
-              <SummaryTile label="High Risk" value={highRiskCount} />
-            </div>
-          </CardContent>
-        </Card>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          detail={`${activeCount} active assets`}
+          icon={Pulse}
+          label="Readiness"
+          value={equipment.length ? `${Math.round(averageHealth)}%` : "N/A"}
+        />
+        <MetricCard
+          detail={`${readingCoverage}% with recent readings`}
+          icon={Factory}
+          label="Monitored"
+          value={monitoredCount}
+        />
+        <MetricCard
+          detail={`${predictionCoverage}% AI coverage`}
+          icon={ChartBar}
+          label="Predicted"
+          value={equipment.filter((item) => item.predictions[0]).length}
+        />
+        <MetricCard
+          detail={`${overdueMaintenanceCount} overdue / ${dueSoonCount} due soon`}
+          icon={Wrench}
+          label="Maintenance"
+          value={maintenanceCount}
+        />
+      </section>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-          <MetricCard
-            detail={`${activeCount} active / ${readingCoverage}% monitored`}
-            icon={Factory}
-            label="Coverage"
-            tone="bg-zinc-950 text-white"
-            value={`${predictionCoverage}%`}
-          />
-          <MetricCard
-            detail={`${overdueMaintenanceCount} overdue / ${dueSoonCount} due soon`}
-            icon={Wrench}
-            label="Maintenance"
-            tone="bg-white text-zinc-950"
-            value={maintenanceCount}
-          />
-        </div>
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
 
         <Card
           className="rounded-lg border-zinc-200 bg-white shadow-sm"
@@ -297,30 +284,35 @@ export default async function EquipmentPage({
         </Card>
 
         <Card
-          className="rounded-lg border-zinc-200 bg-zinc-950 text-white shadow-sm"
+          className="rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
             <CardTitle>Risk Queue</CardTitle>
-            <p className="text-sm text-zinc-400">Highest failure probability</p>
+              <p className="text-sm text-zinc-500">Highest failure probability</p>
+            </div>
+            <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+              {highRiskCount} high risk
+            </Badge>
           </CardHeader>
-          <CardContent className="gap-2 p-4 pt-0">
+          <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2">
             {criticalAssets.map((item) => (
               <Link
-                className="group rounded-lg border border-white/10 bg-white/8 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/12"
+                className="group rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
                 href={`/equipment/${item.id}`}
                 key={item.id}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">
+                    <p className="truncate text-sm font-semibold text-zinc-950">
                       {item.assetTag}
                     </p>
-                    <p className="truncate text-xs text-zinc-400">
+                    <p className="truncate text-xs text-zinc-500">
                       {item.location}
                     </p>
                   </div>
-                  <span className="text-sm font-semibold text-red-300">
+                  <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-red-600">
                     {Math.round(
                       Number(item.predictions[0]?.failureProbability ?? 0) * 100
                     )}
@@ -329,7 +321,7 @@ export default async function EquipmentPage({
                 </div>
               </Link>
             ))}
-            {!criticalAssets.length && <EmptyState dark label="No predictions" />}
+            {!criticalAssets.length && <EmptyState label="No predictions" />}
           </CardContent>
         </Card>
       </section>
@@ -338,7 +330,7 @@ export default async function EquipmentPage({
         className="rounded-lg border-zinc-200 bg-white shadow-sm"
         data-motion="panel"
       >
-          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
           <div>
             <CardTitle>Equipment Register</CardTitle>
             <p className="text-sm text-zinc-500">
@@ -500,13 +492,11 @@ function MetricCard({
   detail,
   icon: Icon,
   label,
-  tone,
   value,
 }: {
   detail: string;
   icon: typeof Factory;
   label: string;
-  tone: string;
   value: number | string;
 }) {
   return (
@@ -522,24 +512,13 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className={`grid size-9 place-items-center rounded-full ${tone}`}>
+          <div className="grid size-9 place-items-center rounded-full bg-zinc-950 text-white">
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
         <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function SummaryTile({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/10 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-    </div>
   );
 }
 
@@ -601,15 +580,9 @@ function RiskBadge({ risk }: { risk: RiskLevel }) {
   );
 }
 
-function EmptyState({ dark = false, label }: { dark?: boolean; label: string }) {
+function EmptyState({ label }: { label: string }) {
   return (
-    <div
-      className={
-        dark
-          ? "rounded-lg border border-dashed border-white/10 bg-white/8 p-4 text-sm text-zinc-400"
-          : "rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500"
-      }
-    >
+    <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
       {label}
     </div>
   );
