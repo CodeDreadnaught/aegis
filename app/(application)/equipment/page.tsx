@@ -259,7 +259,7 @@ export default async function EquipmentPage({
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+      <section className="grid items-start gap-4 xl:grid-cols-[0.95fr_1.05fr]">
 
         <Card
           className="rounded-lg border-zinc-200 bg-white shadow-sm"

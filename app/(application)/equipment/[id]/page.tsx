@@ -266,9 +266,9 @@ export default async function EquipmentDetailsPage({
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid items-start gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -318,9 +318,9 @@ export default async function EquipmentDetailsPage({
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="grid items-start gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="pb-2">

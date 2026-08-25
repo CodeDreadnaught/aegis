@@ -87,7 +87,7 @@ export default async function UsersPage() {
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <Card className="rounded-xl border-border/70 shadow-sm transition-all duration-300 hover:shadow-md">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export default async function UsersPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-border/70 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+        <Card className="h-fit rounded-xl border-border/70 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCirclePlus className="size-5 text-primary" />

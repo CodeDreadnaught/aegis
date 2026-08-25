@@ -63,8 +63,8 @@ export default async function AnalyticsPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
-        <Card className="premium-panel motion-card">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <Card className="h-fit premium-panel motion-card">
           <CardHeader className="border-b">
             <CardTitle>Operational readings ready for inference</CardTitle>
             <CardDescription>

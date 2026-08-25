@@ -66,7 +66,7 @@ export default async function MaintenancePage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <Card className="premium-panel motion-card">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">

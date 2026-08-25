@@ -57,7 +57,7 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
   }
 
   return (
-    <Card className="premium-panel motion-card">
+    <Card className="h-fit premium-panel motion-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wrench className="size-5 text-primary" />

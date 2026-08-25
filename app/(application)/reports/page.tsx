@@ -68,7 +68,7 @@ export default async function ReportsPage() {
         <ReportMetric label="Alerts" value={reports.alerts.length} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid items-start gap-6 xl:grid-cols-2">
         <ReportCard
           description="Fleet report with category, status and location."
           downloadHref={csvDataHref(equipmentCsv)}

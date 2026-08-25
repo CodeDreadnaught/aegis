@@ -178,7 +178,7 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
+        <section className="grid items-start gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
           <div className="grid gap-3 md:grid-cols-2">
             {kpis.map((kpi) => {
               const Icon = kpi.icon;
@@ -218,7 +218,7 @@ export default async function DashboardPage({
           </div>
 
           <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -263,7 +263,7 @@ export default async function DashboardPage({
 
           <div className="grid gap-4">
             <Card
-              className="rounded-lg border-zinc-200 bg-emerald-50 shadow-sm"
+              className="h-fit rounded-lg border-zinc-200 bg-emerald-50 shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -290,7 +290,7 @@ export default async function DashboardPage({
             </Card>
 
             <Card
-              className="rounded-lg border-zinc-200 bg-white shadow-sm"
+              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="pb-2">
@@ -308,9 +308,9 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.48fr_0.72fr]">
+        <section className="grid items-start gap-4 xl:grid-cols-[1.48fr_0.72fr]">
           <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -437,7 +437,7 @@ export default async function DashboardPage({
           </Card>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.44fr_0.76fr]">
+        <section className="grid items-start gap-4 xl:grid-cols-[1.44fr_0.76fr]">
           <Card
             className="rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
@@ -452,7 +452,7 @@ export default async function DashboardPage({
 
           <div className="grid gap-4">
             <Card
-              className="rounded-lg border-zinc-200 bg-white shadow-sm"
+              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="pb-2">
@@ -473,7 +473,7 @@ export default async function DashboardPage({
             </Card>
 
             <Card
-              className="rounded-lg border-zinc-200 bg-white shadow-sm"
+              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="pb-2">
@@ -509,9 +509,9 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+        <section className="grid items-start gap-4 lg:grid-cols-[0.85fr_1.15fr]">
           <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="pb-2">
