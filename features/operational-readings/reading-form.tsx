@@ -1,13 +1,12 @@
 "use client";
 
 import { useRef, useTransition, type FormEvent } from "react";
-import { Database } from "@phosphor-icons/react";
+import { Database, SpinnerGap } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -57,16 +56,15 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
   }
 
   return (
-    <Card className="premium-panel motion-card">
-      <CardHeader>
+    <Card
+      className="rounded-lg border-zinc-200 bg-white shadow-sm"
+      data-motion="panel"
+    >
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2">
-          <Database className="size-5 text-primary" />
+          <Database className="size-5 text-zinc-500" />
           Record reading
         </CardTitle>
-        <CardDescription>
-          Capture the AI4I feature fields separately from contextual operating
-          parameters.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <form
@@ -77,7 +75,7 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
           <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="equipmentId">Equipment</Label>
             <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none transition-all focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
               id="equipmentId"
               name="equipmentId"
               required
@@ -102,7 +100,7 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
           <div className="grid gap-2">
             <Label htmlFor="sourceType">Source</Label>
             <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none transition-all focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
               defaultValue="MANUAL_ENTRY"
               id="sourceType"
               name="sourceType"
@@ -117,7 +115,7 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
           <div className="grid gap-2">
             <Label htmlFor="type">Product type</Label>
             <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none transition-all focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
               defaultValue="M"
               id="type"
               name="type"
@@ -167,8 +165,16 @@ export function ReadingForm({ action, equipment }: ReadingFormProps) {
             step="0.1"
           />
           <div className="md:col-span-2">
-            <Button disabled={!equipment.length || pending} type="submit">
-              <Database />
+            <Button
+              className="h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!equipment.length || pending}
+              type="submit"
+            >
+              {pending ? (
+                <SpinnerGap className="animate-spin" />
+              ) : (
+                <Database />
+              )}
               {pending ? "Saving reading" : "Save reading"}
             </Button>
           </div>
@@ -192,7 +198,14 @@ function NumberField({
   return (
     <div className="grid gap-2">
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} required={required} step={step} type="number" />
+      <Input
+        className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+        id={name}
+        name={name}
+        required={required}
+        step={step}
+        type="number"
+      />
     </div>
   );
 }
