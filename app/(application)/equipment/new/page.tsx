@@ -15,7 +15,7 @@ export default async function NewEquipmentPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Create a generic equipment record that can later receive readings, maintenance history and predictive risk outputs."
+        description="Register production equipment for telemetry capture, maintenance tracking and predictive risk analysis."
         eyebrow="Equipment"
         title="Register Equipment"
       />

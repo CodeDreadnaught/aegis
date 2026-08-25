@@ -14,6 +14,10 @@ const routeToasts = {
     title: "Equipment registered",
     description: "The asset profile is ready for monitoring.",
   },
+  "equipment-bulk-created": {
+    title: "Equipment registered",
+    description: "The equipment records are ready for telemetry and maintenance workflows.",
+  },
   "equipment-updated": {
     title: "Equipment updated",
     description: "The asset profile changes were saved.",
