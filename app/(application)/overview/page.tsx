@@ -149,7 +149,7 @@ export default async function OverviewPage({
       detail: `${activeRate}% active`,
       liveKey: "fleet",
       icon: Gauge,
-      tone: "bg-zinc-950 text-white",
+      tone: "bg-[#e8fbf6] text-[#146c74]",
       delta: "Live",
       accent: "bg-[#2f9da7]",
       progress: activeRate,
