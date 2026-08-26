@@ -313,6 +313,39 @@ export default async function OverviewPage({
                 );
               })}
             </div>
+
+            <Card
+              className="h-fit rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+              data-motion="panel"
+            >
+              <CardContent className="px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-500">
+                      AI Score
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
+                      {modelScore}%
+                    </p>
+                  </div>
+                  <div className="grid size-8 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
+                    <TrendUp aria-hidden="true" className="size-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-zinc-500">Model confidence</span>
+                  <span className="shrink-0 whitespace-nowrap rounded-full bg-zinc-100 px-2 py-1 font-semibold text-zinc-700">
+                    {latestPredictions.length} runs
+                  </span>
+                </div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className="h-full rounded-full bg-[#2f9da7]"
+                    style={{ width: `${modelScore}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <Card
@@ -438,38 +471,6 @@ export default async function OverviewPage({
           </Card>
 
           <div className="grid gap-4">
-            <Card
-              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-                <div>
-                  <CardTitle>AI Score</CardTitle>
-                  <p className="text-sm text-zinc-500">Model confidence</p>
-                </div>
-                <TrendUp aria-hidden="true" className="size-5 text-[#2f9da7]" />
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0">
-                <div className="flex items-end justify-between gap-4">
-                  <p className="text-3xl font-semibold tracking-normal text-zinc-950">
-                    {modelScore}%
-                  </p>
-                  <Badge
-                    className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                    variant="outline"
-                  >
-                    {latestPredictions.length} runs
-                  </Badge>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
-                  <div
-                    className="h-full rounded-full bg-[#2f9da7]"
-                    style={{ width: `${modelScore}%` }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
             <Card
               className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
