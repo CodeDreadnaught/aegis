@@ -271,8 +271,8 @@ export default async function OverviewPage({
           </div>
         </section>
 
-        <section className="grid items-start gap-4 xl:grid-cols-[1.12fr_0.78fr_0.82fr]">
-          <div className="grid gap-4">
+        <section className="grid items-stretch gap-4 xl:grid-cols-[1.12fr_0.78fr_0.82fr]">
+          <div className="grid h-full gap-4 xl:grid-rows-[auto_1fr]">
             <div className="grid items-start gap-3 sm:grid-cols-2">
               {kpis.map((kpi) => {
                 const Icon = kpi.icon;
@@ -315,10 +315,10 @@ export default async function OverviewPage({
             </div>
 
             <Card
-              className="h-fit rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+              className="h-full rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
               data-motion="panel"
             >
-              <CardContent className="px-4 py-3">
+              <CardContent className="flex h-full flex-col justify-between px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-zinc-500">
@@ -332,17 +332,19 @@ export default async function OverviewPage({
                     <TrendUp aria-hidden="true" className="size-4" />
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-2 text-xs">
-                  <span className="text-zinc-500">Model confidence</span>
-                  <span className="shrink-0 whitespace-nowrap rounded-full bg-zinc-100 px-2 py-1 font-semibold text-zinc-700">
-                    {latestPredictions.length} runs
-                  </span>
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-                  <div
-                    className="h-full rounded-full bg-[#2f9da7]"
-                    style={{ width: `${modelScore}%` }}
-                  />
+                <div>
+                  <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-zinc-500">Model confidence</span>
+                    <span className="shrink-0 whitespace-nowrap rounded-full bg-zinc-100 px-2 py-1 font-semibold text-zinc-700">
+                      {latestPredictions.length} runs
+                    </span>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                    <div
+                      className="h-full rounded-full bg-[#2f9da7]"
+                      style={{ width: `${modelScore}%` }}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -395,8 +397,8 @@ export default async function OverviewPage({
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
                 <div>
-                  <CardTitle>Signal Load</CardTitle>
-                  <p className="text-xs text-zinc-500">Operational workload</p>
+                  <CardTitle>Sensor Stack</CardTitle>
+                  <p className="text-xs text-zinc-500">Vibration, pressure, flow</p>
                 </div>
                 <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
               </CardHeader>
@@ -527,54 +529,6 @@ export default async function OverviewPage({
               </CardContent>
             </Card>
 
-            <Card
-              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle>Sensor Stack</CardTitle>
-                <p className="text-sm text-zinc-500">Vibration, pressure, flow</p>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {signalBars.length ? (
-                  <div className="flex h-72 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
-                    {signalBars.map((reading) => (
-                      <div
-                        className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
-                        key={reading.id}
-                      >
-                        <div className="flex h-52 w-full max-w-10 items-end justify-center gap-1">
-                          <span
-                            className="aegis-graph-bar w-2 rounded-full bg-zinc-950"
-                            style={{
-                              height: `${percentage(reading.vibration, maxVibration)}%`,
-                            }}
-                          />
-                          <span
-                            className="aegis-graph-bar w-2 rounded-full bg-[#2f9da7]"
-                            style={{
-                              height: `${percentage(reading.pressure, maxPressure)}%`,
-                            }}
-                          />
-                          <span
-                            className="aegis-graph-bar w-2 rounded-full bg-[#f2bd3f]"
-                            style={{
-                              height: `${percentage(reading.flow, maxFlow)}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="truncate text-[10px] font-medium text-zinc-500">
-                          {reading.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState label="No sensor readings yet" />
-                )}
-              </CardContent>
-            </Card>
-
             {!!latestAlerts.length && (
               <Card
                 className="rounded-lg border-zinc-200 bg-white shadow-sm"
@@ -646,18 +600,36 @@ function LineTrend({
   healthPoints: ReturnType<typeof buildLinePoints>;
 }) {
   return (
-    <div className="rounded-[1.1rem] border border-zinc-200 bg-[#f7faf9] p-3">
+    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-4 shadow-inner">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium text-zinc-500">Predictive trend</p>
+          <p className="text-2xl font-semibold tracking-normal text-zinc-950">
+            Health trajectory
+          </p>
+        </div>
+        <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-[#a8ff9f]" />
+            Health
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-zinc-950" />
+            Failure risk
+          </span>
+        </div>
+      </div>
       <svg
         aria-label="Predictive telemetry trend"
-        className="h-72 w-full overflow-visible"
+        className="h-64 w-full overflow-visible"
         preserveAspectRatio="none"
         role="img"
         viewBox="0 0 680 260"
       >
         <defs>
           <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#2f9da7" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#2f9da7" stopOpacity="0" />
+            <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
+            <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
           </linearGradient>
         </defs>
         {[0, 1, 2, 3, 4].map((line) => (
@@ -673,20 +645,20 @@ function LineTrend({
           />
         ))}
         {healthPoints.area && <path d={healthPoints.area} fill="url(#health-fill)" />}
-        <polyline
+        <path
           className="aegis-line-trace"
+          d={healthPoints.path}
           fill="none"
-          points={healthPoints.points}
-          stroke="#18181b"
+          stroke="#a8ff9f"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="5"
+          strokeWidth="4"
         />
-        <polyline
+        <path
           className="aegis-line-trace aegis-line-trace-delayed"
+          d={failurePoints.path}
           fill="none"
-          points={failurePoints.points}
-          stroke="#2f9da7"
+          stroke="#18181b"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="3"
@@ -696,15 +668,17 @@ function LineTrend({
             className="aegis-chart-dot"
             cx={point.x}
             cy={point.y}
-            fill="#f2bd3f"
+            fill="#a8ff9f"
             key={`${point.x}-${point.y}`}
             r="4"
+            stroke="#ffffff"
+            strokeWidth="2"
           />
         ))}
       </svg>
-      <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-        <span>Health score</span>
-        <span>Failure probability</span>
+      <div className="mt-2 flex items-center justify-between text-xs font-medium text-zinc-500">
+        <span>Oldest</span>
+        <span>Latest</span>
       </div>
     </div>
   );
@@ -1025,14 +999,37 @@ function buildLinePoints(values: number[]) {
       y: Math.round(y),
     };
   });
-  const points = coordinates.map((point) => `${point.x},${point.y}`).join(" ");
+  const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `M ${points.replaceAll(" ", " L ")} L ${width},${height + top} L 0,${height + top} Z`
+    ? `${path} L ${width},${height + top} L 0,${height + top} Z`
     : "";
 
   return {
     area,
     coordinates,
-    points,
+    path,
   };
+}
+
+function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
+  if (!coordinates.length) {
+    return "";
+  }
+
+  if (coordinates.length === 1) {
+    const [{ x, y }] = coordinates;
+
+    return `M ${x},${y}`;
+  }
+
+  return coordinates.reduce((path, point, index) => {
+    if (index === 0) {
+      return `M ${point.x},${point.y}`;
+    }
+
+    const previous = coordinates[index - 1];
+    const controlX = (previous.x + point.x) / 2;
+
+    return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
+  }, "");
 }
