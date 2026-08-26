@@ -26,21 +26,18 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
   const [lastSync, setLastSync] = useState("Live");
 
   useEffect(() => {
-    if (activeRange !== "1") {
-      return;
-    }
+    const onSynced = (event: Event) => {
+      const detail = (event as CustomEvent<{ syncedAt?: string }>).detail;
 
-    const timer = window.setInterval(() => {
-      startTransition(() => router.refresh());
-      setLastSync(new Intl.DateTimeFormat("en", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }).format(new Date()));
-    }, 15_000);
+      if (detail?.syncedAt) {
+        setLastSync(detail.syncedAt);
+      }
+    };
 
-    return () => window.clearInterval(timer);
-  }, [activeRange, router]);
+    window.addEventListener("aegis:overview-synced", onSynced);
+
+    return () => window.removeEventListener("aegis:overview-synced", onSynced);
+  }, []);
 
   const setRange = (range: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -74,12 +71,7 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
         disabled={isPending}
         onClick={() => {
           setIsManualRefresh(true);
-          startTransition(() => router.refresh());
-          setLastSync(new Intl.DateTimeFormat("en", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          }).format(new Date()));
+          window.dispatchEvent(new CustomEvent("aegis:overview-refresh"));
           window.setTimeout(() => setIsManualRefresh(false), 700);
         }}
         type="button"
