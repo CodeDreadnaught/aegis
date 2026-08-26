@@ -22,6 +22,7 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
   const [lastSync, setLastSync] = useState("Live");
 
   useEffect(() => {
@@ -72,19 +73,21 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
         className="h-11 rounded-full border-zinc-200 bg-white px-4 text-zinc-950 hover:bg-zinc-950 hover:text-white"
         disabled={isPending}
         onClick={() => {
+          setIsManualRefresh(true);
           startTransition(() => router.refresh());
           setLastSync(new Intl.DateTimeFormat("en", {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
           }).format(new Date()));
+          window.setTimeout(() => setIsManualRefresh(false), 700);
         }}
         type="button"
         variant="outline"
       >
         <ArrowsClockwise
           aria-hidden="true"
-          className={cn("size-4", isPending && "animate-spin")}
+          className={cn("size-4", isManualRefresh && "animate-spin")}
         />
         Refresh
       </Button>

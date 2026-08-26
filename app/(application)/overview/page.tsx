@@ -7,7 +7,6 @@ import {
   Pulse,
   ShieldWarning,
   TrendUp,
-  WarningCircle,
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
@@ -70,7 +69,6 @@ export default async function OverviewPage({
   const params = await searchParams;
   const range = parseRange(params.range);
   const {
-    latestAlerts,
     latestMaintenance,
     latestPredictions,
     latestReadings,
@@ -446,7 +444,7 @@ export default async function OverviewPage({
           </Card>
         </section>
 
-        <section className="grid items-start gap-4 xl:grid-cols-[1.44fr_0.76fr]">
+        <section>
           <Card
             className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
@@ -471,99 +469,64 @@ export default async function OverviewPage({
               )}
             </CardContent>
           </Card>
+        </section>
 
-          <div className="grid gap-4">
-            <Card
-              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle>Maintenance Plans</CardTitle>
-              </CardHeader>
-              <CardContent className="gap-4 p-4 pt-0">
-                {latestMaintenance.slice(0, 3).map((record) => (
-                  <PlanRow
-                    key={record.id}
-                    label={record.equipment.assetTag}
-                    meta={record.status.replaceAll("_", " ")}
-                    value={record.nextDueDate ? "Due" : "Logged"}
-                    width={record.nextDueDate ? 74 : 48}
-                  />
-                ))}
-                {!latestMaintenance.length && <EmptyState label="No maintenance" />}
-              </CardContent>
-            </Card>
+        <section className="grid items-start gap-4 lg:grid-cols-2">
+          <Card
+            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle>Maintenance Plans</CardTitle>
+            </CardHeader>
+            <CardContent className="gap-4 p-4 pt-0">
+              {latestMaintenance.slice(0, 5).map((record) => (
+                <PlanRow
+                  key={record.id}
+                  label={record.equipment.assetTag}
+                  meta={record.status.replaceAll("_", " ")}
+                  value={record.nextDueDate ? "Due" : "Logged"}
+                  width={record.nextDueDate ? 74 : 48}
+                />
+              ))}
+              {!latestMaintenance.length && <EmptyState label="No maintenance" />}
+            </CardContent>
+          </Card>
 
-            <Card
-              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent className="gap-2 p-4 pt-0">
-                {recentActivity.slice(0, 5).map((activity) => (
-                  <div
-                    className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                    key={activity.id}
-                  >
-                    <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
-                      <TrendUp aria-hidden="true" className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="truncate text-sm font-semibold text-zinc-950">
-                          {activity.type}
-                        </p>
-                        <span className="shrink-0 text-xs text-zinc-500">
-                          {timeFormatter.format(activity.timestamp)}
-                        </span>
-                      </div>
-                      <p className="truncate text-xs text-zinc-500">
-                        {activity.detail}
-                      </p>
-                    </div>
+          <Card
+            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle>Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="gap-2 p-4 pt-0">
+              {recentActivity.slice(0, 5).map((activity) => (
+                <div
+                  className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+                  key={activity.id}
+                >
+                  <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
+                    <TrendUp aria-hidden="true" className="size-4" />
                   </div>
-                ))}
-                {!recentActivity.length && <EmptyState label="No activity" />}
-              </CardContent>
-            </Card>
-
-            {!!latestAlerts.length && (
-              <Card
-                className="rounded-lg border-zinc-200 bg-white shadow-sm"
-                data-motion="panel"
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle>Alerts</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-2 p-4 pt-0">
-                  {latestAlerts.slice(0, 3).map((alert) => (
-                    <div
-                      className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                      key={alert.id}
-                    >
-                      <div className="flex items-start gap-2">
-                        <WarningCircle
-                          aria-hidden="true"
-                          className="mt-0.5 size-4 text-red-500"
-                          weight="fill"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-zinc-950">
-                            {alert.equipment.assetTag}
-                          </p>
-                          <p className="line-clamp-2 text-xs text-zinc-500">
-                            {alert.message}
-                          </p>
-                        </div>
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate text-sm font-semibold text-zinc-950">
+                        {activity.type}
+                      </p>
+                      <span className="shrink-0 text-xs text-zinc-500">
+                        {timeFormatter.format(activity.timestamp)}
+                      </span>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    <p className="truncate text-xs text-zinc-500">
+                      {activity.detail}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {!recentActivity.length && <EmptyState label="No activity" />}
+            </CardContent>
+          </Card>
         </section>
       </div>
     </PremiumMotion>
@@ -750,30 +713,44 @@ function AssetMixRings({
           const circumference = 2 * Math.PI * radius;
 
           return (
-            <Tooltip key={row.category}>
+            <circle
+              aria-hidden="true"
+              className="transition-opacity duration-200"
+              cx="110"
+              cy="110"
+              fill="none"
+              key={row.category}
+              r={radius}
+              stroke={row.color}
+              strokeDasharray={`${(share / 100) * circumference} ${circumference}`}
+              strokeLinecap="round"
+              strokeWidth="12"
+              style={{
+                filter:
+                  index === 0
+                    ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
+                    : undefined,
+              }}
+            />
+          );
+        })}
+        </svg>
+        {rows.map((row, index) => {
+          const radius = 92 - (rows.length - 1 - index) * 14;
+          const angle = -42;
+          const x = 110 + radius * Math.cos((angle * Math.PI) / 180);
+          const y = 110 + radius * Math.sin((angle * Math.PI) / 180);
+
+          return (
+            <Tooltip key={`${row.category}-hotspot`}>
               <TooltipTrigger
-                render={
-                  <circle
-                    aria-label={`${row.label} asset mix details`}
-                    className="cursor-help outline-none transition-opacity duration-200 hover:opacity-75 focus-visible:opacity-75"
-                    cx="110"
-                    cy="110"
-                    fill="none"
-                    r={radius}
-                    role="button"
-                    stroke={row.color}
-                    strokeDasharray={`${(share / 100) * circumference} ${circumference}`}
-                    strokeLinecap="round"
-                    strokeWidth="12"
-                    style={{
-                      filter:
-                        index === 0
-                          ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
-                          : undefined,
-                    }}
-                    tabIndex={0}
-                  />
-                }
+                aria-label={`${row.label} asset mix details`}
+                className="absolute size-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white/70 bg-transparent outline-none transition-all duration-200 hover:bg-white/20 focus-visible:bg-white/30 focus-visible:ring-2 focus-visible:ring-zinc-950/20"
+                style={{
+                  left: `${(x / 220) * 100}%`,
+                  top: `${(y / 220) * 100}%`,
+                }}
+                type="button"
               />
               <TooltipContent
                 align="center"
@@ -785,7 +762,6 @@ function AssetMixRings({
             </Tooltip>
           );
         })}
-        </svg>
         <div className="relative grid size-20 place-items-center rounded-full bg-white shadow-[inset_0_2px_14px_rgba(24,24,27,0.08)]">
           <div className="text-center">
             <p className="text-2xl font-semibold text-zinc-950">{total}</p>
