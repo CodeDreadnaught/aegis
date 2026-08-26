@@ -21,6 +21,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     latestReadings,
     latestMaintenance,
     latestAlerts,
+    assetMixEquipment,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -141,6 +142,14 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         },
       },
     }),
+    prisma.equipment.findMany({
+      orderBy: [{ category: "asc" }, { assetTag: "asc" }],
+      select: {
+        assetTag: true,
+        category: true,
+        name: true,
+      },
+    }),
   ]);
 
   const riskCounts = latestPredictions.reduce(
@@ -179,6 +188,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         ])
       ),
     },
+    assetMixEquipment,
     latestPredictions,
     predictionTrend,
     latestReadings,

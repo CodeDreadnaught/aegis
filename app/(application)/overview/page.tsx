@@ -20,6 +20,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   OverviewAssetTable,
   type OverviewAssetRow,
 } from "@/features/overview/overview-asset-table";
@@ -72,6 +77,7 @@ export default async function OverviewPage({
     predictionTrend,
     recentActivity,
     stats,
+    assetMixEquipment,
   } = await getOverviewWorkspace(range);
 
   const averageHealth = average(
@@ -219,6 +225,32 @@ export default async function OverviewPage({
   const assetMixLegendRows = otherAssetMixCount
     ? [...topAssetMixRows, { category: "Others", count: otherAssetMixCount }]
     : topAssetMixRows;
+  const otherAssetMixCategories = new Set(
+    assetMixRows.slice(3).map((item) => item.category)
+  );
+  const assetMixDisplayRows = assetMixLegendRows.map((row, index) => {
+    const isOthers = row.category === "Others";
+    const assets = assetMixEquipment
+      .filter((equipment) =>
+        isOthers
+          ? otherAssetMixCategories.has(equipment.category)
+          : equipment.category === row.category
+      )
+      .slice(0, 4);
+    const remainingCount = Math.max(0, row.count - assets.length);
+
+    return {
+      assets,
+      category: row.category,
+      color: ringColors[index % ringColors.length],
+      count: row.count,
+      label:
+        row.category === "Other" || row.category === "Others"
+          ? row.category
+          : formatEquipmentCategory(row.category),
+      remainingCount,
+    };
+  });
 
   return (
     <PremiumMotion profile="overview">
@@ -325,18 +357,16 @@ export default async function OverviewPage({
             <CardContent className="p-5 pt-1">
               {assetMixRows.length ? (
                 <>
-                  <AssetMixRings rows={assetMixRows} total={totalCategoryCount} />
+                  <AssetMixRings
+                    rows={assetMixDisplayRows}
+                    total={totalCategoryCount}
+                  />
                   <div className="mt-5 grid gap-3">
-                    {assetMixLegendRows.map((category, index) => (
+                    {assetMixDisplayRows.map((category) => (
                       <DistributionRow
-                        color={ringColors[index % ringColors.length]}
+                        color={category.color}
                         key={category.category}
-                        label={
-                          category.category === "Other" ||
-                          category.category === "Others"
-                            ? category.category
-                            : formatEquipmentCategory(category.category)
-                        }
+                        label={category.label}
                         meta={`${category.count} assets`}
                         value={`${percentage(category.count, totalCategoryCount)}%`}
                       />
@@ -349,7 +379,7 @@ export default async function OverviewPage({
             </CardContent>
           </Card>
 
-          <div className="grid gap-4">
+          <div className="grid gap-4 xl:grid-rows-[auto_1fr]">
             <Card
               className="rounded-[1.35rem] border-zinc-200 bg-[#fff8e6] shadow-sm"
               data-motion="panel"
@@ -370,46 +400,48 @@ export default async function OverviewPage({
               </CardContent>
             </Card>
 
-            <Card
-              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-                <div>
-                  <CardTitle>AI Score</CardTitle>
-                  <p className="text-sm text-zinc-500">Model confidence</p>
-                </div>
-                <TrendUp aria-hidden="true" className="size-5 text-[#2f9da7]" />
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p className="text-4xl font-semibold tracking-normal text-zinc-950">
-                  {modelScore}%
-                </p>
-                <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-100">
-                  <div
-                    className="h-full rounded-full bg-[#2f9da7]"
-                    style={{ width: `${modelScore}%` }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid gap-4 md:grid-cols-2 xl:h-full">
+              <Card
+                className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+                data-motion="panel"
+              >
+                <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                  <div>
+                    <CardTitle>AI Score</CardTitle>
+                    <p className="text-sm text-zinc-500">Model confidence</p>
+                  </div>
+                  <TrendUp aria-hidden="true" className="size-5 text-[#2f9da7]" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-4xl font-semibold tracking-normal text-zinc-950">
+                    {modelScore}%
+                  </p>
+                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-100">
+                    <div
+                      className="h-full rounded-full bg-[#2f9da7]"
+                      style={{ width: `${modelScore}%` }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card
-              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle>Interventions</CardTitle>
-              </CardHeader>
-              <CardContent className="gap-2 p-4 pt-0">
-                <FocusItem icon={Bell} label="Alerts" value={stats.activeAlertCount} />
-                <FocusItem
-                  icon={Wrench}
-                  label="Maintenance"
-                  value={stats.maintenanceDueCount}
-                />
-              </CardContent>
-            </Card>
+              <Card
+                className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+                data-motion="panel"
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle>Interventions</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-2 p-4 pt-0">
+                  <FocusItem icon={Bell} label="Alerts" value={stats.activeAlertCount} />
+                  <FocusItem
+                    icon={Wrench}
+                    label="Maintenance"
+                    value={stats.maintenanceDueCount}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
 
@@ -744,11 +776,16 @@ function AssetMixRings({
   rows,
   total,
 }: {
-  rows: Array<{ category: string; count: number }>;
+  rows: Array<{
+    assets: Array<{ assetTag: string; name: string }>;
+    category: string;
+    color: string;
+    count: number;
+    label: string;
+    remainingCount: number;
+  }>;
   total: number;
 }) {
-  const visibleRows = rows.slice(0, 5);
-
   return (
     <div className="grid place-items-center rounded-[1.1rem] bg-[#f7faf9] p-5">
       <div className="relative grid size-52 place-items-center">
@@ -758,7 +795,7 @@ function AssetMixRings({
           role="img"
           viewBox="0 0 220 220"
         >
-          {visibleRows
+          {rows
             .map((row, index) => {
               const radius = 92 - index * 14;
 
@@ -776,17 +813,14 @@ function AssetMixRings({
               );
             })
             .reverse()}
-        {visibleRows.map((row, index) => {
+        {rows.map((row, index) => {
           const share = percentage(row.count, total);
           const radius = 92 - index * 14;
           const circumference = 2 * Math.PI * radius;
-          const label =
-            row.category === "Other"
-              ? "Other"
-              : formatEquipmentCategory(row.category);
 
           return (
             <circle
+              aria-hidden="true"
               className="transition-opacity duration-200 hover:opacity-75"
               cx="110"
               cy="110"
@@ -803,12 +837,36 @@ function AssetMixRings({
                     ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
                     : undefined,
               }}
-            >
-              <title>{`${label}: ${row.count} assets (${share}%)`}</title>
-            </circle>
+            />
           );
         })}
         </svg>
+        {rows.map((row, index) => {
+          const size = 13 - index * 1.75;
+          const inset = index * 0.875;
+
+          return (
+            <Tooltip key={`${row.category}-tooltip`}>
+              <TooltipTrigger
+                aria-label={`${row.label} asset mix details`}
+                className="absolute rounded-full border-[12px] border-transparent bg-transparent"
+                style={{
+                  height: `${size}rem`,
+                  inset: `${inset}rem`,
+                  width: `${size}rem`,
+                }}
+                type="button"
+              />
+              <TooltipContent
+                align="center"
+                className="grid max-w-64 gap-2 rounded-lg bg-zinc-950 p-3 text-left text-white"
+                side="top"
+              >
+                <AssetMixTooltip row={row} total={total} />
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
         <div className="relative grid size-20 place-items-center rounded-full bg-white shadow-[inset_0_2px_14px_rgba(24,24,27,0.08)]">
           <div className="text-center">
             <p className="text-2xl font-semibold text-zinc-950">{total}</p>
@@ -818,6 +876,44 @@ function AssetMixRings({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AssetMixTooltip({
+  row,
+  total,
+}: {
+  row: {
+    assets: Array<{ assetTag: string; name: string }>;
+    count: number;
+    label: string;
+    remainingCount: number;
+  };
+  total: number;
+}) {
+  return (
+    <div>
+      <p className="font-semibold">
+        {row.label} - {percentage(row.count, total)}%
+      </p>
+      <p className="mt-0.5 text-[11px] text-white/70">
+        {row.count} assets in this group
+      </p>
+      {!!row.assets.length && (
+        <div className="mt-2 grid gap-1">
+          {row.assets.map((asset) => (
+            <p className="truncate text-[11px] text-white/85" key={asset.assetTag}>
+              {asset.assetTag} - {asset.name}
+            </p>
+          ))}
+          {row.remainingCount > 0 && (
+            <p className="text-[11px] text-white/65">
+              Others - {row.remainingCount} assets
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
