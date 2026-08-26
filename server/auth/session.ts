@@ -10,7 +10,7 @@ import { can, type Permission } from "@/server/auth/permissions";
 import { hashSessionToken } from "@/server/auth/tokens";
 
 export const sessionCookieName = "aegis_session";
-const sessionDurationMs = 1000 * 60 * 60 * 8;
+const sessionDurationMs = 1000 * 60 * 60 * 24;
 
 export type AuthUser = {
   id: string;
