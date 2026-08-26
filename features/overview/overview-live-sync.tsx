@@ -51,7 +51,7 @@ export function OverviewLiveSync({ activeRange }: OverviewLiveSyncProps) {
       activeRange === "1"
         ? window.setInterval(() => {
             void refresh();
-          }, 15_000)
+          }, 5_000)
         : undefined;
 
     window.addEventListener(liveRefreshEvent, onManualRefresh);
