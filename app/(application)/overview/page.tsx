@@ -49,6 +49,8 @@ const timeFormatter = new Intl.DateTimeFormat("en", {
   minute: "2-digit",
 });
 
+const ringColors = ["#184f4f", "#a8ff9f", "#b7b7b7", "#2f9da7", "#f2bd3f", "#ef7b63"];
+
 export default async function OverviewPage({
   searchParams,
 }: OverviewPageProps) {
@@ -115,7 +117,6 @@ export default async function OverviewPage({
   const averageVibration = average(signalBars.map((reading) => reading.vibration));
   const averagePressure = average(signalBars.map((reading) => reading.pressure));
   const averageFlow = average(signalBars.map((reading) => reading.flow));
-  const signalLoadPoints = buildLinePoints(signalBars.map((reading) => reading.flow));
   const assetRows: OverviewAssetRow[] = latestPredictions.map((prediction) => ({
     asset: prediction.equipment.assetTag,
     category: formatEquipmentCategory(prediction.equipment.category),
@@ -169,31 +170,31 @@ export default async function OverviewPage({
   ];
   const commandBars = [
     {
-      label: "Fleet",
-      shortLabel: "Fleet",
-      value: stats.equipmentCount,
-      max: Math.max(1, stats.equipmentCount),
-      color: "bg-zinc-950",
-    },
-    {
       label: "Readings",
       shortLabel: "Read",
       value: latestReadings.length,
       max: Math.max(1, latestReadings.length, stats.equipmentCount),
+      color: "bg-zinc-950",
+    },
+    {
+      label: "Avg Flow",
+      shortLabel: "Flow",
+      value: Math.round(averageFlow),
+      max: Math.max(1, Math.round(maxFlow)),
       color: "bg-[#2f9da7]",
     },
     {
-      label: "AI Runs",
-      shortLabel: "AI",
-      value: latestPredictions.length,
-      max: Math.max(1, latestPredictions.length, latestReadings.length),
+      label: "Avg Pressure",
+      shortLabel: "Press",
+      value: Math.round(averagePressure),
+      max: Math.max(1, Math.round(maxPressure)),
       color: "bg-[#5ec3cf]",
     },
     {
-      label: "Maintenance",
-      shortLabel: "Maint",
-      value: stats.maintenanceDueCount,
-      max: Math.max(1, interventionLoad),
+      label: "Avg Vibration",
+      shortLabel: "Vib",
+      value: Math.round(averageVibration * 10),
+      max: Math.max(1, Math.round(maxVibration * 10)),
       color: "bg-[#f2bd3f]",
     },
     {
@@ -312,41 +313,38 @@ export default async function OverviewPage({
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
-                <CardTitle>Risk Breakdown</CardTitle>
-                <p className="text-sm text-zinc-500">Prediction distribution</p>
+                <CardTitle>Asset Mix</CardTitle>
+                <p className="text-sm text-zinc-500">Equipment distribution</p>
               </div>
               <div className="rounded-full bg-zinc-100 p-1 text-xs font-semibold text-zinc-500">
                 <span className="rounded-full bg-[#2f9da7] px-3 py-1 text-white">
-                  Live
+                  {stats.equipmentCount} assets
                 </span>
               </div>
             </CardHeader>
             <CardContent className="p-5 pt-1">
-              <div className="flex h-72 items-end gap-3 rounded-[1.1rem] bg-[#f7faf9] px-4 pb-4 pt-6">
-                {commandBars.map((bar) => (
-                  <div
-                    className="flex min-w-0 flex-1 flex-col items-center gap-3"
-                    key={bar.label}
-                  >
-                    <div className="flex h-56 w-full items-end justify-center">
-                      <span
-                        className={`aegis-graph-bar block w-full max-w-14 rounded-full shadow-inner ${bar.color}`}
-                        style={{
-                          height: `${Math.max(8, percentage(bar.value, bar.max))}%`,
-                        }}
+              {assetMixRows.length ? (
+                <>
+                  <AssetMixRings rows={assetMixRows} total={totalCategoryCount} />
+                  <div className="mt-5 grid gap-3">
+                    {assetMixRows.slice(0, 3).map((category, index) => (
+                      <DistributionRow
+                        color={ringColors[index % ringColors.length]}
+                        key={category.category}
+                        label={
+                          category.category === "Other"
+                            ? "Other"
+                            : formatEquipmentCategory(category.category)
+                        }
+                        meta={`${category.count} assets`}
+                        value={`${percentage(category.count, totalCategoryCount)}%`}
                       />
-                    </div>
-                    <span className="max-w-full truncate text-[10px] font-semibold uppercase text-zinc-500">
-                      {bar.shortLabel}
-                    </span>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <RiskRow label="Low" value={stats.riskCounts.low} tone="bg-[#2f9da7]" />
-                <RiskRow label="Medium" value={stats.riskCounts.medium} tone="bg-zinc-950" />
-                <RiskRow label="High" value={stats.riskCounts.high} tone="bg-[#ef7b63]" />
-              </div>
+                </>
+              ) : (
+                <EmptyState label="No asset mix data" />
+              )}
             </CardContent>
           </Card>
 
@@ -368,55 +366,7 @@ export default async function OverviewPage({
                   <SignalStat label="Avg flow" value={`${Math.round(averageFlow).toLocaleString()} bpd`} />
                   <SignalStat label="Avg pressure" value={`${Math.round(averagePressure)} bar`} />
                 </div>
-                {signalBars.length ? (
-                  <div className="mt-4 rounded-[1rem] bg-white/70 p-3">
-                    <svg
-                      aria-label="Operational load"
-                      className="h-32 w-full overflow-visible"
-                      preserveAspectRatio="none"
-                      role="img"
-                      viewBox="0 0 680 260"
-                    >
-                      {[0, 1, 2].map((line) => (
-                        <line
-                          key={line}
-                          stroke="#eadfbd"
-                          strokeDasharray="5 8"
-                          strokeWidth="1"
-                          x1="0"
-                          x2="680"
-                          y1={line * 84 + 24}
-                          y2={line * 84 + 24}
-                        />
-                      ))}
-                      <polyline
-                        className="aegis-line-trace"
-                        fill="none"
-                        points={signalLoadPoints.points}
-                        stroke="#2f9da7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="5"
-                      />
-                      {signalLoadPoints.coordinates.map((point) => (
-                        <circle
-                          className="aegis-chart-dot"
-                          cx={point.x}
-                          cy={point.y}
-                          fill="#f2bd3f"
-                          key={`${point.x}-${point.y}`}
-                          r="5"
-                        />
-                      ))}
-                    </svg>
-                    <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-zinc-500">
-                      <span>Recent flow</span>
-                      <span>{averageVibration.toFixed(2)} mm/s avg vibration</span>
-                    </div>
-                  </div>
-                ) : (
-                  <EmptyState label="No operational readings yet" />
-                )}
+                <SignalLoadBars bars={commandBars} />
               </CardContent>
             </Card>
 
@@ -790,22 +740,112 @@ function SignalStat({
   );
 }
 
-function RiskRow({
-  label,
-  tone,
-  value,
+function AssetMixRings({
+  rows,
+  total,
 }: {
-  label: string;
-  tone: string;
-  value: number;
+  rows: Array<{ category: string; count: number }>;
+  total: number;
+}) {
+  const visibleRows = rows.slice(0, 5);
+
+  return (
+    <div className="grid place-items-center rounded-[1.1rem] bg-[#f7faf9] p-5">
+      <div className="relative grid size-52 place-items-center">
+        {visibleRows.map((row, index) => {
+          const size = 13 - index * 1.8;
+          const inset = index * 0.95;
+          const share = percentage(row.count, total);
+
+          return (
+            <span
+              aria-hidden="true"
+              className="absolute rounded-full"
+              key={row.category}
+              style={{
+                background: `conic-gradient(${ringColors[index % ringColors.length]} ${share}%, #e8f4e6 0)`,
+                height: `${size}rem`,
+                inset: `${inset}rem`,
+                width: `${size}rem`,
+              }}
+            />
+          );
+        })}
+        <div className="relative grid size-20 place-items-center rounded-full bg-white shadow-[inset_0_2px_14px_rgba(24,24,27,0.08)]">
+          <div className="text-center">
+            <p className="text-2xl font-semibold text-zinc-950">{total}</p>
+            <p className="text-[10px] font-semibold uppercase text-zinc-500">
+              Assets
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SignalLoadBars({
+  bars,
+}: {
+  bars: Array<{
+    color: string;
+    label: string;
+    max: number;
+    shortLabel: string;
+    value: number;
+  }>;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <span className={`size-2.5 rounded-full ${tone}`} />
-        <span className="text-xs font-medium text-zinc-600">{label}</span>
+    <div className="mt-4 flex h-36 items-end gap-3 rounded-[1rem] bg-white/70 px-4 pb-3 pt-4 shadow-inner ring-1 ring-zinc-950/5">
+      {bars.map((bar) => (
+        <div
+          className="flex min-w-0 flex-1 flex-col items-center gap-2"
+          key={bar.label}
+        >
+          <div className="flex h-24 w-full items-end justify-center">
+            <span
+              className={`aegis-graph-bar block w-full max-w-10 rounded-full ${bar.color}`}
+              style={{
+                height: `${Math.max(10, percentage(bar.value, bar.max))}%`,
+              }}
+            />
+          </div>
+          <span className="max-w-full truncate text-[10px] font-semibold uppercase text-zinc-500">
+            {bar.shortLabel}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DistributionRow({
+  color,
+  label,
+  meta,
+  value,
+}: {
+  color: string;
+  label: string;
+  meta: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="size-2.5 shrink-0 rounded-sm"
+          style={{ backgroundColor: color }}
+        />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-zinc-950">{label}</p>
+          <p className="text-xs text-zinc-500">{meta}</p>
+        </div>
       </div>
-      <span className="text-xs font-semibold text-zinc-950">{value}</span>
+      <span className="rounded-md bg-[#edf7e9] px-2 py-1 text-xs font-semibold text-zinc-700">
+        {value}
+      </span>
     </div>
   );
 }
