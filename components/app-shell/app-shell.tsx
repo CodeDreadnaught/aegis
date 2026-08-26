@@ -19,31 +19,22 @@ export function AppShell({ children, user }: AppShellProps) {
 
   return (
     <PremiumMotion
-      className="min-h-dvh bg-[#f6f6f4] text-zinc-950"
+      className="min-h-dvh bg-[#f3f3f1] text-zinc-950"
       profile="workspace"
     >
-      <aside className="fixed inset-y-3 left-3 hidden w-[17rem] rounded-lg border border-zinc-200 bg-white p-3 shadow-[0_24px_80px_rgba(24,24,27,0.08)] lg:block">
-        <div className="flex items-center gap-3 px-2 py-2" data-motion="reveal">
-          <BrandLogo className="size-10 rounded-lg bg-transparent shadow-none" />
-          <div className="min-w-0">
-            <p className="text-base font-semibold tracking-normal">AEGIS</p>
-            <p className="truncate text-xs text-zinc-500">
-              Intelligent Surveillance
-            </p>
-          </div>
+      <aside className="fixed inset-y-4 left-4 hidden w-16 flex-col items-center rounded-[1.4rem] border border-zinc-200 bg-white p-3 shadow-[0_22px_70px_rgba(24,24,27,0.08)] lg:flex">
+        <div className="grid place-items-center" data-motion="reveal">
+          <BrandLogo className="size-10 rounded-full bg-transparent shadow-none" />
         </div>
 
-        <div className="mt-5 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-          Menu
-        </div>
-        <div className="mt-2" data-motion="reveal">
-          <NavigationLinks role={user.role} />
+        <div className="mt-7 w-full" data-motion="reveal">
+          <NavigationLinks compact role={user.role} />
         </div>
       </aside>
 
-      <div className="lg:pl-[18.5rem]">
+      <div className="lg:pl-24">
         <header className="sticky top-0 z-30 px-3 pt-3 lg:px-5">
-          <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/92 px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.07)] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-3 rounded-[1.35rem] border border-zinc-200 bg-white px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.06)]">
             <div className="flex min-w-0 items-center gap-3">
               <div className="lg:hidden">
                 <MobileNavigation role={user.role} />

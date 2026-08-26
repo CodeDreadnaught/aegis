@@ -82,9 +82,6 @@ export default async function OverviewPage({
     stats.equipmentCount
   );
   const interventionLoad = stats.activeAlertCount + stats.maintenanceDueCount;
-  const totalRisk =
-    stats.riskCounts.low + stats.riskCounts.medium + stats.riskCounts.high;
-  const highRiskShare = percentage(stats.riskCounts.high, totalRisk);
   const modelScore = latestPredictions.length
     ? Math.max(0, Math.round(100 - averageFailureProbability))
     : 0;
@@ -115,6 +112,10 @@ export default async function OverviewPage({
   );
   const maxPressure = Math.max(1, ...signalBars.map((reading) => reading.pressure));
   const maxFlow = Math.max(1, ...signalBars.map((reading) => reading.flow));
+  const averageVibration = average(signalBars.map((reading) => reading.vibration));
+  const averagePressure = average(signalBars.map((reading) => reading.pressure));
+  const averageFlow = average(signalBars.map((reading) => reading.flow));
+  const signalLoadPoints = buildLinePoints(signalBars.map((reading) => reading.flow));
   const assetRows: OverviewAssetRow[] = latestPredictions.map((prediction) => ({
     asset: prediction.equipment.assetTag,
     category: formatEquipmentCategory(prediction.equipment.category),
@@ -136,30 +137,71 @@ export default async function OverviewPage({
       icon: Gauge,
       tone: "bg-zinc-950 text-white",
       delta: "Live",
+      accent: "bg-[#2f9da7]",
     },
     {
       label: "AI Coverage",
       value: `${predictionCoverage}%`,
       detail: `${predictedAssetCoverage} assets`,
       icon: Cpu,
-      tone: "bg-white text-zinc-950",
+      tone: "bg-[#eefbfc] text-[#146c74]",
       delta: `${latestPredictions.length} runs`,
+      accent: "bg-[#5ec3cf]",
     },
     {
       label: "Health",
       value: latestPredictions.length ? `${Math.round(averageHealth)}%` : "N/A",
       detail: "Average score",
       icon: Pulse,
-      tone: "bg-emerald-50 text-emerald-900",
+      tone: "bg-[#fff6dc] text-[#8a5a00]",
       delta: `${modelScore}% stable`,
+      accent: "bg-[#f2bd3f]",
     },
     {
       label: "Risk",
       value: interventionLoad,
       detail: `${stats.activeAlertCount} alerts`,
       icon: ShieldWarning,
-      tone: "bg-red-50 text-red-900",
+      tone: "bg-[#fff0ed] text-[#b13d2e]",
       delta: `${stats.maintenanceDueCount} jobs`,
+      accent: "bg-[#ef7b63]",
+    },
+  ];
+  const commandBars = [
+    {
+      label: "Fleet",
+      shortLabel: "Fleet",
+      value: stats.equipmentCount,
+      max: Math.max(1, stats.equipmentCount),
+      color: "bg-zinc-950",
+    },
+    {
+      label: "Readings",
+      shortLabel: "Read",
+      value: latestReadings.length,
+      max: Math.max(1, latestReadings.length, stats.equipmentCount),
+      color: "bg-[#2f9da7]",
+    },
+    {
+      label: "AI Runs",
+      shortLabel: "AI",
+      value: latestPredictions.length,
+      max: Math.max(1, latestPredictions.length, latestReadings.length),
+      color: "bg-[#5ec3cf]",
+    },
+    {
+      label: "Maintenance",
+      shortLabel: "Maint",
+      value: stats.maintenanceDueCount,
+      max: Math.max(1, interventionLoad),
+      color: "bg-[#f2bd3f]",
+    },
+    {
+      label: "Alerts",
+      shortLabel: "Alerts",
+      value: stats.activeAlertCount,
+      max: Math.max(1, interventionLoad),
+      color: "bg-[#ef7b63]",
     },
   ];
   const totalCategoryCount = stats.categoryCounts.reduce(
@@ -182,7 +224,7 @@ export default async function OverviewPage({
       <div className="grid gap-4">
         <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div data-motion="reveal">
-            <p className="text-sm font-medium text-zinc-500">Overview</p>
+            <p className="text-sm font-medium text-[#2f9da7]">Overview</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
               Operational Intelligence
             </h1>
@@ -192,47 +234,80 @@ export default async function OverviewPage({
           </div>
         </section>
 
-        <section className="grid items-start gap-4 xl:grid-cols-[1.25fr_0.92fr_0.75fr]">
-          <div className="grid gap-3 md:grid-cols-2">
-            {kpis.map((kpi) => {
-              const Icon = kpi.icon;
+        <section className="grid items-start gap-4 xl:grid-cols-[1.12fr_0.78fr_0.82fr]">
+          <div className="grid gap-4">
+            <div className="grid items-start gap-3 sm:grid-cols-2">
+              {kpis.map((kpi) => {
+                const Icon = kpi.icon;
 
-              return (
-                <Card
-                  className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
-                  data-motion="metric"
-                  key={kpi.label}
+                return (
+                  <Card
+                    className="h-fit rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+                    data-motion="metric"
+                    key={kpi.label}
+                  >
+                    <CardContent className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-zinc-500">
+                            {kpi.label}
+                          </p>
+                          <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
+                            {kpi.value}
+                          </p>
+                        </div>
+                        <div
+                          className={`grid size-8 place-items-center rounded-full ${kpi.tone}`}
+                        >
+                          <Icon aria-hidden="true" className="size-4" />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-zinc-500">{kpi.detail}</span>
+                        <span className="shrink-0 whitespace-nowrap rounded-full bg-zinc-100 px-2 py-1 font-semibold text-zinc-700">
+                          {kpi.delta}
+                        </span>
+                      </div>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                        <div className={`h-full rounded-full ${kpi.accent}`} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <Card
+              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                <div>
+                  <CardTitle>Failure Trend</CardTitle>
+                  <p className="text-sm text-zinc-500">Health score and failure probability</p>
+                </div>
+                <Badge
+                  className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                  variant="outline"
                 >
-                  <CardContent className="px-3 py-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-zinc-500">
-                          {kpi.label}
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
-                          {kpi.value}
-                        </p>
-                      </div>
-                      <div
-                        className={`grid size-8 place-items-center rounded-full ${kpi.tone}`}
-                      >
-                        <Icon aria-hidden="true" className="size-4" />
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-2 text-xs">
-                      <span className="text-zinc-500">{kpi.detail}</span>
-                      <span className="shrink-0 whitespace-nowrap rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
-                        {kpi.delta}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  {predictionTrend.length} samples
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {predictionTrend.length ? (
+                  <LineTrend
+                    failurePoints={failurePoints}
+                    healthPoints={healthPoints}
+                  />
+                ) : (
+                  <EmptyState label="No prediction trend yet" />
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -240,63 +315,129 @@ export default async function OverviewPage({
                 <CardTitle>Risk Breakdown</CardTitle>
                 <p className="text-sm text-zinc-500">Prediction distribution</p>
               </div>
-              <Badge
-                className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                variant="outline"
-              >
-                {range}D
-              </Badge>
-            </CardHeader>
-            <CardContent className="grid gap-4 p-4 pt-0 sm:grid-cols-[13rem_1fr] xl:grid-cols-1">
-              <div className="relative mx-auto grid size-48 place-items-center">
-                <Ring value={percentage(stats.riskCounts.low, totalRisk)} tone="#86efac" />
-                <Ring
-                  inset="inset-5"
-                  value={percentage(stats.riskCounts.medium, totalRisk)}
-                  tone="#18181b"
-                />
-                <Ring
-                  inset="inset-10"
-                  value={percentage(stats.riskCounts.high, totalRisk)}
-                  tone="#ef4444"
-                />
-                <div className="relative grid size-24 place-items-center rounded-full bg-white shadow-inner">
-                  <div className="text-center">
-                    <p className="text-3xl font-semibold">{highRiskShare}%</p>
-                    <p className="text-[11px] font-medium text-zinc-500">High</p>
-                  </div>
-                </div>
+              <div className="rounded-full bg-zinc-100 p-1 text-xs font-semibold text-zinc-500">
+                <span className="rounded-full bg-[#2f9da7] px-3 py-1 text-white">
+                  Live
+                </span>
               </div>
-              <div className="grid content-center gap-3">
-                <RiskRow label="Low" value={stats.riskCounts.low} tone="bg-emerald-400" />
+            </CardHeader>
+            <CardContent className="p-5 pt-1">
+              <div className="flex h-72 items-end gap-3 rounded-[1.1rem] bg-[#f7faf9] px-4 pb-4 pt-6">
+                {commandBars.map((bar) => (
+                  <div
+                    className="flex min-w-0 flex-1 flex-col items-center gap-3"
+                    key={bar.label}
+                  >
+                    <div className="flex h-56 w-full items-end justify-center">
+                      <span
+                        className={`aegis-graph-bar block w-full max-w-14 rounded-full shadow-inner ${bar.color}`}
+                        style={{
+                          height: `${Math.max(8, percentage(bar.value, bar.max))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="max-w-full truncate text-[10px] font-semibold uppercase text-zinc-500">
+                      {bar.shortLabel}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <RiskRow label="Low" value={stats.riskCounts.low} tone="bg-[#2f9da7]" />
                 <RiskRow label="Medium" value={stats.riskCounts.medium} tone="bg-zinc-950" />
-                <RiskRow label="High" value={stats.riskCounts.high} tone="bg-red-500" />
+                <RiskRow label="High" value={stats.riskCounts.high} tone="bg-[#ef7b63]" />
               </div>
             </CardContent>
           </Card>
 
           <div className="grid gap-4">
             <Card
-              className="rounded-lg border-zinc-200 bg-emerald-50 shadow-sm"
+              className="rounded-[1.35rem] border-zinc-200 bg-[#fff8e6] shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                <div>
+                  <CardTitle>Signal Load</CardTitle>
+                  <p className="text-xs text-zinc-500">Operational workload</p>
+                </div>
+                <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="grid grid-cols-3 gap-2">
+                  <SignalStat label="Readings" value={latestReadings.length} />
+                  <SignalStat label="Avg flow" value={`${Math.round(averageFlow).toLocaleString()} bpd`} />
+                  <SignalStat label="Avg pressure" value={`${Math.round(averagePressure)} bar`} />
+                </div>
+                {signalBars.length ? (
+                  <div className="mt-4 rounded-[1rem] bg-white/70 p-3">
+                    <svg
+                      aria-label="Operational load"
+                      className="h-32 w-full overflow-visible"
+                      preserveAspectRatio="none"
+                      role="img"
+                      viewBox="0 0 680 260"
+                    >
+                      {[0, 1, 2].map((line) => (
+                        <line
+                          key={line}
+                          stroke="#eadfbd"
+                          strokeDasharray="5 8"
+                          strokeWidth="1"
+                          x1="0"
+                          x2="680"
+                          y1={line * 84 + 24}
+                          y2={line * 84 + 24}
+                        />
+                      ))}
+                      <polyline
+                        className="aegis-line-trace"
+                        fill="none"
+                        points={signalLoadPoints.points}
+                        stroke="#2f9da7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="5"
+                      />
+                      {signalLoadPoints.coordinates.map((point) => (
+                        <circle
+                          className="aegis-chart-dot"
+                          cx={point.x}
+                          cy={point.y}
+                          fill="#f2bd3f"
+                          key={`${point.x}-${point.y}`}
+                          r="5"
+                        />
+                      ))}
+                    </svg>
+                    <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-zinc-500">
+                      <span>Recent flow</span>
+                      <span>{averageVibration.toFixed(2)} mm/s avg vibration</span>
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState label="No operational readings yet" />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card
+              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
                 <div>
                   <CardTitle>AI Score</CardTitle>
-                  <p className="text-sm text-emerald-800/70">Model confidence</p>
+                  <p className="text-sm text-zinc-500">Model confidence</p>
                 </div>
-                <ChartLineUp
-                  aria-hidden="true"
-                  className="size-5 text-emerald-800"
-                />
+                <TrendUp aria-hidden="true" className="size-5 text-[#2f9da7]" />
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <p className="text-5xl font-semibold tracking-normal text-zinc-950">
+                <p className="text-4xl font-semibold tracking-normal text-zinc-950">
                   {modelScore}%
                 </p>
-                <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
+                <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-100">
                   <div
-                    className="h-full rounded-full bg-zinc-950"
+                    className="h-full rounded-full bg-[#2f9da7]"
                     style={{ width: `${modelScore}%` }}
                   />
                 </div>
@@ -304,7 +445,7 @@ export default async function OverviewPage({
             </Card>
 
             <Card
-              className="rounded-lg border-zinc-200 bg-white shadow-sm"
+              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="pb-2">
@@ -324,7 +465,7 @@ export default async function OverviewPage({
 
         <section className="grid items-start gap-4 xl:grid-cols-[1.48fr_0.72fr]">
           <Card
-            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -341,69 +482,7 @@ export default async function OverviewPage({
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {predictionTrend.length ? (
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <svg
-                    aria-label="Telemetry flow"
-                    className="h-72 w-full overflow-visible"
-                    preserveAspectRatio="none"
-                    role="img"
-                    viewBox="0 0 680 260"
-                  >
-                    <defs>
-                      <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#18181b" stopOpacity="0.15" />
-                        <stop offset="100%" stopColor="#18181b" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    {[0, 1, 2, 3, 4].map((line) => (
-                      <line
-                        key={line}
-                        stroke="#e4e4e7"
-                        strokeDasharray="5 8"
-                        strokeWidth="1"
-                        x1="0"
-                        x2="680"
-                        y1={line * 60 + 10}
-                        y2={line * 60 + 10}
-                      />
-                    ))}
-                    {healthPoints.area && (
-                      <path d={healthPoints.area} fill="url(#health-fill)" />
-                    )}
-                    <polyline
-                      className="aegis-line-trace"
-                      fill="none"
-                      points={healthPoints.points}
-                      stroke="#18181b"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="5"
-                    />
-                    <polyline
-                      className="aegis-line-trace aegis-line-trace-delayed"
-                      fill="none"
-                      points={failurePoints.points}
-                      stroke="#86efac"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="3"
-                    />
-                    {healthPoints.coordinates.map((point) => (
-                      <circle
-                        className="aegis-chart-dot"
-                        cx={point.x}
-                        cy={point.y}
-                        fill="#18181b"
-                        key={`${point.x}-${point.y}`}
-                        r="4"
-                      />
-                    ))}
-                  </svg>
-                  <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-                    <span>Health</span>
-                    <span>Failure Risk</span>
-                  </div>
-                </div>
+                <LineTrend failurePoints={failurePoints} healthPoints={healthPoints} />
               ) : (
                 <EmptyState label="No prediction trend yet" />
               )}
@@ -411,7 +490,7 @@ export default async function OverviewPage({
           </Card>
 
           <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="pb-2">
@@ -434,13 +513,13 @@ export default async function OverviewPage({
                           }}
                         />
                         <span
-                          className="aegis-graph-bar w-2 rounded-full bg-emerald-300"
+                          className="aegis-graph-bar w-2 rounded-full bg-[#2f9da7]"
                           style={{
                             height: `${percentage(reading.pressure, maxPressure)}%`,
                           }}
                         />
                         <span
-                          className="aegis-graph-bar w-2 rounded-full bg-zinc-300"
+                          className="aegis-graph-bar w-2 rounded-full bg-[#f2bd3f]"
                           style={{
                             height: `${percentage(reading.flow, maxFlow)}%`,
                           }}
@@ -507,7 +586,7 @@ export default async function OverviewPage({
                     className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
                     key={activity.id}
                   >
-                    <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+                    <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
                       <TrendUp aria-hidden="true" className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -598,26 +677,6 @@ export default async function OverviewPage({
   );
 }
 
-function Ring({
-  inset = "inset-0",
-  tone,
-  value,
-}: {
-  inset?: string;
-  tone: string;
-  value: number;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`absolute ${inset} rounded-full aegis-ring-sweep`}
-      style={{
-        background: `conic-gradient(${tone} ${value}%, #edf7e9 0)`,
-      }}
-    />
-  );
-}
-
 function FocusItem({
   icon: Icon,
   label,
@@ -640,6 +699,97 @@ function FocusItem({
   );
 }
 
+function LineTrend({
+  failurePoints,
+  healthPoints,
+}: {
+  failurePoints: ReturnType<typeof buildLinePoints>;
+  healthPoints: ReturnType<typeof buildLinePoints>;
+}) {
+  return (
+    <div className="rounded-[1.1rem] border border-zinc-200 bg-[#f7faf9] p-3">
+      <svg
+        aria-label="Predictive telemetry trend"
+        className="h-72 w-full overflow-visible"
+        preserveAspectRatio="none"
+        role="img"
+        viewBox="0 0 680 260"
+      >
+        <defs>
+          <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#2f9da7" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#2f9da7" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 1, 2, 3, 4].map((line) => (
+          <line
+            key={line}
+            stroke="#e4e4e7"
+            strokeDasharray="5 8"
+            strokeWidth="1"
+            x1="0"
+            x2="680"
+            y1={line * 60 + 10}
+            y2={line * 60 + 10}
+          />
+        ))}
+        {healthPoints.area && <path d={healthPoints.area} fill="url(#health-fill)" />}
+        <polyline
+          className="aegis-line-trace"
+          fill="none"
+          points={healthPoints.points}
+          stroke="#18181b"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="5"
+        />
+        <polyline
+          className="aegis-line-trace aegis-line-trace-delayed"
+          fill="none"
+          points={failurePoints.points}
+          stroke="#2f9da7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+        />
+        {healthPoints.coordinates.map((point) => (
+          <circle
+            className="aegis-chart-dot"
+            cx={point.x}
+            cy={point.y}
+            fill="#f2bd3f"
+            key={`${point.x}-${point.y}`}
+            r="4"
+          />
+        ))}
+      </svg>
+      <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
+        <span>Health score</span>
+        <span>Failure probability</span>
+      </div>
+    </div>
+  );
+}
+
+function SignalStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="rounded-xl bg-white/75 px-3 py-2 shadow-sm ring-1 ring-zinc-950/5">
+      <p className="text-[10px] font-semibold uppercase text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-semibold text-zinc-950">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function RiskRow({
   label,
   tone,
@@ -650,12 +800,12 @@ function RiskRow({
   value: number;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
         <span className={`size-2.5 rounded-full ${tone}`} />
-        <span className="text-sm font-medium text-zinc-600">{label}</span>
+        <span className="text-xs font-medium text-zinc-600">{label}</span>
       </div>
-      <span className="text-sm font-semibold text-zinc-950">{value}</span>
+      <span className="text-xs font-semibold text-zinc-950">{value}</span>
     </div>
   );
 }
