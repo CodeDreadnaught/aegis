@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { getNavigationItems } from "@/components/app-shell/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { UserRole } from "@/generated/prisma/enums";
 
 type NavigationLinksProps = {
@@ -28,7 +33,7 @@ export function NavigationLinks({
         const isActive =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-        return (
+        const link = (
           <Link
             className={cn(
               "group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-500 transition-all duration-200 hover:bg-zinc-50 hover:text-zinc-950",
@@ -39,7 +44,6 @@ export function NavigationLinks({
               compact && isActive && "bg-[#2f9da7] text-white"
             )}
             href={item.href}
-            key={item.href}
             onClick={onNavigate}
           >
             {isActive && !compact && (
@@ -55,6 +59,15 @@ export function NavigationLinks({
             />
             <span className={cn(compact && "sr-only")}>{item.label}</span>
           </Link>
+        );
+
+        return (
+          <Tooltip key={item.href}>
+            <TooltipTrigger render={link} />
+            <TooltipContent side={compact ? "right" : "top"}>
+              {item.label}
+            </TooltipContent>
+          </Tooltip>
         );
       })}
     </nav>

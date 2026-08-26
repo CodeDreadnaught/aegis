@@ -225,10 +225,14 @@ export default async function OverviewPage({
   const assetMixLegendRows = otherAssetMixCount
     ? [...topAssetMixRows, { category: "Others", count: otherAssetMixCount }]
     : topAssetMixRows;
+  const orderedAssetMixLegendRows = [
+    ...assetMixLegendRows.filter((row) => row.category !== "Others"),
+    ...assetMixLegendRows.filter((row) => row.category === "Others"),
+  ];
   const otherAssetMixCategories = new Set(
     assetMixRows.slice(3).map((item) => item.category)
   );
-  const assetMixDisplayRows = assetMixLegendRows.map((row, index) => {
+  const assetMixDisplayRows = orderedAssetMixLegendRows.map((row, index) => {
     const isOthers = row.category === "Others";
     const assets = assetMixEquipment
       .filter((equipment) =>
@@ -309,34 +313,6 @@ export default async function OverviewPage({
                 );
               })}
             </div>
-
-            <Card
-              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-              data-motion="panel"
-            >
-              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-                <div>
-                  <CardTitle>Failure Trend</CardTitle>
-                  <p className="text-sm text-zinc-500">Health score and failure probability</p>
-                </div>
-                <Badge
-                  className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                  variant="outline"
-                >
-                  {predictionTrend.length} samples
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {predictionTrend.length ? (
-                  <LineTrend
-                    failurePoints={failurePoints}
-                    healthPoints={healthPoints}
-                  />
-                ) : (
-                  <EmptyState label="No prediction trend yet" />
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           <Card
@@ -400,31 +376,7 @@ export default async function OverviewPage({
               </CardContent>
             </Card>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:h-full">
-              <Card
-                className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-                data-motion="panel"
-              >
-                <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-                  <div>
-                    <CardTitle>AI Score</CardTitle>
-                    <p className="text-sm text-zinc-500">Model confidence</p>
-                  </div>
-                  <TrendUp aria-hidden="true" className="size-5 text-[#2f9da7]" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <p className="text-4xl font-semibold tracking-normal text-zinc-950">
-                    {modelScore}%
-                  </p>
-                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-zinc-100">
-                    <div
-                      className="h-full rounded-full bg-[#2f9da7]"
-                      style={{ width: `${modelScore}%` }}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
+            <div className="grid xl:h-full">
               <Card
                 className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
                 data-motion="panel"
@@ -445,7 +397,21 @@ export default async function OverviewPage({
           </div>
         </section>
 
-        <section className="grid items-start gap-4 xl:grid-cols-[1.48fr_0.72fr]">
+        <section>
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle>Asset Performance</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <OverviewAssetTable rows={assetRows} />
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid items-start gap-4 xl:grid-cols-[1.44fr_0.76fr]">
           <Card
             className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
@@ -471,69 +437,39 @@ export default async function OverviewPage({
             </CardContent>
           </Card>
 
-          <Card
-            className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle>Sensor Stack</CardTitle>
-              <p className="text-sm text-zinc-500">Vibration, pressure, flow</p>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              {signalBars.length ? (
-                <div className="flex h-72 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
-                  {signalBars.map((reading) => (
-                    <div
-                      className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
-                      key={reading.id}
-                    >
-                      <div className="flex h-52 w-full max-w-10 items-end justify-center gap-1">
-                        <span
-                          className="aegis-graph-bar w-2 rounded-full bg-zinc-950"
-                          style={{
-                            height: `${percentage(reading.vibration, maxVibration)}%`,
-                          }}
-                        />
-                        <span
-                          className="aegis-graph-bar w-2 rounded-full bg-[#2f9da7]"
-                          style={{
-                            height: `${percentage(reading.pressure, maxPressure)}%`,
-                          }}
-                        />
-                        <span
-                          className="aegis-graph-bar w-2 rounded-full bg-[#f2bd3f]"
-                          style={{
-                            height: `${percentage(reading.flow, maxFlow)}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="truncate text-[10px] font-medium text-zinc-500">
-                        {reading.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState label="No sensor readings yet" />
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid items-start gap-4 xl:grid-cols-[1.44fr_0.76fr]">
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle>Asset Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <OverviewAssetTable rows={assetRows} />
-            </CardContent>
-          </Card>
-
           <div className="grid gap-4">
+            <Card
+              className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                <div>
+                  <CardTitle>AI Score</CardTitle>
+                  <p className="text-sm text-zinc-500">Model confidence</p>
+                </div>
+                <TrendUp aria-hidden="true" className="size-5 text-[#2f9da7]" />
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-0">
+                <div className="flex items-end justify-between gap-4">
+                  <p className="text-3xl font-semibold tracking-normal text-zinc-950">
+                    {modelScore}%
+                  </p>
+                  <Badge
+                    className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                    variant="outline"
+                  >
+                    {latestPredictions.length} runs
+                  </Badge>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className="h-full rounded-full bg-[#2f9da7]"
+                    style={{ width: `${modelScore}%` }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             <Card
               className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
               data-motion="panel"
@@ -589,70 +525,90 @@ export default async function OverviewPage({
                 {!recentActivity.length && <EmptyState label="No activity" />}
               </CardContent>
             </Card>
-          </div>
-        </section>
 
-        <section className="grid items-start gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-          <Card
-            className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle>Asset Mix</CardTitle>
-            </CardHeader>
-            <CardContent className="gap-3 p-4 pt-0">
-              {assetMixRows.map((category) => {
-                return (
-                  <PlanRow
-                    key={category.category}
-                    label={
-                      category.category === "Other"
-                        ? "Other"
-                        : formatEquipmentCategory(category.category)
-                    }
-                    meta={`${category.count} assets`}
-                    value={`${percentage(category.count, totalCategoryCount)}%`}
-                    width={percentage(category.count, totalCategoryCount)}
-                  />
-                );
-              })}
-              {!assetMixRows.length && <EmptyState label="No asset mix data" />}
-            </CardContent>
-          </Card>
-
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle>Alerts</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2 p-4 pt-0 md:grid-cols-2">
-              {latestAlerts.map((alert) => (
-                <div
-                  className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                  key={alert.id}
-                >
-                  <div className="flex items-start gap-2">
-                    <WarningCircle
-                      aria-hidden="true"
-                      className="mt-0.5 size-4 text-red-500"
-                      weight="fill"
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-950">
-                        {alert.equipment.assetTag}
-                      </p>
-                      <p className="line-clamp-2 text-xs text-zinc-500">
-                        {alert.message}
-                      </p>
-                    </div>
+            <Card
+              className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle>Sensor Stack</CardTitle>
+                <p className="text-sm text-zinc-500">Vibration, pressure, flow</p>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {signalBars.length ? (
+                  <div className="flex h-72 items-end gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 pb-4 pt-5">
+                    {signalBars.map((reading) => (
+                      <div
+                        className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
+                        key={reading.id}
+                      >
+                        <div className="flex h-52 w-full max-w-10 items-end justify-center gap-1">
+                          <span
+                            className="aegis-graph-bar w-2 rounded-full bg-zinc-950"
+                            style={{
+                              height: `${percentage(reading.vibration, maxVibration)}%`,
+                            }}
+                          />
+                          <span
+                            className="aegis-graph-bar w-2 rounded-full bg-[#2f9da7]"
+                            style={{
+                              height: `${percentage(reading.pressure, maxPressure)}%`,
+                            }}
+                          />
+                          <span
+                            className="aegis-graph-bar w-2 rounded-full bg-[#f2bd3f]"
+                            style={{
+                              height: `${percentage(reading.flow, maxFlow)}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="truncate text-[10px] font-medium text-zinc-500">
+                          {reading.label}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-              {!latestAlerts.length && <EmptyState label="No active alerts" />}
-            </CardContent>
-          </Card>
+                ) : (
+                  <EmptyState label="No sensor readings yet" />
+                )}
+              </CardContent>
+            </Card>
+
+            {!!latestAlerts.length && (
+              <Card
+                className="rounded-lg border-zinc-200 bg-white shadow-sm"
+                data-motion="panel"
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle>Alerts</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-2 p-4 pt-0">
+                  {latestAlerts.slice(0, 3).map((alert) => (
+                    <div
+                      className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+                      key={alert.id}
+                    >
+                      <div className="flex items-start gap-2">
+                        <WarningCircle
+                          aria-hidden="true"
+                          className="mt-0.5 size-4 text-red-500"
+                          weight="fill"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-zinc-950">
+                            {alert.equipment.assetTag}
+                          </p>
+                          <p className="line-clamp-2 text-xs text-zinc-500">
+                            {alert.message}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </section>
       </div>
     </PremiumMotion>
@@ -797,7 +753,7 @@ function AssetMixRings({
         >
           {rows
             .map((row, index) => {
-              const radius = 92 - index * 14;
+              const radius = 92 - (rows.length - 1 - index) * 14;
 
               return (
                 <circle
@@ -815,47 +771,34 @@ function AssetMixRings({
             .reverse()}
         {rows.map((row, index) => {
           const share = percentage(row.count, total);
-          const radius = 92 - index * 14;
+          const radius = 92 - (rows.length - 1 - index) * 14;
           const circumference = 2 * Math.PI * radius;
 
           return (
-            <circle
-              aria-hidden="true"
-              className="transition-opacity duration-200 hover:opacity-75"
-              cx="110"
-              cy="110"
-              fill="none"
-              key={row.category}
-              r={radius}
-              stroke={ringColors[index % ringColors.length]}
-              strokeDasharray={`${(share / 100) * circumference} ${circumference}`}
-              strokeLinecap="round"
-              strokeWidth="12"
-              style={{
-                filter:
-                  index === 0
-                    ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
-                    : undefined,
-              }}
-            />
-          );
-        })}
-        </svg>
-        {rows.map((row, index) => {
-          const size = 13 - index * 1.75;
-          const inset = index * 0.875;
-
-          return (
-            <Tooltip key={`${row.category}-tooltip`}>
+            <Tooltip key={row.category}>
               <TooltipTrigger
-                aria-label={`${row.label} asset mix details`}
-                className="absolute rounded-full border-[12px] border-transparent bg-transparent"
-                style={{
-                  height: `${size}rem`,
-                  inset: `${inset}rem`,
-                  width: `${size}rem`,
-                }}
-                type="button"
+                render={
+                  <circle
+                    aria-label={`${row.label} asset mix details`}
+                    className="cursor-help outline-none transition-opacity duration-200 hover:opacity-75 focus-visible:opacity-75"
+                    cx="110"
+                    cy="110"
+                    fill="none"
+                    r={radius}
+                    role="button"
+                    stroke={row.color}
+                    strokeDasharray={`${(share / 100) * circumference} ${circumference}`}
+                    strokeLinecap="round"
+                    strokeWidth="12"
+                    style={{
+                      filter:
+                        index === 0
+                          ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
+                          : undefined,
+                    }}
+                    tabIndex={0}
+                  />
+                }
               />
               <TooltipContent
                 align="center"
@@ -867,6 +810,7 @@ function AssetMixRings({
             </Tooltip>
           );
         })}
+        </svg>
         <div className="relative grid size-20 place-items-center rounded-full bg-white shadow-[inset_0_2px_14px_rgba(24,24,27,0.08)]">
           <div className="text-center">
             <p className="text-2xl font-semibold text-zinc-950">{total}</p>
