@@ -36,7 +36,14 @@ import { getActionErrorMessage } from "@/lib/action-error";
 import { toast } from "@/components/ui/toast";
 
 type ReadingFormProps = {
-  action: (formData: FormData) => Promise<{ count: number } | void>;
+  action: (formData: FormData) => Promise<{
+    count: number;
+    predictions?: {
+      created: number;
+      failed: number;
+      skipped: number;
+    };
+  } | void>;
   equipment: Array<{
     id: string;
     assetTag: string;
@@ -96,10 +103,7 @@ export function ReadingForm({
         setSelectedImportFileName("");
         toast.success({
           title: isSensorImport ? "Readings imported" : "Reading saved",
-          description:
-            result?.count && result.count > 1
-              ? `${result.count} sensor readings were imported.`
-              : "The operational data point was recorded.",
+          description: formatReadingResult(result, isSensorImport),
         });
       } catch (error) {
         toast.error({
@@ -367,6 +371,40 @@ export function ReadingForm({
       </CardContent>
     </Card>
   );
+}
+
+function formatReadingResult(
+  result:
+    | {
+        count: number;
+        predictions?: {
+          created: number;
+          failed: number;
+          skipped: number;
+        };
+      }
+    | void,
+  isSensorImport: boolean
+) {
+  const readingCount = result?.count ?? 1;
+  const readingLabel =
+    readingCount === 1
+      ? "1 reading"
+      : `${readingCount.toLocaleString()} readings`;
+  const predictionCount = result?.predictions?.created ?? 0;
+  const failedCount = result?.predictions?.failed ?? 0;
+
+  if (failedCount > 0) {
+    return `${readingLabel} saved. ${failedCount.toLocaleString()} prediction runs need review.`;
+  }
+
+  if (predictionCount > 0) {
+    return `${readingLabel} saved with ${predictionCount.toLocaleString()} prediction runs.`;
+  }
+
+  return isSensorImport
+    ? `${readingLabel} imported.`
+    : "The operational data point was recorded.";
 }
 
 function NumberField({

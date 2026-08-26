@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { createPredictionsForReadings } from "@/features/analytics/prediction-service";
 import {
   buildReadingParameters,
   operationalReadingSchema,
@@ -64,13 +65,21 @@ export async function createOperationalReadingAction(formData: FormData) {
       })),
     });
 
-    revalidatePath("/operational-data");
+    const predictionResults = await createPredictionsForReadings({
+      actorId: actor.id,
+      readingIds: readings.map((reading) => reading.id),
+    });
 
+    revalidatePath("/operational-data");
+    revalidatePath("/analytics");
+    revalidatePath("/overview");
+    revalidatePath("/alerts");
+    revalidatePath("/reports");
     for (const equipmentId of new Set(readings.map((reading) => reading.equipmentId))) {
       revalidatePath(`/equipment/${equipmentId}`);
     }
 
-    return { count: readings.length };
+    return { count: readings.length, predictions: predictionResults };
   }
 
   const input = parseReadingForm(formData);
@@ -102,10 +111,19 @@ export async function createOperationalReadingAction(formData: FormData) {
     },
   });
 
+  const predictionResults = await createPredictionsForReadings({
+    actorId: actor.id,
+    readingIds: [reading.id],
+  });
+
   revalidatePath("/operational-data");
+  revalidatePath("/analytics");
+  revalidatePath("/overview");
+  revalidatePath("/alerts");
+  revalidatePath("/reports");
   revalidatePath(`/equipment/${reading.equipmentId}`);
 
-  return { count: 1 };
+  return { count: 1, predictions: predictionResults };
 }
 
 async function parseSensorImport(formData: FormData) {
