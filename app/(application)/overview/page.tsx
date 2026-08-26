@@ -49,7 +49,14 @@ const timeFormatter = new Intl.DateTimeFormat("en", {
   minute: "2-digit",
 });
 
-const ringColors = ["#184f4f", "#a8ff9f", "#b7b7b7", "#2f9da7", "#f2bd3f", "#ef7b63"];
+const ringColors = [
+  "#184f4f",
+  "#a8ff9f",
+  "#b7b7b7",
+  "#2f9da7",
+  "#f2bd3f",
+  "#ef7b63",
+];
 
 export default async function OverviewPage({
   searchParams,
@@ -170,13 +177,6 @@ export default async function OverviewPage({
   ];
   const commandBars = [
     {
-      label: "Readings",
-      shortLabel: "Read",
-      value: latestReadings.length,
-      max: Math.max(1, latestReadings.length, stats.equipmentCount),
-      color: "bg-zinc-950",
-    },
-    {
       label: "Avg Flow",
       shortLabel: "Flow",
       value: Math.round(averageFlow),
@@ -197,13 +197,6 @@ export default async function OverviewPage({
       max: Math.max(1, Math.round(maxVibration * 10)),
       color: "bg-[#f2bd3f]",
     },
-    {
-      label: "Alerts",
-      shortLabel: "Alerts",
-      value: stats.activeAlertCount,
-      max: Math.max(1, interventionLoad),
-      color: "bg-[#ef7b63]",
-    },
   ];
   const totalCategoryCount = stats.categoryCounts.reduce(
     (sum, item) => sum + item.count,
@@ -219,6 +212,13 @@ export default async function OverviewPage({
         { category: "Other", count: hiddenCategoryCount },
       ]
     : visibleCategoryCounts;
+  const topAssetMixRows = assetMixRows.slice(0, 3);
+  const otherAssetMixCount = assetMixRows
+    .slice(3)
+    .reduce((sum, item) => sum + item.count, 0);
+  const assetMixLegendRows = otherAssetMixCount
+    ? [...topAssetMixRows, { category: "Others", count: otherAssetMixCount }]
+    : topAssetMixRows;
 
   return (
     <PremiumMotion profile="overview">
@@ -327,13 +327,14 @@ export default async function OverviewPage({
                 <>
                   <AssetMixRings rows={assetMixRows} total={totalCategoryCount} />
                   <div className="mt-5 grid gap-3">
-                    {assetMixRows.slice(0, 3).map((category, index) => (
+                    {assetMixLegendRows.map((category, index) => (
                       <DistributionRow
                         color={ringColors[index % ringColors.length]}
                         key={category.category}
                         label={
-                          category.category === "Other"
-                            ? "Other"
+                          category.category === "Other" ||
+                          category.category === "Others"
+                            ? category.category
                             : formatEquipmentCategory(category.category)
                         }
                         meta={`${category.count} assets`}
@@ -361,8 +362,7 @@ export default async function OverviewPage({
                 <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="grid grid-cols-3 gap-2">
-                  <SignalStat label="Readings" value={latestReadings.length} />
+                <div className="grid grid-cols-2 gap-2">
                   <SignalStat label="Avg flow" value={`${Math.round(averageFlow).toLocaleString()} bpd`} />
                   <SignalStat label="Avg pressure" value={`${Math.round(averagePressure)} bar`} />
                 </div>
@@ -752,25 +752,63 @@ function AssetMixRings({
   return (
     <div className="grid place-items-center rounded-[1.1rem] bg-[#f7faf9] p-5">
       <div className="relative grid size-52 place-items-center">
+        <svg
+          aria-label="Asset mix distribution"
+          className="absolute inset-0 size-full -rotate-90"
+          role="img"
+          viewBox="0 0 220 220"
+        >
+          {visibleRows
+            .map((row, index) => {
+              const radius = 92 - index * 14;
+
+              return (
+                <circle
+                  aria-hidden="true"
+                  cx="110"
+                  cy="110"
+                  fill="none"
+                  key={`${row.category}-track`}
+                  r={radius}
+                  stroke="#e8f4e6"
+                  strokeWidth="12"
+                />
+              );
+            })
+            .reverse()}
         {visibleRows.map((row, index) => {
-          const size = 13 - index * 1.8;
-          const inset = index * 0.95;
           const share = percentage(row.count, total);
+          const radius = 92 - index * 14;
+          const circumference = 2 * Math.PI * radius;
+          const label =
+            row.category === "Other"
+              ? "Other"
+              : formatEquipmentCategory(row.category);
 
           return (
-            <span
-              aria-hidden="true"
-              className="absolute rounded-full"
+            <circle
+              className="transition-opacity duration-200 hover:opacity-75"
+              cx="110"
+              cy="110"
+              fill="none"
               key={row.category}
+              r={radius}
+              stroke={ringColors[index % ringColors.length]}
+              strokeDasharray={`${(share / 100) * circumference} ${circumference}`}
+              strokeLinecap="round"
+              strokeWidth="12"
               style={{
-                background: `conic-gradient(${ringColors[index % ringColors.length]} ${share}%, #e8f4e6 0)`,
-                height: `${size}rem`,
-                inset: `${inset}rem`,
-                width: `${size}rem`,
+                filter:
+                  index === 0
+                    ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
+                    : undefined,
               }}
-            />
+            >
+              <title>{`${label}: ${row.count} assets (${share}%)`}</title>
+            </circle>
           );
         })}
+        </svg>
         <div className="relative grid size-20 place-items-center rounded-full bg-white shadow-[inset_0_2px_14px_rgba(24,24,27,0.08)]">
           <div className="text-center">
             <p className="text-2xl font-semibold text-zinc-950">{total}</p>
