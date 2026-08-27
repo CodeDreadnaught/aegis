@@ -6,27 +6,10 @@ import { createPredictionsForReadings } from "@/features/analytics/prediction-se
 import {
   buildReadingParameters,
   operationalReadingSchema,
+  parseOperationalReadingRows,
 } from "@/features/operational-readings/validation";
 import { requirePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db/client";
-
-function parseReadingForm(formData: FormData) {
-  return operationalReadingSchema.parse({
-    equipmentId: formData.get("equipmentId"),
-    recordedAt: formData.get("recordedAt"),
-    sourceType: formData.get("sourceType") || "MANUAL_ENTRY",
-    type: formData.get("type"),
-    airTemperatureKelvin: formData.get("airTemperatureKelvin"),
-    processTemperatureKelvin: formData.get("processTemperatureKelvin"),
-    rotationalSpeedRpm: formData.get("rotationalSpeedRpm"),
-    torqueNm: formData.get("torqueNm"),
-    toolWearMinutes: formData.get("toolWearMinutes"),
-    pressureBar: formData.get("pressureBar"),
-    vibrationMmS: formData.get("vibrationMmS"),
-    flowRateBpd: formData.get("flowRateBpd"),
-    operatingHours: formData.get("operatingHours"),
-  });
-}
 
 export async function createOperationalReadingAction(formData: FormData) {
   const actor = await requirePermission("recordOperationalData");
@@ -82,38 +65,46 @@ export async function createOperationalReadingAction(formData: FormData) {
     return { count: readings.length, predictions: predictionResults };
   }
 
-  const input = parseReadingForm(formData);
+  const inputs = parseOperationalReadingRows(formData);
 
-  const reading = await prisma.operationalReading.create({
-    data: {
-      equipmentId: input.equipmentId,
-      recordedAt: input.recordedAt,
-      sourceType: input.sourceType,
-      createdById: actor.id,
-      parameters: buildReadingParameters(input),
-    },
-    select: {
-      id: true,
-      equipmentId: true,
-    },
-  });
+  if (!inputs.length) {
+    throw new Error("Add at least one operational reading.");
+  }
 
-  await prisma.auditLog.create({
-    data: {
+  const readings = await prisma.$transaction(
+    inputs.map((input) =>
+      prisma.operationalReading.create({
+        data: {
+          equipmentId: input.equipmentId,
+          recordedAt: input.recordedAt,
+          sourceType: input.sourceType,
+          createdById: actor.id,
+          parameters: buildReadingParameters(input),
+        },
+        select: {
+          id: true,
+          equipmentId: true,
+        },
+      })
+    )
+  );
+
+  await prisma.auditLog.createMany({
+    data: readings.map((reading) => ({
       userId: actor.id,
       action: "CREATE_OPERATIONAL_READING",
       entityType: "OperationalReading",
       entityId: reading.id,
       metadata: {
         equipmentId: reading.equipmentId,
-        sourceType: input.sourceType,
+        sourceType: "MANUAL_ENTRY",
       },
-    },
+    })),
   });
 
   const predictionResults = await createPredictionsForReadings({
     actorId: actor.id,
-    readingIds: [reading.id],
+    readingIds: readings.map((reading) => reading.id),
   });
 
   revalidatePath("/operational-data");
@@ -121,9 +112,11 @@ export async function createOperationalReadingAction(formData: FormData) {
   revalidatePath("/overview");
   revalidatePath("/alerts");
   revalidatePath("/reports");
-  revalidatePath(`/equipment/${reading.equipmentId}`);
+  for (const equipmentId of new Set(readings.map((reading) => reading.equipmentId))) {
+    revalidatePath(`/equipment/${equipmentId}`);
+  }
 
-  return { count: 1, predictions: predictionResults };
+  return { count: readings.length, predictions: predictionResults };
 }
 
 async function parseSensorImport(formData: FormData) {

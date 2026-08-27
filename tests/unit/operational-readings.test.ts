@@ -4,6 +4,7 @@ import {
   buildReadingParameters,
   formatSourceType,
   operationalReadingSchema,
+  parseOperationalReadingRows,
 } from "@/features/operational-readings/validation";
 
 describe("operational reading validation", () => {
@@ -53,5 +54,39 @@ describe("operational reading validation", () => {
 
   it("formats source values for display", () => {
     expect(formatSourceType("SENSOR_IMPORT")).toBe("Sensor Import");
+  });
+
+  it("parses aligned manual reading rows for multiple equipment", () => {
+    const formData = new FormData();
+    formData.append("equipmentId", "equipment_1");
+    formData.append("equipmentId", "equipment_2");
+    formData.append("recordedAt", "2026-08-22T09:00");
+    formData.append("recordedAt", "2026-08-22T09:05");
+    formData.append("type", "M");
+    formData.append("type", "L");
+    formData.append("airTemperatureKelvin", "299.4");
+    formData.append("airTemperatureKelvin", "301.2");
+    formData.append("processTemperatureKelvin", "309.2");
+    formData.append("processTemperatureKelvin", "311.8");
+    formData.append("rotationalSpeedRpm", "1420");
+    formData.append("rotationalSpeedRpm", "1510");
+    formData.append("torqueNm", "41.5");
+    formData.append("torqueNm", "39.2");
+    formData.append("toolWearMinutes", "92");
+    formData.append("toolWearMinutes", "104");
+
+    const rows = parseOperationalReadingRows(formData);
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      equipmentId: "equipment_1",
+      sourceType: "MANUAL_ENTRY",
+      type: "M",
+    });
+    expect(rows[1]).toMatchObject({
+      equipmentId: "equipment_2",
+      sourceType: "MANUAL_ENTRY",
+      type: "L",
+    });
   });
 });

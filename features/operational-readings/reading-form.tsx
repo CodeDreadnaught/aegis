@@ -7,7 +7,13 @@ import {
   useTransition,
   type FormEvent,
 } from "react";
-import { Database, SpinnerGap, UploadSimple } from "@phosphor-icons/react";
+import {
+  Database,
+  Plus,
+  SpinnerGap,
+  Trash,
+  UploadSimple,
+} from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +59,10 @@ type ReadingFormProps = {
   selectedEquipmentId?: string;
 };
 
+type ManualReadingRow = {
+  id: string;
+};
+
 export function ReadingForm({
   action,
   equipment,
@@ -62,6 +72,9 @@ export function ReadingForm({
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sourceType, setSourceType] = useState("MANUAL_ENTRY");
+  const [manualRows, setManualRows] = useState<ManualReadingRow[]>([
+    { id: "reading-row-1" },
+  ]);
   const [importPromptOpen, setImportPromptOpen] = useState(false);
   const [selectedImportFileName, setSelectedImportFileName] = useState("");
   const [pending, startTransition] = useTransition();
@@ -99,10 +112,11 @@ export function ReadingForm({
         const result = await action(new FormData(form));
         formRef.current?.reset();
         setSourceType("MANUAL_ENTRY");
+        setManualRows([{ id: `reading-row-${Date.now()}` }]);
         setImportPromptOpen(false);
         setSelectedImportFileName("");
         toast.success({
-          title: isSensorImport ? "Readings imported" : "Reading saved",
+          title: isSensorImport ? "Readings imported" : "Readings saved",
           description: formatReadingResult(result, isSensorImport),
         });
       } catch (error) {
@@ -112,6 +126,19 @@ export function ReadingForm({
         });
       }
     });
+  }
+
+  function addManualRow() {
+    setManualRows((rows) => [
+      ...rows,
+      { id: `reading-row-${Date.now()}-${rows.length}` },
+    ]);
+  }
+
+  function removeManualRow(rowId: string) {
+    setManualRows((rows) =>
+      rows.length === 1 ? rows : rows.filter((row) => row.id !== rowId)
+    );
   }
 
   return (
@@ -132,39 +159,6 @@ export function ReadingForm({
           ref={formRef}
         >
           <div className="grid min-w-0 gap-2 md:col-span-2">
-            <Label htmlFor="equipmentId">Equipment</Label>
-            <select
-              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
-              disabled={!equipment.length}
-              id="equipmentId"
-              name="equipmentId"
-              onChange={(event) => onEquipmentChange?.(event.currentTarget.value)}
-              required
-              value={selectedEquipmentId}
-            >
-              {!equipment.length ? (
-                <option value="">No equipment available</option>
-              ) : null}
-              {equipment.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.assetTag} - {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor="recordedAt">Recorded at</Label>
-            <Input
-              className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
-              defaultValue={now}
-              disabled={isSensorImport}
-              id="recordedAt"
-              name="recordedAt"
-              required={!isSensorImport}
-              type="datetime-local"
-            />
-          </div>
-          <div className="grid min-w-0 gap-2">
             <Label htmlFor="sourceType">Source</Label>
             <select
               className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
@@ -189,63 +183,80 @@ export function ReadingForm({
             </select>
           </div>
           {!isSensorImport && (
-            <>
+            <div className="grid min-w-0 gap-4 md:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-zinc-500">
+                  {manualRows.length === 1
+                    ? "Manual reading"
+                    : `${manualRows.length} manual readings`}
+                </p>
+                <button
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-700 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                  onClick={addManualRow}
+                  type="button"
+                >
+                  <Plus aria-hidden="true" className="size-4" />
+                  Add another
+                </button>
+              </div>
+              {manualRows.map((row, index) => (
+                <div
+                  className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
+                  key={row.id}
+                >
+                  {manualRows.length > 1 ? (
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-zinc-950">
+                        Reading {index + 1}
+                      </p>
+                      <Button
+                        className="rounded-full text-red-600 hover:text-red-700"
+                        onClick={() => removeManualRow(row.id)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Trash />
+                        Remove
+                      </Button>
+                    </div>
+                  ) : null}
+                  <ManualReadingFields
+                    equipment={equipment}
+                    onEquipmentChange={onEquipmentChange}
+                    rowId={row.id}
+                    selectedEquipmentId={selectedEquipmentId}
+                    timestamp={now}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          {isSensorImport && (
+            <div className="grid min-w-0 gap-4 md:col-span-2">
               <div className="grid min-w-0 gap-2">
-                <Label htmlFor="type">Product type</Label>
+                <Label htmlFor="equipmentId">Fallback equipment</Label>
                 <select
                   className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
-                  defaultValue="M"
-                  id="type"
-                  name="type"
+                  disabled={!equipment.length}
+                  id="equipmentId"
+                  name="equipmentId"
+                  onChange={(event) =>
+                    onEquipmentChange?.(event.currentTarget.value)
+                  }
+                  required
+                  value={selectedEquipmentId}
                 >
-                  {productTypes.map((type) => (
-                    <option key={type} value={type}>
-                      Type {type}
+                  {!equipment.length ? (
+                    <option value="">No equipment available</option>
+                  ) : null}
+                  {equipment.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.assetTag} - {item.name}
                     </option>
                   ))}
                 </select>
               </div>
-              <NumberField
-                label="Air temperature (K)"
-                name="airTemperatureKelvin"
-                required
-                step="0.01"
-              />
-              <NumberField
-                label="Process temperature (K)"
-                name="processTemperatureKelvin"
-                required
-                step="0.01"
-              />
-              <NumberField
-                label="Rotational speed (rpm)"
-                name="rotationalSpeedRpm"
-                required
-                step="1"
-              />
-              <NumberField label="Torque (Nm)" name="torqueNm" required step="0.01" />
-              <NumberField
-                label="Tool wear (min)"
-                name="toolWearMinutes"
-                required
-                step="1"
-              />
-              <NumberField label="Pressure (bar)" name="pressureBar" step="0.01" />
-              <NumberField
-                label="Vibration (mm/s)"
-                name="vibrationMmS"
-                step="0.01"
-              />
-              <NumberField label="Flow rate (bpd)" name="flowRateBpd" step="1" />
-              <NumberField
-                label="Operating hours"
-                name="operatingHours"
-                step="0.1"
-              />
-            </>
-          )}
-          {isSensorImport && (
-            <div className="grid min-w-0 gap-2 md:col-span-2">
               <Label htmlFor="sensorImportFile">Sensor import sheet</Label>
               <button
                 className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center transition-colors hover:border-zinc-950 hover:bg-white focus-visible:border-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950/15"
@@ -295,8 +306,8 @@ export function ReadingForm({
                       </DialogTitle>
                       <DialogDescription>
                         Upload a CSV file exported from the sensor system. The
-                        sheet should contain one reading per row for the selected
-                        equipment.
+                        sheet should contain one reading per row and can include
+                        readings for multiple equipment.
                       </DialogDescription>
                     </DialogHeader>
                   </div>
@@ -310,8 +321,8 @@ export function ReadingForm({
                         reading was captured, and include the model input measurements:
                         product type, air temperature, process temperature,
                         rotational speed, torque, and tool wear. If asset details
-                        are not in the sheet, AEGIS will use the equipment selected
-                        in the form.
+                        are not in a row, AEGIS will use the fallback equipment
+                        selected in the form.
                       </p>
                     </div>
                     <div className="rounded-lg border border-zinc-200 bg-white p-3">
@@ -373,6 +384,124 @@ export function ReadingForm({
   );
 }
 
+function ManualReadingFields({
+  equipment,
+  onEquipmentChange,
+  rowId,
+  selectedEquipmentId,
+  timestamp,
+}: {
+  equipment: ReadingFormProps["equipment"];
+  onEquipmentChange?: (equipmentId: string) => void;
+  rowId: string;
+  selectedEquipmentId: string;
+  timestamp: string;
+}) {
+  return (
+    <div className="grid min-w-0 gap-4 md:grid-cols-2">
+      <div className="grid min-w-0 gap-2 md:col-span-2">
+        <Label htmlFor={`equipmentId-${rowId}`}>Equipment</Label>
+        <select
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+          defaultValue={selectedEquipmentId}
+          disabled={!equipment.length}
+          id={`equipmentId-${rowId}`}
+          name="equipmentId"
+          onChange={(event) => onEquipmentChange?.(event.currentTarget.value)}
+          required
+        >
+          {!equipment.length ? <option value="">No equipment available</option> : null}
+          {equipment.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.assetTag} - {item.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="grid min-w-0 gap-2">
+        <Label htmlFor={`recordedAt-${rowId}`}>Recorded at</Label>
+        <Input
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          defaultValue={timestamp}
+          id={`recordedAt-${rowId}`}
+          name="recordedAt"
+          required
+          type="datetime-local"
+        />
+      </div>
+      <div className="grid min-w-0 gap-2">
+        <Label htmlFor={`type-${rowId}`}>Product type</Label>
+        <select
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+          defaultValue="M"
+          id={`type-${rowId}`}
+          name="type"
+        >
+          {productTypes.map((type) => (
+            <option key={type} value={type}>
+              Type {type}
+            </option>
+          ))}
+        </select>
+      </div>
+      <NumberField
+        label="Air temperature (K)"
+        name="airTemperatureKelvin"
+        required
+        rowId={rowId}
+        step="0.01"
+      />
+      <NumberField
+        label="Process temperature (K)"
+        name="processTemperatureKelvin"
+        required
+        rowId={rowId}
+        step="0.01"
+      />
+      <NumberField
+        label="Rotational speed (rpm)"
+        name="rotationalSpeedRpm"
+        required
+        rowId={rowId}
+        step="1"
+      />
+      <NumberField
+        label="Torque (Nm)"
+        name="torqueNm"
+        required
+        rowId={rowId}
+        step="0.01"
+      />
+      <NumberField
+        label="Tool wear (min)"
+        name="toolWearMinutes"
+        required
+        rowId={rowId}
+        step="1"
+      />
+      <NumberField
+        label="Pressure (bar)"
+        name="pressureBar"
+        rowId={rowId}
+        step="0.01"
+      />
+      <NumberField
+        label="Vibration (mm/s)"
+        name="vibrationMmS"
+        rowId={rowId}
+        step="0.01"
+      />
+      <NumberField label="Flow rate (bpd)" name="flowRateBpd" rowId={rowId} step="1" />
+      <NumberField
+        label="Operating hours"
+        name="operatingHours"
+        rowId={rowId}
+        step="0.1"
+      />
+    </div>
+  );
+}
+
 function formatReadingResult(
   result:
     | {
@@ -411,19 +540,23 @@ function NumberField({
   label,
   name,
   required = false,
+  rowId,
   step,
 }: {
   label: string;
   name: string;
   required?: boolean;
+  rowId?: string;
   step: string;
 }) {
+  const inputId = rowId ? `${name}-${rowId}` : name;
+
   return (
     <div className="grid min-w-0 gap-2">
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={inputId}>{label}</Label>
       <Input
         className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
-        id={name}
+        id={inputId}
         name={name}
         required={required}
         step={step}

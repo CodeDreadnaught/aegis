@@ -31,6 +31,32 @@ export type OperationalReadingInput = z.infer<
   typeof operationalReadingSchema
 >;
 
+type OperationalReadingRowsFormData = {
+  getAll(name: string): unknown[];
+};
+
+export function parseOperationalReadingRows(formData: OperationalReadingRowsFormData) {
+  const equipmentIds = formData.getAll("equipmentId");
+
+  return equipmentIds.map((_, index) =>
+    operationalReadingSchema.parse({
+      equipmentId: formData.getAll("equipmentId")[index],
+      recordedAt: formData.getAll("recordedAt")[index],
+      sourceType: "MANUAL_ENTRY",
+      type: formData.getAll("type")[index],
+      airTemperatureKelvin: formData.getAll("airTemperatureKelvin")[index],
+      processTemperatureKelvin: formData.getAll("processTemperatureKelvin")[index],
+      rotationalSpeedRpm: formData.getAll("rotationalSpeedRpm")[index],
+      torqueNm: formData.getAll("torqueNm")[index],
+      toolWearMinutes: formData.getAll("toolWearMinutes")[index],
+      pressureBar: formData.getAll("pressureBar")[index],
+      vibrationMmS: formData.getAll("vibrationMmS")[index],
+      flowRateBpd: formData.getAll("flowRateBpd")[index],
+      operatingHours: formData.getAll("operatingHours")[index],
+    })
+  );
+}
+
 export function buildReadingParameters(input: OperationalReadingInput) {
   return {
     type: input.type,
