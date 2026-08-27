@@ -91,10 +91,10 @@ export function EquipmentForm({
 
   return (
     <Card className="premium-panel">
-      <CardHeader>
+      <CardHeader className="px-4 sm:px-6">
         <CardTitle>{equipment ? "Edit Equipment" : "Register Equipment"}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <form action={action} className="grid gap-5">
           {isCreateMode ? (
             <div className="grid gap-2">

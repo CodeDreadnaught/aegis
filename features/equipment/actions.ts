@@ -435,7 +435,7 @@ async function parseEquipmentImport(formData: FormData) {
       equipment,
       initialReading:
         hasInitialReadingValues(row) && hasCompleteInitialReadingValues(row)
-        ? parseInitialReadingCsvRow(row, rowNumber, "SENSOR_IMPORT")
+          ? safeParseInitialReadingCsvRow(row, rowNumber, "SENSOR_IMPORT")
         : undefined,
     };
   });
@@ -488,6 +488,18 @@ function parseInitialReadingCsvRow(
     throw new Error(`Row ${rowNumber} contains invalid initial reading values.`, {
       cause: error,
     });
+  }
+}
+
+function safeParseInitialReadingCsvRow(
+  row: Record<string, string>,
+  rowNumber: number,
+  sourceType: "MANUAL_ENTRY" | "SENSOR_IMPORT"
+) {
+  try {
+    return parseInitialReadingCsvRow(row, rowNumber, sourceType);
+  } catch {
+    return undefined;
   }
 }
 

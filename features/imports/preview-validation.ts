@@ -26,18 +26,6 @@ export function validateEquipmentImportRow(row: Record<string, string>) {
     errors.push(...formatZodIssues(error, "equipment"));
   }
 
-  if (hasInitialReadingValues(row)) {
-    if (hasCompleteInitialReadingValues(row)) {
-      errors.push(...validateInitialReadingRow(row));
-    } else {
-      errors.push(
-        `Initial reading is incomplete. Provide ${initialReadingRequiredLabels.join(
-          ", "
-        )}, or leave all initial-reading columns blank for equipment-only import.`
-      );
-    }
-  }
-
   return errors;
 }
 
@@ -109,13 +97,17 @@ export function normaliseEnumCell(value: string | undefined) {
 
 function formatZodIssues(error: unknown, label: string) {
   if (error instanceof z.ZodError) {
-    return Array.from(new Set(error.issues.map((issue) => {
-      const field = issue.path.join(".");
+    return Array.from(
+      new Set(
+        error.issues.map((issue) => {
+          const field = issue.path.join(".");
 
-      return field
-        ? `${label} ${field}: ${issue.message}`
-        : `${label}: ${issue.message}`;
-    })));
+          return field
+            ? `${label} ${field}: ${issue.message}`
+            : `${label}: ${issue.message}`;
+        })
+      )
+    );
   }
 
   return [`Invalid ${label} values.`];
@@ -128,15 +120,6 @@ const initialReadingRequiredFields = [
   "rotationalSpeedRpm",
   "torqueNm",
   "toolWearMinutes",
-];
-
-const initialReadingRequiredLabels = [
-  "product type",
-  "air temperature",
-  "process temperature",
-  "rotational speed",
-  "torque",
-  "tool wear",
 ];
 
 const initialReadingFields = [

@@ -126,7 +126,7 @@ describe("spreadsheet imports", () => {
     ).toEqual([]);
   });
 
-  it("reports one clear issue for incomplete optional initial readings", () => {
+  it("does not block asset import for incomplete optional initial readings", () => {
     expect(
       validateEquipmentImportRow({
         airTemperatureKelvin: "298.15",
@@ -136,11 +136,7 @@ describe("spreadsheet imports", () => {
         name: "Gas Compressor Train B",
         rotationalSpeedRpm: "0",
       })
-    ).toEqual([
-      expect.stringContaining(
-        "Initial reading is incomplete. Provide product type"
-      ),
-    ]);
+    ).toEqual([]);
   });
 
   it("parses the first worksheet from an Excel upload", async () => {

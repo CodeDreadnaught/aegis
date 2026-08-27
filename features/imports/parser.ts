@@ -19,6 +19,7 @@ export type HeaderMatch = {
 
 export type ImportPreview = {
   headers: string[];
+  mappedRowsPreview: Array<Record<string, string>>;
   matches: HeaderMatch[];
   missingRequired: string[];
   rowCount: number;
@@ -88,6 +89,7 @@ export function buildImportPreview(
 
   return {
     headers: sheet.headers,
+    mappedRowsPreview: mappedRows.slice(0, 5),
     matches: resolved.matches,
     missingRequired: resolved.missingRequired,
     rowCount: sheet.rows.length,
