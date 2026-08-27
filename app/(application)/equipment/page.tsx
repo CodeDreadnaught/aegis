@@ -39,6 +39,7 @@ import type {
   EquipmentStatus,
   RiskLevel,
 } from "@/generated/prisma/enums";
+import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -61,7 +62,8 @@ const compactDateFormatter = new Intl.DateTimeFormat("en", {
 export default async function EquipmentPage({
   searchParams,
 }: EquipmentPageProps) {
-  await requirePermission("viewEquipment");
+  const user = await requirePermission("viewEquipment");
+  const canCreateEquipment = can(user.role, "createEquipment");
   const params = await searchParams;
   const query = getParam(params?.q);
   const status = parseStatus(getParam(params?.status));
@@ -145,18 +147,20 @@ export default async function EquipmentPage({
             Asset Fleet
           </h1>
         </div>
-        <div className="hidden lg:block" data-motion="reveal">
-          <Link
-            className={buttonVariants({
-              className:
-                "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
-            })}
-            href="/equipment/new"
-          >
-            <Plus />
-            Register
-          </Link>
-        </div>
+        {canCreateEquipment ? (
+          <div className="hidden lg:block" data-motion="reveal">
+            <Link
+              className={buttonVariants({
+                className:
+                  "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+              })}
+              href="/equipment/new"
+            >
+              <Plus />
+              Register
+            </Link>
+          </div>
+        ) : null}
       </section>
 
       <Card
@@ -215,7 +219,8 @@ export default async function EquipmentPage({
             >
               Apply
             </button>
-            <div className="lg:hidden">
+            {canCreateEquipment ? (
+              <div className="lg:hidden">
               <Link
                 className={buttonVariants({
                   className:
@@ -226,7 +231,8 @@ export default async function EquipmentPage({
                 <Plus />
                 Register
               </Link>
-            </div>
+              </div>
+            ) : null}
             {(query || status || category) && (
               <Link
                 className={buttonVariants({

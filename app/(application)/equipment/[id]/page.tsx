@@ -34,6 +34,7 @@ import {
 import { getEquipmentDetails } from "@/features/equipment/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import type { EquipmentStatus, RiskLevel } from "@/generated/prisma/enums";
+import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 type EquipmentDetailsPageProps = {
@@ -50,7 +51,9 @@ export const metadata: Metadata = {
 export default async function EquipmentDetailsPage({
   params,
 }: EquipmentDetailsPageProps) {
-  await requirePermission("viewEquipment");
+  const user = await requirePermission("viewEquipment");
+  const canUpdateEquipment = can(user.role, "updateEquipment");
+  const canDeleteEquipment = can(user.role, "deleteEquipment");
   const { id } = await params;
   const equipment = await getEquipmentDetails(id);
 
@@ -108,45 +111,51 @@ export default async function EquipmentDetailsPage({
             </span>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row" data-motion="reveal">
-          <Link
-            className={buttonVariants({
-              variant: "outline",
-              className: "h-11 rounded-full border-zinc-200 bg-white px-5",
-            })}
-            href={`/equipment/${equipment.id}/edit`}
-          >
-            <PencilSimple />
-            Edit
-          </Link>
-          <ActionToastForm
-            action={statusAction}
-            errorTitle={
-              isDecommissioned
-                ? "Equipment was not recommissioned"
-                : "Equipment was not decommissioned"
-            }
-            successDescription="The asset status has been updated."
-            successTitle={
-              isDecommissioned
-                ? "Equipment recommissioned"
-                : "Equipment decommissioned"
-            }
-          >
-            <button
-              className={buttonVariants({
-                variant: isDecommissioned ? "outline" : "destructive",
-                className: isDecommissioned
-                  ? "h-11 w-full rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-950 hover:text-white sm:w-fit"
-                  : "h-11 w-full rounded-full px-5 sm:w-fit",
-              })}
-              type="submit"
-            >
-              {isDecommissioned ? <ShieldCheck /> : <ShieldWarning />}
-              {isDecommissioned ? "Recommission" : "Decommission"}
-            </button>
-          </ActionToastForm>
-        </div>
+        {canUpdateEquipment || canDeleteEquipment ? (
+          <div className="flex flex-col gap-2 sm:flex-row" data-motion="reveal">
+            {canUpdateEquipment ? (
+              <Link
+                className={buttonVariants({
+                  variant: "outline",
+                  className: "h-11 rounded-full border-zinc-200 bg-white px-5",
+                })}
+                href={`/equipment/${equipment.id}/edit`}
+              >
+                <PencilSimple />
+                Edit
+              </Link>
+            ) : null}
+            {(isDecommissioned ? canUpdateEquipment : canDeleteEquipment) ? (
+              <ActionToastForm
+                action={statusAction}
+                errorTitle={
+                  isDecommissioned
+                    ? "Equipment was not recommissioned"
+                    : "Equipment was not decommissioned"
+                }
+                successDescription="The asset status has been updated."
+                successTitle={
+                  isDecommissioned
+                    ? "Equipment recommissioned"
+                    : "Equipment decommissioned"
+                }
+              >
+                <button
+                  className={buttonVariants({
+                    variant: isDecommissioned ? "outline" : "destructive",
+                    className: isDecommissioned
+                      ? "h-11 w-full rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-950 hover:text-white sm:w-fit"
+                      : "h-11 w-full rounded-full px-5 sm:w-fit",
+                  })}
+                  type="submit"
+                >
+                  {isDecommissioned ? <ShieldCheck /> : <ShieldWarning />}
+                  {isDecommissioned ? "Recommission" : "Decommission"}
+                </button>
+              </ActionToastForm>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

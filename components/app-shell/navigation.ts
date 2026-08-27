@@ -31,7 +31,12 @@ export const navigationItems: NavigationItem[] = [
   { href: "/operational-data", label: "Operational Data", icon: Database, roles: allRoles },
   { href: "/maintenance", label: "Maintenance", icon: Wrench, roles: allRoles },
   { href: "/analytics", label: "Predictive Analytics", icon: ChartLineUp, roles: allRoles },
-  { href: "/alerts", label: "Alerts", icon: Bell, roles: allRoles },
+  {
+    href: "/alerts",
+    label: "Alerts",
+    icon: Bell,
+    roles: ["ADMINISTRATOR", "MAINTENANCE_ENGINEER"],
+  },
   { href: "/reports", label: "Reports", icon: ClipboardText, roles: allRoles },
   { href: "/users", label: "Users", icon: Users, roles: ["ADMINISTRATOR"] },
   { href: "/audit", label: "Audit", icon: Pulse, roles: ["ADMINISTRATOR"] },

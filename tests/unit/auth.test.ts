@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getNavigationItems } from "@/components/app-shell/navigation";
 import { can } from "@/server/auth/permissions";
 import { loginSchema } from "@/features/auth/validation";
 import { hashSessionToken } from "@/server/auth/tokens";
@@ -14,6 +15,42 @@ describe("AEGIS auth domain", () => {
   it("allows maintenance engineers to record maintenance but not delete equipment", () => {
     expect(can("MAINTENANCE_ENGINEER", "recordMaintenance")).toBe(true);
     expect(can("MAINTENANCE_ENGINEER", "deleteEquipment")).toBe(false);
+  });
+
+  it("keeps administrator-only equipment actions away from non-admin roles", () => {
+    expect(can("ADMINISTRATOR", "createEquipment")).toBe(true);
+    expect(can("ADMINISTRATOR", "updateEquipment")).toBe(true);
+    expect(can("ADMINISTRATOR", "deleteEquipment")).toBe(true);
+    expect(can("MAINTENANCE_ENGINEER", "createEquipment")).toBe(false);
+    expect(can("OPERATIONS_MANAGER", "createEquipment")).toBe(false);
+    expect(can("OPERATIONS_MANAGER", "updateEquipment")).toBe(false);
+  });
+
+  it("hides role-inaccessible navigation entries", () => {
+    const administratorNav = getNavigationItems("ADMINISTRATOR").map(
+      (item) => item.href
+    );
+    const maintenanceNav = getNavigationItems("MAINTENANCE_ENGINEER").map(
+      (item) => item.href
+    );
+    const operationsNav = getNavigationItems("OPERATIONS_MANAGER").map(
+      (item) => item.href
+    );
+
+    expect(administratorNav).toContain("/users");
+    expect(administratorNav).toContain("/audit");
+    expect(administratorNav).toContain("/alerts");
+    expect(maintenanceNav).toContain("/alerts");
+    expect(maintenanceNav).not.toContain("/users");
+    expect(maintenanceNav).not.toContain("/audit");
+    expect(operationsNav).not.toContain("/alerts");
+    expect(operationsNav).not.toContain("/users");
+    expect(operationsNav).not.toContain("/audit");
+  });
+
+  it("allows operations managers to view maintenance but not record it", () => {
+    expect(can("OPERATIONS_MANAGER", "viewMaintenance")).toBe(true);
+    expect(can("OPERATIONS_MANAGER", "recordMaintenance")).toBe(false);
   });
 
   it("normalises valid login input", () => {

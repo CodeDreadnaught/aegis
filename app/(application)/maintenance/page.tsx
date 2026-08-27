@@ -25,6 +25,7 @@ import {
   formatMaintenanceStatus,
   isOverdue,
 } from "@/features/maintenance/validation";
+import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -37,7 +38,8 @@ const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 export default async function MaintenancePage() {
-  await requirePermission("viewMaintenance");
+  const user = await requirePermission("viewMaintenance");
+  const canRecordMaintenance = can(user.role, "recordMaintenance");
   const { equipment, records, totals } = await getMaintenanceWorkspace();
   const now = new Date();
   const activeAssetCount = equipment.length;
@@ -259,12 +261,14 @@ export default async function MaintenancePage() {
         </div>
       </section>
 
-      <section>
-        <MaintenanceForm
-          action={createMaintenanceRecordAction}
-          equipment={equipment}
-        />
-      </section>
+      {canRecordMaintenance ? (
+        <section>
+          <MaintenanceForm
+            action={createMaintenanceRecordAction}
+            equipment={equipment}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }
