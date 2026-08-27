@@ -6,10 +6,8 @@ import { CheckCircle, DownloadSimple, FileCsv, WarningCircle, XCircle } from "@p
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -167,10 +165,10 @@ export function ImportPreviewField({
 
       <Dialog modal="trap-focus" onOpenChange={setOpen} open={open}>
         <DialogContent
-          className="w-[min(calc(100vw-2rem),58rem)] max-w-none gap-0 overflow-hidden rounded-lg border-zinc-200 bg-white p-0 shadow-2xl"
+          className="grid max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-lg border-zinc-200 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:w-[min(calc(100vw-2rem),58rem)]"
           showCloseButton={false}
         >
-          <div className="border-b border-zinc-100 px-5 py-4">
+          <div className="border-b border-zinc-100 px-4 py-3 sm:px-5 sm:py-4">
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold text-zinc-950">
                 Review {definition.title.toLowerCase()}
@@ -181,7 +179,7 @@ export function ImportPreviewField({
             </DialogHeader>
           </div>
 
-          <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-5 py-4">
+          <div className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
             {fileError ? (
               <StatusPanel
                 icon={<XCircle className="size-5" />}
@@ -228,10 +226,10 @@ export function ImportPreviewField({
                 )}
 
                 <div className="rounded-lg border border-zinc-200">
-                  <div className="grid grid-cols-[1fr_1fr] gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 md:grid-cols-[1fr_1fr_1fr]">
+                  <div className="hidden gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                     <span>System field</span>
                     <span>Spreadsheet column</span>
-                    <span className="hidden md:block">Suggestion</span>
+                    <span>Suggestion</span>
                   </div>
                   <div className="divide-y divide-zinc-100">
                     {definition.fields.map((field) => {
@@ -244,10 +242,10 @@ export function ImportPreviewField({
 
                       return (
                         <div
-                          className="grid grid-cols-[1fr_1fr] items-center gap-3 px-4 py-3 md:grid-cols-[1fr_1fr_1fr]"
+                          className="grid min-w-0 gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center"
                           key={field.canonical}
                         >
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-sm font-semibold text-zinc-950">
                               {field.label}
                             </p>
@@ -256,7 +254,8 @@ export function ImportPreviewField({
                             </p>
                           </div>
                           <select
-                            className="h-10 min-w-0 rounded-full border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-950"
+                            aria-label={`Spreadsheet column for ${field.label}`}
+                            className="h-10 w-full min-w-0 rounded-full border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 outline-none focus:border-zinc-950"
                             onChange={(event) =>
                               updateMapping(field.canonical, event.currentTarget.value)
                             }
@@ -269,7 +268,7 @@ export function ImportPreviewField({
                               </option>
                             ))}
                           </select>
-                          <p className="hidden text-sm font-medium text-zinc-500 md:block">
+                          <p className="text-sm font-medium text-zinc-500">
                             {match
                               ? `${match.kind === "manual" ? "Manual" : "Exact"}: ${
                                   match.header
@@ -286,13 +285,26 @@ export function ImportPreviewField({
 
                 {preview.rowErrors.length ? (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                    <p className="text-sm font-semibold text-red-700">
-                      Row validation errors
-                    </p>
-                    <ul className="mt-2 grid gap-1 text-sm text-red-700">
+                    <div className="flex items-start gap-3">
+                      <WarningCircle className="mt-0.5 size-5 shrink-0 text-red-700" />
+                      <div>
+                        <p className="text-sm font-semibold text-red-700">
+                          Some rows need correction before import
+                        </p>
+                        <p className="mt-1 text-sm text-red-700/80">
+                          Fix the rows below in the spreadsheet, then upload the file
+                          again.
+                        </p>
+                      </div>
+                    </div>
+                    <ul className="mt-3 grid gap-2 text-sm text-red-700">
                       {preview.rowErrors.slice(0, 8).map((error) => (
-                        <li key={`${error.rowNumber}-${error.message}`}>
-                          Row {error.rowNumber}: {error.message}
+                        <li
+                          className="rounded-md border border-red-200 bg-white/70 px-3 py-2"
+                          key={`${error.rowNumber}-${error.message}`}
+                        >
+                          <span className="font-semibold">Row {error.rowNumber}</span>
+                          <span className="text-red-700/80"> - {error.message}</span>
                         </li>
                       ))}
                     </ul>
@@ -307,30 +319,32 @@ export function ImportPreviewField({
             ) : null}
           </div>
 
-          <DialogFooter className="border-t border-zinc-100 px-5 py-4">
-            <DialogClose render={<Button variant="outline" />}>
-              Close
-            </DialogClose>
+          <div className="grid gap-2 border-t border-zinc-100 px-4 py-3 sm:flex sm:justify-end sm:px-5 sm:py-4">
             <Button
-              className="rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-50"
+              className="w-full rounded-full sm:w-auto"
+              onClick={() => setOpen(false)}
+              type="button"
+              variant="outline"
+            >
+              Close
+            </Button>
+            <Button
+              className="w-full rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-50 sm:w-auto"
               onClick={() => fileInputRef.current?.click()}
               type="button"
               variant="outline"
             >
               Choose another file
             </Button>
-            <DialogClose
+            <Button
+              className="w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               disabled={!canSubmit}
-              render={
-                <Button
-                  className="rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!canSubmit}
-                />
-              }
+              onClick={() => setOpen(false)}
+              type="button"
             >
               Use this file
-            </DialogClose>
-          </DialogFooter>
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
