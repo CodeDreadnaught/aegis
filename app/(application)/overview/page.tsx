@@ -282,8 +282,8 @@ export default async function OverviewPage({
           </div>
         </section>
 
-        <section className="grid items-stretch gap-4 xl:grid-cols-[1.12fr_0.78fr_0.82fr]">
-          <div className="grid h-full gap-4 xl:grid-rows-[auto_1fr]">
+        <section className="grid items-stretch gap-4 lg:grid-cols-[1.12fr_0.78fr_0.82fr]">
+          <div className="grid h-full gap-4 lg:grid-rows-[auto_1fr]">
             <div className="grid items-start gap-3 sm:grid-cols-2">
               {kpis.map((kpi) => {
                 const Icon = kpi.icon;
@@ -423,7 +423,7 @@ export default async function OverviewPage({
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 xl:grid-rows-[auto_1fr]">
+          <div className="grid gap-4 lg:grid-rows-[auto_1fr]">
             <Card
               className="rounded-[1.35rem] border-zinc-200 bg-[#fff8e6] shadow-sm"
               data-motion="panel"
@@ -452,7 +452,7 @@ export default async function OverviewPage({
               </CardContent>
             </Card>
 
-            <div className="grid xl:h-full">
+            <div className="grid lg:h-full">
               <Card
                 className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
                 data-motion="panel"

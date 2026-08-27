@@ -13,9 +13,36 @@ const liveSyncedEvent = "aegis:overview-synced";
 
 export function OverviewLiveSync({ activeRange }: OverviewLiveSyncProps) {
   const abortRef = useRef<AbortController | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const refresh = async () => {
+    const clearTimer = () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+
+    const scheduleNextRefresh = (snapshot: OverviewLiveSnapshot | null) => {
+      clearTimer();
+
+      if (activeRange !== "1" || document.hidden) {
+        return;
+      }
+
+      const interval = snapshot?.pendingPredictionJobCount ? 5_000 : 120_000;
+
+      timerRef.current = window.setTimeout(() => {
+        void refresh({ schedule: true });
+      }, interval);
+    };
+
+    const refresh = async ({ schedule = false } = {}) => {
+      if (document.hidden) {
+        clearTimer();
+        return;
+      }
+
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -27,6 +54,9 @@ export function OverviewLiveSync({ activeRange }: OverviewLiveSyncProps) {
         });
 
         if (!response.ok) {
+          if (schedule) {
+            scheduleNextRefresh(null);
+          }
           return;
         }
 
@@ -37,9 +67,14 @@ export function OverviewLiveSync({ activeRange }: OverviewLiveSyncProps) {
             detail: { syncedAt: snapshot.syncedAt },
           })
         );
+        scheduleNextRefresh(snapshot);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
+        }
+
+        if (schedule) {
+          scheduleNextRefresh(null);
         }
       }
     };
@@ -47,20 +82,30 @@ export function OverviewLiveSync({ activeRange }: OverviewLiveSyncProps) {
     const onManualRefresh = () => {
       void refresh();
     };
-    const timer =
-      activeRange === "1"
-        ? window.setInterval(() => {
-            void refresh();
-          }, 5_000)
-        : undefined;
+    const onFocus = () => {
+      void refresh({ schedule: true });
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        clearTimer();
+        abortRef.current?.abort();
+        return;
+      }
+
+      void refresh({ schedule: true });
+    };
 
     window.addEventListener(liveRefreshEvent, onManualRefresh);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    void refresh({ schedule: true });
 
     return () => {
-      if (timer) {
-        window.clearInterval(timer);
-      }
+      clearTimer();
       window.removeEventListener(liveRefreshEvent, onManualRefresh);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       abortRef.current?.abort();
     };
   }, [activeRange]);

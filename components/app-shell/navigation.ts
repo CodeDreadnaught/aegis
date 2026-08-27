@@ -38,8 +38,5 @@ export const navigationItems: NavigationItem[] = [
 ];
 
 export function getNavigationItems(role: UserRole) {
-  return navigationItems.map((item) => ({
-    ...item,
-    available: item.roles.includes(role),
-  }));
+  return navigationItems.filter((item) => item.roles.includes(role));
 }

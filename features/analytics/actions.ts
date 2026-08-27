@@ -14,7 +14,9 @@ export async function runPredictionAction(readingId: string) {
 
   revalidatePath("/analytics");
   revalidatePath("/overview");
-  revalidatePath(`/equipment/${prediction.equipmentId}`);
+  if (prediction.equipmentId) {
+    revalidatePath(`/equipment/${prediction.equipmentId}`);
+  }
   revalidatePath("/alerts");
   revalidatePath("/reports");
 }

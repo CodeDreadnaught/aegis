@@ -25,6 +25,7 @@ export async function getOverviewLiveSnapshot(
     maintenanceDueCount,
     activeAlertCount,
     latestPredictions,
+    pendingPredictionJobCount,
     predictionTrend,
     latestReadings,
   ] = await Promise.all([
@@ -49,6 +50,11 @@ export async function getOverviewLiveSnapshot(
             assetTag: true,
           },
         },
+      },
+    }),
+    prisma.predictionJob.count({
+      where: {
+        status: { in: ["PENDING", "PROCESSING"] },
       },
     }),
     prisma.prediction.findMany({
@@ -132,6 +138,7 @@ export async function getOverviewLiveSnapshot(
     healthPath: healthPoints.path,
     maintenanceDueCount,
     modelScore,
+    pendingPredictionJobCount,
     predictionCount: latestPredictions.length,
     predictionCoverage: percentage(predictedAssetCoverage, equipmentCount),
     predictionSampleCount: predictionTrend.length,

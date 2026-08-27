@@ -1,10 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { processPendingPredictionJobs } from "@/features/analytics/prediction-service";
+import {
+  normalisePredictionJobLimit,
+  processPredictionRecoverySweep,
+} from "@/features/analytics/prediction-worker";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const authorised = authoriseWorkerRequest(request);
+
+  if (authorised) {
+    return authorised;
+  }
+
+  const payload = await request.json().catch(() => null);
+  const requestedLimit =
+    payload &&
+    typeof payload === "object" &&
+    "limit" in payload &&
+    typeof payload.limit === "number"
+      ? payload.limit
+      : undefined;
+  const limit = normalisePredictionJobLimit(requestedLimit);
+  const result = await processPredictionRecoverySweep({ limit });
+
+  return NextResponse.json({
+    ...result,
+    limit,
+  });
+}
+
+export async function GET(request: NextRequest) {
+  const authorised = authoriseWorkerRequest(request);
+
+  if (authorised) {
+    return authorised;
+  }
+
+  const requestedLimit = request.nextUrl.searchParams.get("limit");
+  const limit = normalisePredictionJobLimit(
+    requestedLimit ? Number(requestedLimit) : undefined
+  );
+  const result = await processPredictionRecoverySweep({ limit });
+
+  return NextResponse.json({
+    ...result,
+    limit,
+  });
+}
+
+function authoriseWorkerRequest(request: NextRequest) {
   const configuredSecret = process.env.CRON_SECRET;
 
   if (!configuredSecret) {
@@ -20,19 +66,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
   }
 
-  const payload = await request.json().catch(() => null);
-  const requestedLimit =
-    payload &&
-    typeof payload === "object" &&
-    "limit" in payload &&
-    typeof payload.limit === "number"
-      ? payload.limit
-      : 10;
-  const limit = Math.min(50, Math.max(1, Math.floor(requestedLimit)));
-  const result = await processPendingPredictionJobs({ limit });
-
-  return NextResponse.json({
-    ...result,
-    limit,
-  });
+  return null;
 }

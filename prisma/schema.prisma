@@ -166,7 +166,7 @@ model MaintenanceRecord {
 model Prediction {
   id                   String              @id @default(cuid())
   equipmentId          String
-  operationalReadingId String?
+  operationalReadingId String?             @unique
   failureProbability   Decimal             @db.Decimal(6, 5)
   healthScore          Decimal             @db.Decimal(5, 2)
   riskLevel            RiskLevel
@@ -192,12 +192,13 @@ model PredictionJob {
   status               PredictionJobStatus @default(PENDING)
   attempts             Int                 @default(0)
   lastError            String?
+  nextRunAt            DateTime            @default(now())
   processedAt          DateTime?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   operationalReading   OperationalReading  @relation(fields: [operationalReadingId], references: [id], onDelete: Restrict)
 
-  @@index([status, createdAt])
+  @@index([status, nextRunAt, createdAt])
   @@index([processedAt])
 }
 
