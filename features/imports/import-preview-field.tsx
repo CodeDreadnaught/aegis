@@ -165,8 +165,12 @@ export function ImportPreviewField({
 
       <Dialog modal="trap-focus" onOpenChange={setOpen} open={open}>
         <DialogContent
-          className="grid h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] !w-[calc(100vw-1rem)] !max-w-[calc(100vw-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-lg border-zinc-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:!w-[min(calc(100vw-2rem),88rem)] sm:!max-w-[min(calc(100vw-2rem),88rem)]"
+          className="max-h-[calc(100dvh-1rem)] gap-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border-zinc-200 bg-white p-0 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)]"
           showCloseButton={false}
+          style={{
+            maxWidth: "calc(100vw - 1rem)",
+            width: "min(72rem, calc(100vw - 1rem))",
+          }}
         >
           <div className="border-b border-zinc-100 px-4 py-3 sm:px-5 sm:py-4">
             <DialogHeader>
@@ -179,7 +183,7 @@ export function ImportPreviewField({
             </DialogHeader>
           </div>
 
-          <div className="grid min-h-0 min-w-0 touch-pan-y gap-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 [-webkit-overflow-scrolling:touch] sm:px-5">
+          <div className="grid min-w-0 gap-4 px-4 py-4 sm:px-5">
             {fileError ? (
               <StatusPanel
                 icon={<XCircle className="size-5" />}
