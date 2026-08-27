@@ -1,4 +1,5 @@
 export type OverviewLiveSnapshot = {
+  activePredictionJobCount: number;
   activeAlertCount: number;
   activeEquipmentCount: number;
   activeRate: number;
@@ -12,7 +13,6 @@ export type OverviewLiveSnapshot = {
   healthPath: string;
   maintenanceDueCount: number;
   modelScore: number;
-  pendingPredictionJobCount: number;
   predictionCount: number;
   predictionCoverage: number;
   predictionSampleCount: number;

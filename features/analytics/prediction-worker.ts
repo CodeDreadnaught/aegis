@@ -4,7 +4,7 @@ import { prisma } from "@/server/db/client";
 
 const defaultPredictionJobLimit = 10;
 const maxPredictionJobLimit = 50;
-const staleProcessingMinutes = 15;
+const stalePredictionProcessingMinutes = 15;
 
 export function normalisePredictionJobLimit(value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -46,7 +46,7 @@ export async function processPredictionRecoverySweep({
 async function hasEligiblePredictionWork() {
   const now = new Date();
   const staleProcessingCutoff = new Date(
-    now.getTime() - staleProcessingMinutes * 60 * 1000
+    now.getTime() - stalePredictionProcessingMinutes * 60 * 1000
   );
   const [job, readingWithoutJob] = await Promise.all([
     prisma.predictionJob.findFirst({

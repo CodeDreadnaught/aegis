@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/server/db/client";
 
+import { overviewActivePredictionWindowMs } from "./live-polling";
 import type { OverviewLiveSnapshot } from "./live-types";
 import type { OverviewRange } from "./queries";
 
@@ -18,17 +19,35 @@ export async function getOverviewLiveSnapshot(
 ): Promise<OverviewLiveSnapshot> {
   const since = new Date();
   since.setDate(since.getDate() - range);
+  const activePredictionCutoff = new Date(
+    Date.now() - overviewActivePredictionWindowMs
+  );
 
   const [
+    activePredictionJobCount,
     equipmentCount,
     activeEquipmentCount,
     maintenanceDueCount,
     activeAlertCount,
     latestPredictions,
-    pendingPredictionJobCount,
     predictionTrend,
     latestReadings,
   ] = await Promise.all([
+    prisma.predictionJob.count({
+      where: {
+        attempts: { lt: 3 },
+        OR: [
+          {
+            createdAt: { gte: activePredictionCutoff },
+            status: "PENDING",
+          },
+          {
+            status: "PROCESSING",
+            updatedAt: { gte: activePredictionCutoff },
+          },
+        ],
+      },
+    }),
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
     prisma.maintenanceRecord.count({
@@ -50,11 +69,6 @@ export async function getOverviewLiveSnapshot(
             assetTag: true,
           },
         },
-      },
-    }),
-    prisma.predictionJob.count({
-      where: {
-        status: { in: ["PENDING", "PROCESSING"] },
       },
     }),
     prisma.prediction.findMany({
@@ -125,6 +139,7 @@ export async function getOverviewLiveSnapshot(
   );
 
   return {
+    activePredictionJobCount,
     activeAlertCount,
     activeEquipmentCount,
     activeRate: percentage(activeEquipmentCount, equipmentCount),
@@ -138,7 +153,6 @@ export async function getOverviewLiveSnapshot(
     healthPath: healthPoints.path,
     maintenanceDueCount,
     modelScore,
-    pendingPredictionJobCount,
     predictionCount: latestPredictions.length,
     predictionCoverage: percentage(predictedAssetCoverage, equipmentCount),
     predictionSampleCount: predictionTrend.length,

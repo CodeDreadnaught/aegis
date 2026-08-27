@@ -14,9 +14,9 @@ import { prisma } from "@/server/db/client";
 import { runAegisInference } from "@/server/ml/aegis-inference";
 import metadata from "@/models/ai4i/v1/metadata.json";
 
-const maxPredictionJobAttempts = 3;
-const retryBackoffMinutes = [5, 30, 120] as const;
-const staleProcessingMinutes = 15;
+export const maxPredictionJobAttempts = 3;
+export const predictionRetryBackoffMinutes = [5, 30, 120] as const;
+export const stalePredictionProcessingMinutes = 15;
 
 const riskLevelMap = {
   Low: "LOW",
@@ -204,7 +204,9 @@ export async function processPendingPredictionJobs({
         {
           status: "PROCESSING",
           updatedAt: {
-            lte: new Date(Date.now() - staleProcessingMinutes * 60 * 1000),
+            lte: new Date(
+              Date.now() - stalePredictionProcessingMinutes * 60 * 1000
+            ),
           },
         },
       ],
@@ -293,7 +295,9 @@ async function claimPredictionJob(readingId: string) {
         {
           status: "PROCESSING",
           updatedAt: {
-            lte: new Date(Date.now() - staleProcessingMinutes * 60 * 1000),
+            lte: new Date(
+              Date.now() - stalePredictionProcessingMinutes * 60 * 1000
+            ),
           },
         },
       ],
@@ -363,13 +367,7 @@ async function markPredictionJobFailed(readingId: string, error: unknown) {
     },
   });
   const attempts = job?.attempts ?? 0;
-  const backoffIndex = Math.min(
-    Math.max(0, attempts - 1),
-    retryBackoffMinutes.length - 1
-  );
-  const nextRunAt = new Date(
-    Date.now() + retryBackoffMinutes[backoffIndex] * 60 * 1000
-  );
+  const nextRunAt = getNextPredictionRetryAt(attempts);
 
   await prisma.predictionJob.updateMany({
     where: { operationalReadingId: readingId },
@@ -379,4 +377,19 @@ async function markPredictionJobFailed(readingId: string, error: unknown) {
       status: "FAILED",
     },
   });
+}
+
+export function getPredictionRetryDelayMinutes(attempts: number) {
+  const backoffIndex = Math.min(
+    Math.max(0, attempts - 1),
+    predictionRetryBackoffMinutes.length - 1
+  );
+
+  return predictionRetryBackoffMinutes[backoffIndex];
+}
+
+export function getNextPredictionRetryAt(attempts: number, from = new Date()) {
+  return new Date(
+    from.getTime() + getPredictionRetryDelayMinutes(attempts) * 60 * 1000
+  );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { getOverviewPollingInterval } from "./live-polling";
 import type { OverviewLiveSnapshot } from "./live-types";
 
 type OverviewLiveSyncProps = {
@@ -30,7 +31,7 @@ export function OverviewLiveSync({ activeRange }: OverviewLiveSyncProps) {
         return;
       }
 
-      const interval = snapshot?.pendingPredictionJobCount ? 5_000 : 120_000;
+      const interval = getOverviewPollingInterval(snapshot);
 
       timerRef.current = window.setTimeout(() => {
         void refresh({ schedule: true });
