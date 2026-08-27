@@ -50,6 +50,11 @@ export default async function AnalyticsPage() {
   const predictedReadingCount = readings.filter(
     (reading) => reading.predictions.length > 0
   ).length;
+  const pendingJobCount = readings.filter(
+    (reading) =>
+      reading.predictionJob?.status === "PENDING" ||
+      reading.predictionJob?.status === "PROCESSING"
+  ).length;
   const readiness = percentage(predictedReadingCount, readings.length);
   const averageHealth = average(
     predictions.map((prediction) => Number(prediction.healthScore))
@@ -78,7 +83,7 @@ export default async function AnalyticsPage() {
   ).length;
   const kpis = [
     {
-      detail: `${predictedReadingCount} readings scored`,
+      detail: `${pendingJobCount} jobs pending`,
       icon: Brain,
       label: "Inference",
       value: readings.length,
@@ -159,17 +164,20 @@ export default async function AnalyticsPage() {
                   <Table className="w-full table-fixed">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
-                        <TableHead className="w-[28%]">Equipment</TableHead>
+                        <TableHead className="w-[24%]">Equipment</TableHead>
                         <TableHead className="hidden text-center md:table-cell">
                           Recorded
                         </TableHead>
                         <TableHead className="hidden w-[13%] text-center lg:table-cell">
                           Source
                         </TableHead>
-                        <TableHead className="hidden w-[19%] text-center xl:table-cell">
+                        <TableHead className="hidden w-[17%] text-center xl:table-cell">
                           Signal
                         </TableHead>
                         <TableHead className="w-[12%] text-center">Latest</TableHead>
+                        <TableHead className="hidden w-[11%] text-center lg:table-cell">
+                          Job
+                        </TableHead>
                         <TableHead className="w-[9%] text-center">Run</TableHead>
                         <TableHead className="w-[10%] text-center">Action</TableHead>
                       </TableRow>
@@ -231,6 +239,16 @@ export default async function AnalyticsPage() {
                                   Not run
                                 </span>
                               )}
+                            </TableCell>
+                            <TableCell className="hidden text-center lg:table-cell">
+                              <PredictionJobBadge
+                                attempts={reading.predictionJob?.attempts ?? 0}
+                                status={
+                                  latestPrediction
+                                    ? "COMPLETED"
+                                    : reading.predictionJob?.status
+                                }
+                              />
                             </TableCell>
                             <TableCell className="text-center">
                               <ActionToastForm
@@ -581,6 +599,34 @@ function RiskBadge({ riskLevel }: { riskLevel: string }) {
   return (
     <Badge className={`rounded-full ${className}`} variant="outline">
       {formatEquipmentCategory(riskLevel)}
+    </Badge>
+  );
+}
+
+function PredictionJobBadge({
+  attempts,
+  status,
+}: {
+  attempts: number;
+  status?: string;
+}) {
+  if (!status) {
+    return <span className="text-sm text-zinc-400">Not queued</span>;
+  }
+
+  const className =
+    status === "COMPLETED"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : status === "FAILED"
+        ? "border-red-200 bg-red-50 text-red-700"
+        : status === "PROCESSING"
+          ? "border-cyan-200 bg-cyan-50 text-cyan-700"
+          : "border-amber-200 bg-amber-50 text-amber-700";
+
+  return (
+    <Badge className={`rounded-full ${className}`} variant="outline">
+      {formatEquipmentCategory(status)}
+      {status === "FAILED" && attempts ? ` (${attempts})` : ""}
     </Badge>
   );
 }

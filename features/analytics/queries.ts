@@ -32,6 +32,13 @@ export async function getAnalyticsWorkspace() {
             createdAt: true,
           },
         },
+        predictionJob: {
+          select: {
+            attempts: true,
+            lastError: true,
+            status: true,
+          },
+        },
       },
     }),
     prisma.prediction.findMany({

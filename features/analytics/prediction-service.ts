@@ -14,11 +14,27 @@ import { prisma } from "@/server/db/client";
 import { runAegisInference } from "@/server/ml/aegis-inference";
 import metadata from "@/models/ai4i/v1/metadata.json";
 
+const maxPredictionJobAttempts = 3;
+
 const riskLevelMap = {
   Low: "LOW",
   Medium: "MEDIUM",
   High: "HIGH",
 } as const;
+
+export async function enqueuePredictionJobs(readingIds: string[]) {
+  if (!readingIds.length) {
+    return;
+  }
+
+  await prisma.predictionJob.createMany({
+    data: readingIds.map((readingId) => ({
+      operationalReadingId: readingId,
+      status: "PENDING",
+    })),
+    skipDuplicates: true,
+  });
+}
 
 export async function createPredictionForReading({
   actorId,
@@ -27,6 +43,8 @@ export async function createPredictionForReading({
   actorId?: string;
   readingId: string;
 }) {
+  await enqueuePredictionJobs([readingId]);
+
   const existingPrediction = await prisma.prediction.findFirst({
     where: { operationalReadingId: readingId },
     select: {
@@ -36,6 +54,8 @@ export async function createPredictionForReading({
   });
 
   if (existingPrediction) {
+    await markPredictionJobCompleted(readingId);
+
     return {
       created: false,
       equipmentId: existingPrediction.equipmentId,
@@ -55,6 +75,8 @@ export async function createPredictionForReading({
   if (!reading) {
     throw new Error("Operational reading was not found.");
   }
+
+  await markPredictionJobProcessing(readingId);
 
   const { snapshot, vector } = buildAi4iFeatureVector(reading.parameters);
   const { failureProbability } = await runAegisInference(vector);
@@ -125,6 +147,8 @@ export async function createPredictionForReading({
     },
   });
 
+  await markPredictionJobCompleted(readingId);
+
   return {
     created: true,
     equipmentId: prediction.equipmentId,
@@ -139,6 +163,8 @@ export async function createPredictionsForReadings({
   actorId?: string;
   readingIds: string[];
 }) {
+  await enqueuePredictionJobs(readingIds);
+
   const results = {
     created: 0,
     failed: 0,
@@ -156,6 +182,7 @@ export async function createPredictionsForReadings({
       }
     } catch (error) {
       results.failed += 1;
+      await markPredictionJobFailed(readingId, error);
       console.error("AEGIS automated prediction failed", {
         error,
         readingId,
@@ -164,4 +191,114 @@ export async function createPredictionsForReadings({
   }
 
   return results;
+}
+
+export async function processPendingPredictionJobs({
+  actorId,
+  limit = 10,
+}: {
+  actorId?: string;
+  limit?: number;
+} = {}) {
+  await enqueueMissingPredictionJobs(limit);
+
+  const jobs = await prisma.predictionJob.findMany({
+    where: {
+      attempts: { lt: maxPredictionJobAttempts },
+      status: { in: ["PENDING", "FAILED"] },
+    },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: {
+      id: true,
+      operationalReadingId: true,
+    },
+  });
+
+  const results = {
+    completed: 0,
+    failed: 0,
+    skipped: 0,
+    total: jobs.length,
+  };
+
+  for (const job of jobs) {
+    try {
+      const prediction = await createPredictionForReading({
+        actorId,
+        readingId: job.operationalReadingId,
+      });
+
+      if (prediction.created) {
+        results.completed += 1;
+      } else {
+        results.skipped += 1;
+      }
+    } catch (error) {
+      results.failed += 1;
+      await markPredictionJobFailed(job.operationalReadingId, error);
+      console.error("AEGIS prediction job failed", {
+        error,
+        jobId: job.id,
+        readingId: job.operationalReadingId,
+      });
+    }
+  }
+
+  return results;
+}
+
+async function enqueueMissingPredictionJobs(limit: number) {
+  const readings = await prisma.operationalReading.findMany({
+    where: {
+      predictionJob: null,
+      predictions: {
+        none: {},
+      },
+    },
+    orderBy: { recordedAt: "asc" },
+    take: limit,
+    select: {
+      id: true,
+    },
+  });
+
+  await enqueuePredictionJobs(readings.map((reading) => reading.id));
+}
+
+async function markPredictionJobProcessing(readingId: string) {
+  await prisma.predictionJob.updateMany({
+    where: {
+      operationalReadingId: readingId,
+      status: { in: ["PENDING", "FAILED"] },
+    },
+    data: {
+      attempts: { increment: 1 },
+      lastError: null,
+      status: "PROCESSING",
+    },
+  });
+}
+
+async function markPredictionJobCompleted(readingId: string) {
+  await prisma.predictionJob.updateMany({
+    where: { operationalReadingId: readingId },
+    data: {
+      lastError: null,
+      processedAt: new Date(),
+      status: "COMPLETED",
+    },
+  });
+}
+
+async function markPredictionJobFailed(readingId: string, error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown prediction error";
+
+  await prisma.predictionJob.updateMany({
+    where: { operationalReadingId: readingId },
+    data: {
+      lastError: message.slice(0, 2000),
+      status: "FAILED",
+    },
+  });
 }

@@ -64,6 +64,13 @@ enum AlertSeverity {
   CRITICAL
 }
 
+enum PredictionJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id                 String               @id @default(cuid())
   name               String
@@ -131,6 +138,7 @@ model OperationalReading {
   equipment       Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
   createdBy       User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
   predictions     Prediction[]
+  predictionJob   PredictionJob?
 
   @@index([equipmentId, recordedAt])
   @@index([createdById])
@@ -176,6 +184,21 @@ model Prediction {
   @@index([equipmentId, createdAt])
   @@index([riskLevel])
   @@index([modelVersion])
+}
+
+model PredictionJob {
+  id                   String              @id @default(cuid())
+  operationalReadingId String              @unique
+  status               PredictionJobStatus @default(PENDING)
+  attempts             Int                 @default(0)
+  lastError            String?
+  processedAt          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  operationalReading   OperationalReading  @relation(fields: [operationalReadingId], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([processedAt])
 }
 
 model Recommendation {
