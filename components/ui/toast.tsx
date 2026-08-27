@@ -66,7 +66,7 @@ function Toaster() {
 
   return (
     <Toast.Portal>
-      <Toast.Viewport className="fixed top-3 right-3 left-3 z-50 sm:top-5 sm:right-5 sm:left-5 lg:top-8 lg:right-8 lg:left-auto lg:w-[24rem]">
+      <Toast.Viewport className="fixed top-3 right-3 left-3 z-[9999] sm:top-5 sm:right-5 sm:left-5 lg:top-8 lg:right-8 lg:left-auto lg:w-[24rem]">
         {toasts.map((item) => (
           <Toast.Root
             className={cn(

@@ -9,6 +9,7 @@ import {
   buildReadingParameters,
   operationalReadingSchema,
 } from "@/features/operational-readings/validation";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/client";
 import { requirePermission } from "@/server/auth/session";
 
@@ -243,7 +244,7 @@ export async function deleteEquipmentWithDependencies(
     ...maintenanceRecords.map((record) => record.id),
   ];
 
-  await prisma.$transaction([
+  const operations: Prisma.PrismaPromise<unknown>[] = [
     prisma.auditLog.deleteMany({
       where: {
         entityId: {
@@ -251,50 +252,83 @@ export async function deleteEquipmentWithDependencies(
         },
       },
     }),
-    prisma.recommendation.deleteMany({
-      where: {
-        predictionId: {
-          in: predictionIds,
-        },
-      },
-    }),
-    prisma.alert.deleteMany({
-      where: {
-        OR: [
-          { equipmentId: id },
-          {
-            predictionId: {
-              in: predictionIds,
-            },
+  ];
+
+  if (predictionIds.length) {
+    operations.push(
+      prisma.recommendation.deleteMany({
+        where: {
+          predictionId: {
+            in: predictionIds,
           },
-        ],
-      },
-    }),
-    prisma.predictionJob.deleteMany({
-      where: {
-        operationalReadingId: {
-          in: readingIds,
         },
-      },
-    }),
-    prisma.prediction.deleteMany({
-      where: {
-        OR: [
-          { equipmentId: id },
-          {
-            operationalReadingId: {
-              in: readingIds,
+      })
+    );
+  }
+
+  if (alerts.length || predictionIds.length) {
+    operations.push(
+      prisma.alert.deleteMany({
+        where: {
+          OR: [
+            { equipmentId: id },
+            {
+              predictionId: {
+                in: predictionIds,
+              },
             },
+          ],
+        },
+      })
+    );
+  }
+
+  if (readingIds.length) {
+    operations.push(
+      prisma.predictionJob.deleteMany({
+        where: {
+          operationalReadingId: {
+            in: readingIds,
           },
-        ],
-      },
-    }),
-    prisma.operationalReading.deleteMany({
-      where: { equipmentId: id },
-    }),
-    prisma.maintenanceRecord.deleteMany({
-      where: { equipmentId: id },
-    }),
+        },
+      })
+    );
+  }
+
+  if (predictionIds.length || readingIds.length) {
+    operations.push(
+      prisma.prediction.deleteMany({
+        where: {
+          OR: [
+            { equipmentId: id },
+            {
+              operationalReadingId: {
+                in: readingIds,
+              },
+            },
+          ],
+        },
+      })
+    );
+  }
+
+  if (readingIds.length) {
+    operations.push(
+      prisma.operationalReading.deleteMany({
+        where: { equipmentId: id },
+      })
+    );
+  }
+
+  if (maintenanceRecords.length) {
+    operations.push(
+      prisma.maintenanceRecord.deleteMany({
+        where: { equipmentId: id },
+      })
+    );
+  }
+
+  operations.push(
     prisma.equipment.delete({
       where: { id },
     }),
@@ -309,8 +343,10 @@ export async function deleteEquipmentWithDependencies(
           name: equipment.name,
         },
       },
-    }),
-  ]);
+    })
+  );
+
+  await prisma.$transaction(operations);
 }
 
 async function parseEquipmentImport(formData: FormData) {
