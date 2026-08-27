@@ -3,6 +3,17 @@
 import { revalidatePath } from "next/cache";
 
 import { createPredictionsForReadings } from "@/features/analytics/prediction-service";
+import { importDefinitions } from "@/features/imports/definitions";
+import {
+  buildImportPreview,
+  mapImportRows,
+  parseImportFile,
+  parseImportMapping,
+  resolveImportMapping,
+} from "@/features/imports/parser";
+import {
+  validateOperationalReadingImportRow,
+} from "@/features/imports/preview-validation";
 import {
   buildReadingParameters,
   operationalReadingSchema,
@@ -126,24 +137,50 @@ async function parseSensorImport(formData: FormData) {
       ? formData.get("equipmentId")?.toString().trim()
       : undefined;
 
-  if (!file || typeof file !== "object" || !("text" in file)) {
-    throw new Error("Upload a CSV sensor import sheet.");
+  if (!file || typeof file !== "object" || !("arrayBuffer" in file)) {
+    throw new Error("Upload a CSV or Excel sensor import sheet.");
   }
 
   const sensorFile = file as File;
 
   if (!sensorFile.size) {
-    throw new Error("Upload a CSV sensor import sheet.");
+    throw new Error("Upload a CSV or Excel sensor import sheet.");
   }
 
-  const rows = parseCsv(await sensorFile.text());
+  const definition = importDefinitions.operationalReadings;
+  const sheet = await parseImportFile(sensorFile);
+  const mappings = parseImportMapping(formData.get("sensorImportFileMappings"));
+  const resolvedMapping = resolveImportMapping(
+    definition,
+    sheet.headers,
+    mappings
+  );
+  const preview = buildImportPreview(
+    definition,
+    sheet,
+    mappings,
+    validateOperationalReadingImportRow
+  );
 
-  if (!rows.length) {
+  if (!sheet.rows.length) {
     throw new Error("The uploaded sensor sheet does not contain readings.");
   }
 
+  if (resolvedMapping.missingRequired.length) {
+    throw new Error(
+      `Map required columns before importing: ${resolvedMapping.missingRequired.join(
+        ", "
+      )}.`
+    );
+  }
+
+  if (preview.rowErrors.length) {
+    throw new Error(formatImportRowErrors(preview.rowErrors));
+  }
+
+  const rows = mapImportRows(sheet.rows, resolvedMapping.mapping);
   const assetTags = rows
-    .map((row) => getCell(row, "assetTag", "asset_tag", "equipmentAssetTag"))
+    .map((row) => row.assetTag?.trim())
     .filter((value): value is string => Boolean(value));
   const equipmentRecords = assetTags.length
     ? await prisma.equipment.findMany({
@@ -165,10 +202,8 @@ async function parseSensorImport(formData: FormData) {
   return rows.map((row, index) => {
     const rowNumber = index + 2;
     const equipmentId =
-      getCell(row, "equipmentId", "equipment_id") ??
-      equipmentByAssetTag.get(
-        getCell(row, "assetTag", "asset_tag", "equipmentAssetTag") ?? ""
-      ) ??
+      row.equipmentId?.trim() ??
+      equipmentByAssetTag.get(row.assetTag?.trim() ?? "") ??
       selectedEquipmentId;
 
     if (!equipmentId) {
@@ -180,32 +215,18 @@ async function parseSensorImport(formData: FormData) {
     try {
       return operationalReadingSchema.parse({
         equipmentId,
-        recordedAt: getCell(row, "recordedAt", "recorded_at", "timestamp"),
+        recordedAt: row.recordedAt,
         sourceType: "SENSOR_IMPORT",
-        type: getCell(row, "type", "productType", "product_type") ?? "M",
-        airTemperatureKelvin: getCell(
-          row,
-          "airTemperatureKelvin",
-          "air_temperature_k",
-          "air_temperature_kelvin"
-        ),
-        processTemperatureKelvin: getCell(
-          row,
-          "processTemperatureKelvin",
-          "process_temperature_k",
-          "process_temperature_kelvin"
-        ),
-        rotationalSpeedRpm: getCell(
-          row,
-          "rotationalSpeedRpm",
-          "rotational_speed_rpm"
-        ),
-        torqueNm: getCell(row, "torqueNm", "torque_nm"),
-        toolWearMinutes: getCell(row, "toolWearMinutes", "tool_wear_minutes"),
-        pressureBar: getCell(row, "pressureBar", "pressure_bar"),
-        vibrationMmS: getCell(row, "vibrationMmS", "vibration_mm_s"),
-        flowRateBpd: getCell(row, "flowRateBpd", "flow_rate_bpd"),
-        operatingHours: getCell(row, "operatingHours", "operating_hours"),
+        type: row.type || "M",
+        airTemperatureKelvin: row.airTemperatureKelvin,
+        processTemperatureKelvin: row.processTemperatureKelvin,
+        rotationalSpeedRpm: row.rotationalSpeedRpm,
+        torqueNm: row.torqueNm,
+        toolWearMinutes: row.toolWearMinutes,
+        pressureBar: row.pressureBar,
+        vibrationMmS: row.vibrationMmS,
+        flowRateBpd: row.flowRateBpd,
+        operatingHours: row.operatingHours,
       });
     } catch (error) {
       throw new Error(`Row ${rowNumber} contains invalid reading values.`, {
@@ -215,74 +236,14 @@ async function parseSensorImport(formData: FormData) {
   });
 }
 
-function parseCsv(csv: string) {
-  const lines = csv
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0);
-  const [headerLine, ...dataLines] = lines;
+function formatImportRowErrors(
+  errors: Array<{ message: string; rowNumber: number }>
+) {
+  const visibleErrors = errors
+    .slice(0, 5)
+    .map((error) => `Row ${error.rowNumber}: ${error.message}`)
+    .join(" ");
+  const remaining = errors.length > 5 ? ` ${errors.length - 5} more errors.` : "";
 
-  if (!headerLine) {
-    return [];
-  }
-
-  const headers = splitCsvLine(headerLine).map(normaliseHeader);
-
-  return dataLines.map((line) => {
-    const values = splitCsvLine(line);
-
-    return Object.fromEntries(
-      headers.map((header, index) => [header, values[index]?.trim() ?? ""])
-    );
-  });
-}
-
-function splitCsvLine(line: string) {
-  const values: string[] = [];
-  let current = "";
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    const nextCharacter = line[index + 1];
-
-    if (character === '"' && quoted && nextCharacter === '"') {
-      current += '"';
-      index += 1;
-      continue;
-    }
-
-    if (character === '"') {
-      quoted = !quoted;
-      continue;
-    }
-
-    if (character === "," && !quoted) {
-      values.push(current);
-      current = "";
-      continue;
-    }
-
-    current += character;
-  }
-
-  values.push(current);
-
-  return values;
-}
-
-function getCell(row: Record<string, string>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[normaliseHeader(key)];
-
-    if (value?.trim()) {
-      return value.trim();
-    }
-  }
-
-  return undefined;
-}
-
-function normaliseHeader(header: string) {
-  return header.trim().replace(/[\s_-]+/g, "").toLowerCase();
+  return `${visibleErrors}${remaining}`;
 }

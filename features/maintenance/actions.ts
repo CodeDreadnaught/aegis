@@ -2,6 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
+import { importDefinitions } from "@/features/imports/definitions";
+import {
+  buildImportPreview,
+  mapImportRows,
+  parseImportFile,
+  parseImportMapping,
+  resolveImportMapping,
+} from "@/features/imports/parser";
+import {
+  normaliseEnumCell,
+  validateMaintenanceImportRow,
+} from "@/features/imports/preview-validation";
 import { maintenanceRecordSchema } from "@/features/maintenance/validation";
 import { requirePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db/client";
@@ -95,24 +107,52 @@ export async function createMaintenanceRecordAction(formData: FormData) {
 async function parseMaintenanceImport(formData: FormData) {
   const file = formData.get("maintenanceImportFile");
 
-  if (!file || typeof file !== "object" || !("text" in file)) {
-    throw new Error("Upload a CSV maintenance import sheet.");
+  if (!file || typeof file !== "object" || !("arrayBuffer" in file)) {
+    throw new Error("Upload a CSV or Excel maintenance import sheet.");
   }
 
   const maintenanceFile = file as File;
 
   if (!maintenanceFile.size) {
-    throw new Error("Upload a CSV maintenance import sheet.");
+    throw new Error("Upload a CSV or Excel maintenance import sheet.");
   }
 
-  const rows = parseCsv(await maintenanceFile.text());
+  const definition = importDefinitions.maintenance;
+  const sheet = await parseImportFile(maintenanceFile);
+  const mappings = parseImportMapping(
+    formData.get("maintenanceImportFileMappings")
+  );
+  const resolvedMapping = resolveImportMapping(
+    definition,
+    sheet.headers,
+    mappings
+  );
+  const preview = buildImportPreview(
+    definition,
+    sheet,
+    mappings,
+    validateMaintenanceImportRow
+  );
 
-  if (!rows.length) {
+  if (!sheet.rows.length) {
     throw new Error("The uploaded maintenance sheet does not contain records.");
   }
 
+  if (resolvedMapping.missingRequired.length) {
+    throw new Error(
+      `Map required columns before importing: ${resolvedMapping.missingRequired.join(
+        ", "
+      )}.`
+    );
+  }
+
+  if (preview.rowErrors.length) {
+    throw new Error(formatImportRowErrors(preview.rowErrors));
+  }
+
+  const rows = mapImportRows(sheet.rows, resolvedMapping.mapping);
   const assetTags = rows
-    .map((row) => getCell(row, "assetTag", "asset_tag", "equipmentAssetTag"))
+    .map((row) => row.assetTag?.trim())
     .filter((value): value is string => Boolean(value));
   const equipmentRecords = assetTags.length
     ? await prisma.equipment.findMany({
@@ -134,10 +174,8 @@ async function parseMaintenanceImport(formData: FormData) {
   return rows.map((row, index) => {
     const rowNumber = index + 2;
     const equipmentId =
-      getCell(row, "equipmentId", "equipment_id") ??
-      equipmentByAssetTag.get(
-        getCell(row, "assetTag", "asset_tag", "equipmentAssetTag") ?? ""
-      );
+      row.equipmentId?.trim() ??
+      equipmentByAssetTag.get(row.assetTag?.trim() ?? "");
 
     if (!equipmentId) {
       throw new Error(
@@ -148,13 +186,11 @@ async function parseMaintenanceImport(formData: FormData) {
     try {
       return maintenanceRecordSchema.parse({
         equipmentId,
-        type: getCell(row, "type", "maintenanceType", "workType"),
-        description: getCell(row, "description", "notes", "workNotes"),
-        performedAt: getCell(row, "performedAt", "performed_at", "date"),
-        nextDueDate: getCell(row, "nextDueDate", "next_due_date", "dueDate"),
-        status:
-          normaliseEnumCell(getCell(row, "status", "maintenanceStatus")) ??
-          "COMPLETED",
+        type: row.type,
+        description: row.description,
+        performedAt: row.performedAt,
+        nextDueDate: row.nextDueDate,
+        status: normaliseEnumCell(row.status) ?? "COMPLETED",
       });
     } catch (error) {
       throw new Error(`Row ${rowNumber} contains invalid maintenance values.`, {
@@ -164,78 +200,14 @@ async function parseMaintenanceImport(formData: FormData) {
   });
 }
 
-function parseCsv(csv: string) {
-  const lines = csv
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0);
-  const [headerLine, ...dataLines] = lines;
+function formatImportRowErrors(
+  errors: Array<{ message: string; rowNumber: number }>
+) {
+  const visibleErrors = errors
+    .slice(0, 5)
+    .map((error) => `Row ${error.rowNumber}: ${error.message}`)
+    .join(" ");
+  const remaining = errors.length > 5 ? ` ${errors.length - 5} more errors.` : "";
 
-  if (!headerLine) {
-    return [];
-  }
-
-  const headers = splitCsvLine(headerLine).map(normaliseHeader);
-
-  return dataLines.map((line) => {
-    const values = splitCsvLine(line);
-
-    return Object.fromEntries(
-      headers.map((header, index) => [header, values[index]?.trim() ?? ""])
-    );
-  });
-}
-
-function splitCsvLine(line: string) {
-  const values: string[] = [];
-  let current = "";
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    const nextCharacter = line[index + 1];
-
-    if (character === '"' && quoted && nextCharacter === '"') {
-      current += '"';
-      index += 1;
-      continue;
-    }
-
-    if (character === '"') {
-      quoted = !quoted;
-      continue;
-    }
-
-    if (character === "," && !quoted) {
-      values.push(current);
-      current = "";
-      continue;
-    }
-
-    current += character;
-  }
-
-  values.push(current);
-
-  return values;
-}
-
-function getCell(row: Record<string, string>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[normaliseHeader(key)];
-
-    if (value?.trim()) {
-      return value.trim();
-    }
-  }
-
-  return undefined;
-}
-
-function normaliseHeader(header: string) {
-  return header.trim().replace(/[\s_-]+/g, "").toLowerCase();
-}
-
-function normaliseEnumCell(value: string | undefined) {
-  return value?.trim().replace(/[\s-]+/g, "_").toUpperCase();
+  return `${visibleErrors}${remaining}`;
 }

@@ -1,31 +1,21 @@
 "use client";
 
 import {
-  useEffect,
   useRef,
   useState,
   useTransition,
   type FormEvent,
 } from "react";
+import dynamic from "next/dynamic";
 import {
   Plus,
   SpinnerGap,
   Trash,
-  UploadSimple,
   Wrench,
 } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +25,12 @@ import {
 } from "@/features/maintenance/validation";
 import { getActionErrorMessage } from "@/lib/action-error";
 import { toast } from "@/components/ui/toast";
+
+const ImportPreviewField = dynamic(() =>
+  import("@/features/imports/import-preview-field").then(
+    (module) => module.ImportPreviewField
+  )
+);
 
 type MaintenanceFormProps = {
   action: (formData: FormData) => Promise<{ count: number } | void>;
@@ -51,38 +47,13 @@ type ManualRow = {
 
 export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [entryMode, setEntryMode] = useState<"manual" | "sheet">("manual");
   const [manualRows, setManualRows] = useState<ManualRow[]>([
     { id: "maintenance-row-1" },
   ]);
-  const [importPromptOpen, setImportPromptOpen] = useState(false);
-  const [selectedImportFileName, setSelectedImportFileName] = useState("");
   const [pending, startTransition] = useTransition();
   const today = new Date().toISOString().slice(0, 10);
   const isSheetMode = entryMode === "sheet";
-
-  useEffect(() => {
-    if (!importPromptOpen) {
-      return;
-    }
-
-    const html = document.documentElement;
-    const body = document.body;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousHtmlScrollbarGutter = html.style.scrollbarGutter;
-    const previousBodyOverflow = body.style.overflow;
-
-    html.style.overflow = "hidden";
-    html.style.scrollbarGutter = "auto";
-    body.style.overflow = "hidden";
-
-    return () => {
-      html.style.overflow = previousHtmlOverflow;
-      html.style.scrollbarGutter = previousHtmlScrollbarGutter;
-      body.style.overflow = previousBodyOverflow;
-    };
-  }, [importPromptOpen]);
 
   function addManualRow() {
     setManualRows((rows) => [
@@ -107,8 +78,6 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
         formRef.current?.reset();
         setEntryMode("manual");
         setManualRows([{ id: "maintenance-row-1" }]);
-        setImportPromptOpen(false);
-        setSelectedImportFileName("");
         toast.success({
           title: isSheetMode ? "Maintenance imported" : "Maintenance saved",
           description:
@@ -150,11 +119,6 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
                   | "manual"
                   | "sheet";
                 setEntryMode(nextMode);
-                setImportPromptOpen(false);
-                setSelectedImportFileName("");
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = "";
-                }
               }}
               value={entryMode}
             >
@@ -164,14 +128,7 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
           </div>
 
           {isSheetMode ? (
-            <MaintenanceImportField
-              fileInputRef={fileInputRef}
-              importPromptOpen={importPromptOpen}
-              pending={pending}
-              selectedImportFileName={selectedImportFileName}
-              setImportPromptOpen={setImportPromptOpen}
-              setSelectedImportFileName={setSelectedImportFileName}
-            />
+            <ImportPreviewField disabled={pending} kind="maintenance" />
           ) : (
             <div className="grid gap-3">
               <div className="flex items-center justify-between gap-3">
@@ -243,119 +200,6 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
         </form>
       </CardContent>
     </Card>
-  );
-}
-
-function MaintenanceImportField({
-  fileInputRef,
-  importPromptOpen,
-  pending,
-  selectedImportFileName,
-  setImportPromptOpen,
-  setSelectedImportFileName,
-}: {
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  importPromptOpen: boolean;
-  pending: boolean;
-  selectedImportFileName: string;
-  setImportPromptOpen: (open: boolean) => void;
-  setSelectedImportFileName: (fileName: string) => void;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor="maintenanceImportFile">Maintenance import sheet</Label>
-      <button
-        className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center transition-colors hover:border-zinc-950 hover:bg-white focus-visible:border-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950/15 disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={pending}
-        onClick={() => setImportPromptOpen(true)}
-        type="button"
-      >
-        <UploadSimple className="size-6 text-zinc-500" />
-        <span className="text-sm font-semibold text-zinc-950">
-          Upload CSV maintenance records
-        </span>
-        <span className="text-xs text-zinc-500">
-          Attach a CSV file with maintenance records for one or more equipment.
-        </span>
-        {selectedImportFileName ? (
-          <span className="max-w-full truncate rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700">
-            {selectedImportFileName}
-          </span>
-        ) : null}
-      </button>
-      <Input
-        accept=".csv,text/csv"
-        className="sr-only"
-        id="maintenanceImportFile"
-        name="maintenanceImportFile"
-        onChange={(event) =>
-          setSelectedImportFileName(event.currentTarget.files?.[0]?.name ?? "")
-        }
-        ref={fileInputRef}
-        required
-        type="file"
-      />
-      <Dialog
-        modal="trap-focus"
-        onOpenChange={setImportPromptOpen}
-        open={importPromptOpen}
-      >
-        <DialogContent
-          className="w-[min(calc(100vw-2rem),30rem)] max-w-none gap-0 rounded-lg border-zinc-200 bg-white p-0 shadow-2xl"
-          showCloseButton={false}
-        >
-          <div className="border-b border-zinc-100 px-5 py-4">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold text-zinc-950">
-                Maintenance import sheet
-              </DialogTitle>
-              <DialogDescription>
-                Upload a CSV file containing one maintenance record per row.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-          <div className="grid gap-3 px-5 py-4">
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-              <p className="text-sm font-semibold text-zinc-950">
-                Required maintenance data
-              </p>
-              <p className="mt-2 text-sm leading-5 text-zinc-600">
-                Each row should identify the equipment using equipmentId or
-                assetTag, then include maintenance type, status, performed date,
-                and work notes.
-              </p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 bg-white p-3">
-              <p className="text-sm font-semibold text-zinc-950">
-                Supported file type
-              </p>
-              <p className="mt-2 text-sm leading-5 text-zinc-600">
-                Use a comma-separated CSV file. Include next due date when the
-                work creates a follow-up schedule.
-              </p>
-            </div>
-          </div>
-          <DialogFooter className="border-t border-zinc-100 px-5 py-4">
-            <DialogClose render={<Button variant="outline" />}>
-              Cancel
-            </DialogClose>
-            <Button
-              className="rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800"
-              onClick={() => {
-                setImportPromptOpen(false);
-                window.requestAnimationFrame(() => {
-                  fileInputRef.current?.click();
-                });
-              }}
-              type="button"
-            >
-              <UploadSimple />
-              Upload CSV
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
   );
 }
 

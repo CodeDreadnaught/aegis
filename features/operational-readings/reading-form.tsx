@@ -1,18 +1,17 @@
 "use client";
 
 import {
-  useEffect,
   useRef,
   useState,
   useTransition,
   type FormEvent,
 } from "react";
+import dynamic from "next/dynamic";
 import {
   Database,
   Plus,
   SpinnerGap,
   Trash,
-  UploadSimple,
 } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
@@ -22,15 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,6 +30,12 @@ import {
 } from "@/features/operational-readings/validation";
 import { getActionErrorMessage } from "@/lib/action-error";
 import { toast } from "@/components/ui/toast";
+
+const ImportPreviewField = dynamic(() =>
+  import("@/features/imports/import-preview-field").then(
+    (module) => module.ImportPreviewField
+  )
+);
 
 type ReadingFormProps = {
   action: (formData: FormData) => Promise<{
@@ -70,38 +66,13 @@ export function ReadingForm({
   selectedEquipmentId = equipment[0]?.id ?? "",
 }: ReadingFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sourceType, setSourceType] = useState("MANUAL_ENTRY");
   const [manualRows, setManualRows] = useState<ManualReadingRow[]>([
     { id: "reading-row-1" },
   ]);
-  const [importPromptOpen, setImportPromptOpen] = useState(false);
-  const [selectedImportFileName, setSelectedImportFileName] = useState("");
   const [pending, startTransition] = useTransition();
   const now = new Date().toISOString().slice(0, 16);
   const isSensorImport = sourceType === "SENSOR_IMPORT";
-
-  useEffect(() => {
-    if (!importPromptOpen) {
-      return;
-    }
-
-    const html = document.documentElement;
-    const body = document.body;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousHtmlScrollbarGutter = html.style.scrollbarGutter;
-    const previousBodyOverflow = body.style.overflow;
-
-    html.style.overflow = "hidden";
-    html.style.scrollbarGutter = "auto";
-    body.style.overflow = "hidden";
-
-    return () => {
-      html.style.overflow = previousHtmlOverflow;
-      html.style.scrollbarGutter = previousHtmlScrollbarGutter;
-      body.style.overflow = previousBodyOverflow;
-    };
-  }, [importPromptOpen]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -113,8 +84,6 @@ export function ReadingForm({
         formRef.current?.reset();
         setSourceType("MANUAL_ENTRY");
         setManualRows([{ id: `reading-row-${Date.now()}` }]);
-        setImportPromptOpen(false);
-        setSelectedImportFileName("");
         toast.success({
           title: isSensorImport ? "Readings imported" : "Readings saved",
           description: formatReadingResult(result, isSensorImport),
@@ -167,11 +136,6 @@ export function ReadingForm({
               name="sourceType"
               onChange={(event) => {
                 setSourceType(event.currentTarget.value);
-                setImportPromptOpen(false);
-                setSelectedImportFileName("");
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = "";
-                }
               }}
               value={sourceType}
             >
@@ -257,105 +221,10 @@ export function ReadingForm({
                   ))}
                 </select>
               </div>
-              <Label htmlFor="sensorImportFile">Sensor import sheet</Label>
-              <button
-                className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center transition-colors hover:border-zinc-950 hover:bg-white focus-visible:border-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950/15"
-                onClick={() => setImportPromptOpen(true)}
-                type="button"
-              >
-                <UploadSimple className="size-6 text-zinc-500" />
-                <span className="text-sm font-semibold text-zinc-950">
-                  Upload CSV readings
-                </span>
-                <span className="text-xs text-zinc-500">
-                  Attach a CSV file exported from the sensor system.
-                </span>
-                {selectedImportFileName ? (
-                  <span className="max-w-full truncate rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700">
-                    {selectedImportFileName}
-                  </span>
-                ) : null}
-              </button>
-              <Input
-                accept=".csv,text/csv"
-                className="sr-only"
-                id="sensorImportFile"
-                name="sensorImportFile"
-                onChange={(event) =>
-                  setSelectedImportFileName(
-                    event.currentTarget.files?.[0]?.name ?? "",
-                  )
-                }
-                ref={fileInputRef}
-                required={isSensorImport}
-                type="file"
+              <ImportPreviewField
+                disabled={pending}
+                kind="operationalReadings"
               />
-              <Dialog
-                modal="trap-focus"
-                onOpenChange={setImportPromptOpen}
-                open={importPromptOpen}
-              >
-                <DialogContent
-                  className="w-[min(calc(100vw-2rem),30rem)] max-w-none gap-0 rounded-lg border-zinc-200 bg-white p-0 shadow-2xl"
-                  showCloseButton={false}
-                >
-                  <div className="border-b border-zinc-100 px-5 py-4">
-                    <DialogHeader>
-                      <DialogTitle className="text-lg font-semibold text-zinc-950">
-                        Sensor import sheet
-                      </DialogTitle>
-                      <DialogDescription>
-                        Upload a CSV file exported from the sensor system. The
-                        sheet should contain one reading per row and can include
-                        readings for multiple equipment.
-                      </DialogDescription>
-                    </DialogHeader>
-                  </div>
-                  <div className="grid gap-3 px-5 py-4">
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                      <p className="text-sm font-semibold text-zinc-950">
-                        Required reading data
-                      </p>
-                      <p className="mt-2 text-sm leading-5 text-zinc-600">
-                        Each row should identify the asset, show when the
-                        reading was captured, and include the model input measurements:
-                        product type, air temperature, process temperature,
-                        rotational speed, torque, and tool wear. If asset details
-                        are not in a row, AEGIS will use the fallback equipment
-                        selected in the form.
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-zinc-200 bg-white p-3">
-                      <p className="text-sm font-semibold text-zinc-950">
-                        Supported file type
-                      </p>
-                      <p className="mt-2 text-sm leading-5 text-zinc-600">
-                        Use a comma-separated CSV file. Optional operating
-                        context such as pressure, vibration, flow rate, and
-                        operating hours can be included when available.
-                      </p>
-                    </div>
-                  </div>
-                  <DialogFooter className="border-t border-zinc-100 px-5 py-4">
-                    <DialogClose render={<Button variant="outline" />}>
-                      Cancel
-                    </DialogClose>
-                    <Button
-                      className="rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800"
-                      onClick={() => {
-                        setImportPromptOpen(false);
-                        window.requestAnimationFrame(() => {
-                          fileInputRef.current?.click();
-                        });
-                      }}
-                      type="button"
-                    >
-                      <UploadSimple />
-                      Upload CSV
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </div>
           )}
           <div className="md:col-span-2">

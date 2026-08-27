@@ -1,9 +1,10 @@
 "use client";
 
 import type { Equipment } from "@/generated/prisma/client";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Plus, Pulse, Trash, UploadSimple } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
+import { Plus, Pulse, Trash } from "@phosphor-icons/react";
 
 import {
   equipmentCategories,
@@ -17,18 +18,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+const ImportPreviewField = dynamic(() =>
+  import("@/features/imports/import-preview-field").then(
+    (module) => module.ImportPreviewField
+  )
+);
 
 type EquipmentFormProps = {
   action: (formData: FormData) => Promise<void>;
@@ -47,7 +45,6 @@ export function EquipmentForm({
   equipment,
   submitLabel,
 }: EquipmentFormProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [registrationMode, setRegistrationMode] = useState<"manual" | "sheet">(
     "manual"
   );
@@ -57,32 +54,8 @@ export function EquipmentForm({
   const [initialReadingRowIds, setInitialReadingRowIds] = useState<Set<string>>(
     () => new Set()
   );
-  const [importPromptOpen, setImportPromptOpen] = useState(false);
-  const [selectedImportFileName, setSelectedImportFileName] = useState("");
   const isCreateMode = !equipment;
   const isSheetMode = isCreateMode && registrationMode === "sheet";
-
-  useEffect(() => {
-    if (!importPromptOpen) {
-      return;
-    }
-
-    const html = document.documentElement;
-    const body = document.body;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousHtmlScrollbarGutter = html.style.scrollbarGutter;
-    const previousBodyOverflow = body.style.overflow;
-
-    html.style.overflow = "hidden";
-    html.style.scrollbarGutter = "auto";
-    body.style.overflow = "hidden";
-
-    return () => {
-      html.style.overflow = previousHtmlOverflow;
-      html.style.scrollbarGutter = previousHtmlScrollbarGutter;
-      body.style.overflow = previousBodyOverflow;
-    };
-  }, [importPromptOpen]);
 
   function addManualRow() {
     setManualRows((rows) => [
@@ -135,11 +108,6 @@ export function EquipmentForm({
                     | "manual"
                     | "sheet";
                   setRegistrationMode(nextMode);
-                  setImportPromptOpen(false);
-                  setSelectedImportFileName("");
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
                 }}
                 value={registrationMode}
               >
@@ -150,111 +118,7 @@ export function EquipmentForm({
           ) : null}
 
           {isSheetMode ? (
-            <div className="grid gap-2">
-              <Label htmlFor="equipmentImportFile">Asset import file</Label>
-              <button
-                className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center transition-colors hover:border-zinc-950 hover:bg-white focus-visible:border-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950/15"
-                onClick={() => setImportPromptOpen(true)}
-                type="button"
-              >
-                <UploadSimple className="size-6 text-zinc-500" />
-                <span className="text-sm font-semibold text-zinc-950">
-                  Upload CSV assets
-                </span>
-                <span className="text-xs text-zinc-500">
-                  Attach a CSV file exported from the asset inventory.
-                </span>
-                {selectedImportFileName ? (
-                  <span className="max-w-full truncate rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700">
-                    {selectedImportFileName}
-                  </span>
-                ) : null}
-              </button>
-              <Input
-                accept=".csv,text/csv"
-                className="sr-only"
-                id="equipmentImportFile"
-                name="equipmentImportFile"
-                onChange={(event) =>
-                  setSelectedImportFileName(
-                    event.currentTarget.files?.[0]?.name ?? ""
-                  )
-                }
-                ref={fileInputRef}
-                required={isSheetMode}
-                type="file"
-              />
-              <Dialog
-                modal="trap-focus"
-                onOpenChange={setImportPromptOpen}
-                open={importPromptOpen}
-              >
-                <DialogContent
-                  className="w-[min(calc(100vw-2rem),30rem)] max-w-none gap-0 rounded-lg border-zinc-200 bg-white p-0 shadow-2xl"
-                  showCloseButton={false}
-                >
-                  <div className="border-b border-zinc-100 px-5 py-4">
-                    <DialogHeader>
-                      <DialogTitle className="text-lg font-semibold text-zinc-950">
-                        Asset Import
-                      </DialogTitle>
-                      <DialogDescription>
-                        Upload a CSV file containing one equipment record per
-                        row.
-                      </DialogDescription>
-                    </DialogHeader>
-                  </div>
-                  <div className="grid gap-3 px-5 py-4">
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                      <p className="text-sm font-semibold text-zinc-950">
-                        Required equipment data
-                      </p>
-                      <p className="mt-2 text-sm leading-5 text-zinc-600">
-                        Each row should include asset tag, equipment name,
-                        category, status, and location.
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-zinc-200 bg-white p-3">
-                      <p className="text-sm font-semibold text-zinc-950">
-                        Optional metadata
-                      </p>
-                      <p className="mt-2 text-sm leading-5 text-zinc-600">
-                        Manufacturer, model, serial number, installation date,
-                        and description can be included when available.
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-zinc-200 bg-white p-3">
-                      <p className="text-sm font-semibold text-zinc-950">
-                        Optional initial readings
-                      </p>
-                      <p className="mt-2 text-sm leading-5 text-zinc-600">
-                        Include product type, temperatures, speed, torque, tool
-                        wear, pressure, vibration, flow, and operating hours to
-                        create telemetry during registration.
-                      </p>
-                    </div>
-                  </div>
-                  <DialogFooter className="border-t border-zinc-100 px-5 py-4">
-                    <DialogClose render={<Button variant="outline" />}>
-                      Cancel
-                    </DialogClose>
-                    <Button
-                      className="rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800"
-                      onClick={() => {
-                        setImportPromptOpen(false);
-                        window.requestAnimationFrame(() => {
-                          fileInputRef.current?.click();
-                        });
-                      }}
-                      type="button"
-                    >
-                      <UploadSimple />
-                      Upload CSV
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <ImportPreviewField kind="equipment" />
           ) : (
             <div className="grid gap-4">
               {isCreateMode ? (

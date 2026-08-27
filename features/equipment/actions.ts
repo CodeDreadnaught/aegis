@@ -9,6 +9,19 @@ import {
   buildReadingParameters,
   operationalReadingSchema,
 } from "@/features/operational-readings/validation";
+import { importDefinitions } from "@/features/imports/definitions";
+import {
+  buildImportPreview,
+  mapImportRows,
+  parseImportFile,
+  parseImportMapping,
+  resolveImportMapping,
+} from "@/features/imports/parser";
+import {
+  hasInitialReadingValues,
+  normaliseEnumCell,
+  validateEquipmentImportRow,
+} from "@/features/imports/preview-validation";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/client";
 import { requirePermission } from "@/server/auth/session";
@@ -352,43 +365,64 @@ export async function deleteEquipmentWithDependencies(
 async function parseEquipmentImport(formData: FormData) {
   const file = formData.get("equipmentImportFile");
 
-  if (!file || typeof file !== "object" || !("text" in file)) {
-    throw new Error("Upload a CSV equipment register sheet.");
+  if (!file || typeof file !== "object" || !("arrayBuffer" in file)) {
+    throw new Error("Upload a CSV or Excel equipment register sheet.");
   }
 
   const equipmentFile = file as File;
 
   if (!equipmentFile.size) {
-    throw new Error("Upload a CSV equipment register sheet.");
+    throw new Error("Upload a CSV or Excel equipment register sheet.");
   }
 
-  const rows = parseCsv(await equipmentFile.text());
+  const definition = importDefinitions.equipment;
+  const sheet = await parseImportFile(equipmentFile);
+  const mappings = parseImportMapping(formData.get("equipmentImportFileMappings"));
+  const resolvedMapping = resolveImportMapping(
+    definition,
+    sheet.headers,
+    mappings
+  );
+  const preview = buildImportPreview(
+    definition,
+    sheet,
+    mappings,
+    validateEquipmentImportRow
+  );
 
-  if (!rows.length) {
+  if (!sheet.rows.length) {
     throw new Error("The uploaded asset import file does not contain records.");
   }
 
-  return rows.map((row, index) => {
+  if (resolvedMapping.missingRequired.length) {
+    throw new Error(
+      `Map required columns before importing: ${resolvedMapping.missingRequired.join(
+        ", "
+      )}.`
+    );
+  }
+
+  if (preview.rowErrors.length) {
+    throw new Error(formatImportRowErrors(preview.rowErrors));
+  }
+
+  return mapImportRows(sheet.rows, resolvedMapping.mapping).map((row, index) => {
     const rowNumber = index + 2;
 
     let equipment;
 
     try {
       equipment = equipmentSchema.parse({
-        assetTag: getCell(row, "assetTag", "asset_tag"),
-        name: getCell(row, "name", "equipmentName", "equipment_name"),
-        category: normaliseEnumCell(
-          getCell(row, "category", "equipmentCategory")
-        ),
-        status:
-          normaliseEnumCell(getCell(row, "status", "equipmentStatus")) ??
-          "ACTIVE",
-        location: getCell(row, "location", "site", "area"),
-        manufacturer: getCell(row, "manufacturer", "maker"),
-        model: getCell(row, "model", "modelNumber"),
-        serialNumber: getCell(row, "serialNumber", "serial_number"),
-        installationDate: getCell(row, "installationDate", "installation_date"),
-        description: getCell(row, "description", "notes"),
+        assetTag: row.assetTag,
+        name: row.name,
+        category: normaliseEnumCell(row.category),
+        status: normaliseEnumCell(row.status) ?? "ACTIVE",
+        location: row.location,
+        manufacturer: row.manufacturer,
+        model: row.model,
+        serialNumber: row.serialNumber,
+        installationDate: row.installationDate,
+        description: row.description,
       });
     } catch (error) {
       throw new Error(`Row ${rowNumber} contains invalid equipment values.`, {
@@ -398,7 +432,7 @@ async function parseEquipmentImport(formData: FormData) {
 
     return {
       equipment,
-      initialReading: hasInitialReadingColumns(row)
+      initialReading: hasInitialReadingValues(row)
         ? parseInitialReadingCsvRow(row, rowNumber, "SENSOR_IMPORT")
         : undefined,
     };
@@ -435,33 +469,18 @@ function parseInitialReadingCsvRow(
   try {
     return operationalReadingSchema.parse({
       equipmentId: "pending-registration",
-      recordedAt:
-        getCell(row, "recordedAt", "recorded_at", "timestamp") ?? new Date(),
+      recordedAt: row.recordedAt || new Date(),
       sourceType,
-      type: getCell(row, "type", "productType", "product_type") ?? "M",
-      airTemperatureKelvin: getCell(
-        row,
-        "airTemperatureKelvin",
-        "air_temperature_k",
-        "air_temperature_kelvin"
-      ),
-      processTemperatureKelvin: getCell(
-        row,
-        "processTemperatureKelvin",
-        "process_temperature_k",
-        "process_temperature_kelvin"
-      ),
-      rotationalSpeedRpm: getCell(
-        row,
-        "rotationalSpeedRpm",
-        "rotational_speed_rpm"
-      ),
-      torqueNm: getCell(row, "torqueNm", "torque_nm"),
-      toolWearMinutes: getCell(row, "toolWearMinutes", "tool_wear_minutes"),
-      pressureBar: getCell(row, "pressureBar", "pressure_bar"),
-      vibrationMmS: getCell(row, "vibrationMmS", "vibration_mm_s"),
-      flowRateBpd: getCell(row, "flowRateBpd", "flow_rate_bpd"),
-      operatingHours: getCell(row, "operatingHours", "operating_hours"),
+      type: row.type || "M",
+      airTemperatureKelvin: row.airTemperatureKelvin,
+      processTemperatureKelvin: row.processTemperatureKelvin,
+      rotationalSpeedRpm: row.rotationalSpeedRpm,
+      torqueNm: row.torqueNm,
+      toolWearMinutes: row.toolWearMinutes,
+      pressureBar: row.pressureBar,
+      vibrationMmS: row.vibrationMmS,
+      flowRateBpd: row.flowRateBpd,
+      operatingHours: row.operatingHours,
     });
   } catch (error) {
     throw new Error(`Row ${rowNumber} contains invalid initial reading values.`, {
@@ -470,109 +489,14 @@ function parseInitialReadingCsvRow(
   }
 }
 
-function hasInitialReadingColumns(row: Record<string, string>) {
-  return [
-    "recordedAt",
-    "recorded_at",
-    "timestamp",
-    "type",
-    "productType",
-    "product_type",
-    "airTemperatureKelvin",
-    "air_temperature_k",
-    "air_temperature_kelvin",
-    "processTemperatureKelvin",
-    "process_temperature_k",
-    "process_temperature_kelvin",
-    "rotationalSpeedRpm",
-    "rotational_speed_rpm",
-    "torqueNm",
-    "torque_nm",
-    "toolWearMinutes",
-    "tool_wear_minutes",
-    "pressureBar",
-    "pressure_bar",
-    "vibrationMmS",
-    "vibration_mm_s",
-    "flowRateBpd",
-    "flow_rate_bpd",
-    "operatingHours",
-    "operating_hours",
-  ].some((key) => Boolean(getCell(row, key)));
-}
+function formatImportRowErrors(
+  errors: Array<{ message: string; rowNumber: number }>
+) {
+  const visibleErrors = errors
+    .slice(0, 5)
+    .map((error) => `Row ${error.rowNumber}: ${error.message}`)
+    .join(" ");
+  const remaining = errors.length > 5 ? ` ${errors.length - 5} more errors.` : "";
 
-function parseCsv(csv: string) {
-  const lines = csv
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0);
-  const [headerLine, ...dataLines] = lines;
-
-  if (!headerLine) {
-    return [];
-  }
-
-  const headers = splitCsvLine(headerLine).map(normaliseHeader);
-
-  return dataLines.map((line) => {
-    const values = splitCsvLine(line);
-
-    return Object.fromEntries(
-      headers.map((header, index) => [header, values[index]?.trim() ?? ""])
-    );
-  });
-}
-
-function splitCsvLine(line: string) {
-  const values: string[] = [];
-  let current = "";
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    const nextCharacter = line[index + 1];
-
-    if (character === '"' && quoted && nextCharacter === '"') {
-      current += '"';
-      index += 1;
-      continue;
-    }
-
-    if (character === '"') {
-      quoted = !quoted;
-      continue;
-    }
-
-    if (character === "," && !quoted) {
-      values.push(current);
-      current = "";
-      continue;
-    }
-
-    current += character;
-  }
-
-  values.push(current);
-
-  return values;
-}
-
-function getCell(row: Record<string, string>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[normaliseHeader(key)];
-
-    if (value?.trim()) {
-      return value.trim();
-    }
-  }
-
-  return undefined;
-}
-
-function normaliseHeader(header: string) {
-  return header.trim().replace(/[\s_-]+/g, "").toLowerCase();
-}
-
-function normaliseEnumCell(value: string | undefined) {
-  return value?.trim().replace(/[\s-]+/g, "_").toUpperCase();
+  return `${visibleErrors}${remaining}`;
 }
