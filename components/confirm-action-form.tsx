@@ -93,7 +93,7 @@ export function ConfirmActionForm({
               Cancel
             </DialogClose>
             <Button
-              className="rounded-full bg-red-600 px-5 text-white hover:bg-red-700"
+              className="bg-red-600 px-5 text-white hover:bg-red-700"
               disabled={pending}
               onClick={handleConfirm}
               type="button"
