@@ -165,7 +165,7 @@ export function ImportPreviewField({
 
       <Dialog modal="trap-focus" onOpenChange={setOpen} open={open}>
         <DialogContent
-          className="grid max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-lg border-zinc-200 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:w-[min(calc(100vw-2rem),58rem)]"
+          className="grid max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-lg border-zinc-200 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:w-[min(calc(100vw-2rem),64rem)] xl:w-[min(calc(100vw-4rem),76rem)]"
           showCloseButton={false}
         >
           <div className="border-b border-zinc-100 px-4 py-3 sm:px-5 sm:py-4">
@@ -218,11 +218,10 @@ export function ImportPreviewField({
                     </p>
                   </StatusPanel>
                 ) : (
-                  <StatusPanel
-                    icon={<CheckCircle className="size-5" />}
-                    tone="success"
-                    title="Required columns are mapped"
-                  />
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                    <CheckCircle className="size-5 shrink-0" />
+                    Ready to review row data.
+                  </div>
                 )}
 
                 <div className="rounded-lg border border-zinc-200">
@@ -292,8 +291,8 @@ export function ImportPreviewField({
                           Some rows need correction before import
                         </p>
                         <p className="mt-1 text-sm text-red-700/80">
-                          Fix the rows below in the spreadsheet, then upload the file
-                          again.
+                          Fix the rows below, or leave optional initial-reading
+                          columns blank when you only want to register equipment.
                         </p>
                       </div>
                     </div>

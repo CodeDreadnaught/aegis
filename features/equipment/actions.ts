@@ -18,6 +18,7 @@ import {
   resolveImportMapping,
 } from "@/features/imports/parser";
 import {
+  hasCompleteInitialReadingValues,
   hasInitialReadingValues,
   normaliseEnumCell,
   validateEquipmentImportRow,
@@ -432,7 +433,8 @@ async function parseEquipmentImport(formData: FormData) {
 
     return {
       equipment,
-      initialReading: hasInitialReadingValues(row)
+      initialReading:
+        hasInitialReadingValues(row) && hasCompleteInitialReadingValues(row)
         ? parseInitialReadingCsvRow(row, rowNumber, "SENSOR_IMPORT")
         : undefined,
     };

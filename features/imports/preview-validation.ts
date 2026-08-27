@@ -27,7 +27,15 @@ export function validateEquipmentImportRow(row: Record<string, string>) {
   }
 
   if (hasInitialReadingValues(row)) {
-    errors.push(...validateInitialReadingRow(row));
+    if (hasCompleteInitialReadingValues(row)) {
+      errors.push(...validateInitialReadingRow(row));
+    } else {
+      errors.push(
+        `Initial reading is incomplete. Provide ${initialReadingRequiredLabels.join(
+          ", "
+        )}, or leave all initial-reading columns blank for equipment-only import.`
+      );
+    }
   }
 
   return errors;
@@ -88,19 +96,11 @@ export function validateInitialReadingRow(row: Record<string, string>) {
 }
 
 export function hasInitialReadingValues(row: Record<string, string>) {
-  return [
-    "recordedAt",
-    "type",
-    "airTemperatureKelvin",
-    "processTemperatureKelvin",
-    "rotationalSpeedRpm",
-    "torqueNm",
-    "toolWearMinutes",
-    "pressureBar",
-    "vibrationMmS",
-    "flowRateBpd",
-    "operatingHours",
-  ].some((key) => Boolean(row[key]?.trim()));
+  return initialReadingFields.some((key) => Boolean(row[key]?.trim()));
+}
+
+export function hasCompleteInitialReadingValues(row: Record<string, string>) {
+  return initialReadingRequiredFields.every((key) => Boolean(row[key]?.trim()));
 }
 
 export function normaliseEnumCell(value: string | undefined) {
@@ -109,14 +109,41 @@ export function normaliseEnumCell(value: string | undefined) {
 
 function formatZodIssues(error: unknown, label: string) {
   if (error instanceof z.ZodError) {
-    return error.issues.map((issue) => {
+    return Array.from(new Set(error.issues.map((issue) => {
       const field = issue.path.join(".");
 
       return field
         ? `${label} ${field}: ${issue.message}`
         : `${label}: ${issue.message}`;
-    });
+    })));
   }
 
   return [`Invalid ${label} values.`];
 }
+
+const initialReadingRequiredFields = [
+  "type",
+  "airTemperatureKelvin",
+  "processTemperatureKelvin",
+  "rotationalSpeedRpm",
+  "torqueNm",
+  "toolWearMinutes",
+];
+
+const initialReadingRequiredLabels = [
+  "product type",
+  "air temperature",
+  "process temperature",
+  "rotational speed",
+  "torque",
+  "tool wear",
+];
+
+const initialReadingFields = [
+  "recordedAt",
+  ...initialReadingRequiredFields,
+  "pressureBar",
+  "vibrationMmS",
+  "flowRateBpd",
+  "operatingHours",
+];

@@ -8,7 +8,10 @@ import {
   parseImportFile,
   resolveImportMapping,
 } from "@/features/imports/parser";
-import { validateOperationalReadingImportRow } from "@/features/imports/preview-validation";
+import {
+  validateEquipmentImportRow,
+  validateOperationalReadingImportRow,
+} from "@/features/imports/preview-validation";
 
 describe("spreadsheet imports", () => {
   it("maps exact aliases after header normalization", async () => {
@@ -110,6 +113,34 @@ describe("spreadsheet imports", () => {
 
     expect(preview.missingRequired).toEqual([]);
     expect(preview.rowErrors[0]?.message).toContain("airTemperatureKelvin");
+  });
+
+  it("allows equipment imports without optional initial reading values", () => {
+    expect(
+      validateEquipmentImportRow({
+        assetTag: "AEG-CMP-014",
+        category: "COMPRESSOR",
+        location: "Gas Compressor Train B",
+        name: "Gas Compressor Train B",
+      })
+    ).toEqual([]);
+  });
+
+  it("reports one clear issue for incomplete optional initial readings", () => {
+    expect(
+      validateEquipmentImportRow({
+        airTemperatureKelvin: "298.15",
+        assetTag: "AEG-CMP-014",
+        category: "COMPRESSOR",
+        location: "Gas Compressor Train B",
+        name: "Gas Compressor Train B",
+        rotationalSpeedRpm: "0",
+      })
+    ).toEqual([
+      expect.stringContaining(
+        "Initial reading is incomplete. Provide product type"
+      ),
+    ]);
   });
 
   it("parses the first worksheet from an Excel upload", async () => {
