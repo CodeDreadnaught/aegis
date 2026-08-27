@@ -9,6 +9,7 @@ import {
   Pulse,
   ShieldCheck,
   ShieldWarning,
+  Trash,
   TrendUp,
   WarningCircle,
   Wrench,
@@ -16,6 +17,7 @@ import {
 
 import { ActionToastForm } from "@/components/action-toast-form";
 import { BackButton } from "@/components/back-button";
+import { ConfirmActionForm } from "@/components/confirm-action-form";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import {
   decommissionEquipmentAction,
+  deleteEquipmentAction,
   recommissionEquipmentAction,
 } from "@/features/equipment/actions";
 import { getEquipmentDetails } from "@/features/equipment/queries";
@@ -68,6 +71,7 @@ export default async function EquipmentDetailsPage({
   const statusAction = (
     isDecommissioned ? recommissionEquipmentAction : decommissionEquipmentAction
   ).bind(null, equipment.id);
+  const deleteAction = deleteEquipmentAction.bind(null, equipment.id);
   const readings = equipment.operationalReadings.slice().reverse();
   const predictions = equipment.predictions.slice().reverse();
   const health = Math.round(asNumber(latestPrediction?.healthScore));
@@ -153,6 +157,26 @@ export default async function EquipmentDetailsPage({
                   {isDecommissioned ? "Recommission" : "Decommission"}
                 </button>
               </ActionToastForm>
+            ) : null}
+            {canDeleteEquipment ? (
+              <ConfirmActionForm
+                action={deleteAction}
+                confirmLabel="Delete equipment"
+                description="This will permanently remove the equipment record and its linked readings, predictions, alerts, recommendations and maintenance records."
+                errorTitle="Equipment was not deleted"
+                title="Delete this equipment?"
+              >
+                <button
+                  className={buttonVariants({
+                    variant: "destructive",
+                    className: "h-11 w-full rounded-full px-5 sm:w-fit",
+                  })}
+                  type="submit"
+                >
+                  <Trash />
+                  Delete
+                </button>
+              </ConfirmActionForm>
             ) : null}
           </div>
         ) : null}

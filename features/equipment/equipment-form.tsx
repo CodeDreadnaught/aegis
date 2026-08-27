@@ -3,7 +3,7 @@
 import type { Equipment } from "@/generated/prisma/client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash, UploadSimple } from "@phosphor-icons/react";
+import { Plus, Pulse, Trash, UploadSimple } from "@phosphor-icons/react";
 
 import {
   equipmentCategories,
@@ -54,6 +54,9 @@ export function EquipmentForm({
   const [manualRows, setManualRows] = useState<ManualRow[]>([
     { id: "equipment-row-1" },
   ]);
+  const [initialReadingRowIds, setInitialReadingRowIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [importPromptOpen, setImportPromptOpen] = useState(false);
   const [selectedImportFileName, setSelectedImportFileName] = useState("");
   const isCreateMode = !equipment;
@@ -92,6 +95,25 @@ export function EquipmentForm({
     setManualRows((rows) =>
       rows.length === 1 ? rows : rows.filter((row) => row.id !== rowId)
     );
+    setInitialReadingRowIds((rowIds) => {
+      const nextRowIds = new Set(rowIds);
+      nextRowIds.delete(rowId);
+      return nextRowIds;
+    });
+  }
+
+  function toggleInitialReading(rowId: string) {
+    setInitialReadingRowIds((rowIds) => {
+      const nextRowIds = new Set(rowIds);
+
+      if (nextRowIds.has(rowId)) {
+        nextRowIds.delete(rowId);
+      } else {
+        nextRowIds.add(rowId);
+      }
+
+      return nextRowIds;
+    });
   }
 
   return (
@@ -201,6 +223,16 @@ export function EquipmentForm({
                         and description can be included when available.
                       </p>
                     </div>
+                    <div className="rounded-lg border border-zinc-200 bg-white p-3">
+                      <p className="text-sm font-semibold text-zinc-950">
+                        Optional initial readings
+                      </p>
+                      <p className="mt-2 text-sm leading-5 text-zinc-600">
+                        Include product type, temperatures, speed, torque, tool
+                        wear, pressure, vibration, flow, and operating hours to
+                        create telemetry during registration.
+                      </p>
+                    </div>
                   </div>
                   <DialogFooter className="border-t border-zinc-100 px-5 py-4">
                     <DialogClose render={<Button variant="outline" />}>
@@ -265,11 +297,39 @@ export function EquipmentForm({
                         </Button>
                       </div>
                     ) : null}
+                    <input name="equipmentRowId" type="hidden" value={row.id} />
                     <EquipmentFields
                       equipment={equipment}
                       index={index}
                       rowId={row.id}
                     />
+                    {isCreateMode ? (
+                      <div className="mt-4 border-t border-zinc-100 pt-4">
+                        <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
+                          <span>
+                            <span className="block text-sm font-semibold text-zinc-950">
+                              Add initial reading
+                            </span>
+                            <span className="mt-1 block text-xs font-medium text-zinc-500">
+                              Capture current operating values for this asset.
+                            </span>
+                          </span>
+                          <input
+                            checked={initialReadingRowIds.has(row.id)}
+                            className="size-4 accent-zinc-950"
+                            name="initialReadingEnabled"
+                            onChange={() => toggleInitialReading(row.id)}
+                            type="checkbox"
+                            value={row.id}
+                          />
+                        </label>
+                        {initialReadingRowIds.has(row.id) ? (
+                          <InitialReadingFields index={index} rowId={row.id} />
+                        ) : (
+                          <InitialReadingPlaceholders />
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 )
               )}
@@ -418,4 +478,157 @@ function EquipmentFields({
       </div>
     </div>
   );
+}
+
+function InitialReadingFields({
+  index,
+  rowId,
+}: {
+  index: number;
+  rowId: string;
+}) {
+  const suffix = `initial-${rowId}-${index}`;
+
+  return (
+    <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="grid size-8 place-items-center rounded-full bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
+          <Pulse aria-hidden="true" className="size-4" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-zinc-950">
+            Initial operating reading
+          </p>
+          <p className="text-xs font-medium text-zinc-500">
+            Used immediately for predictive analysis.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor={`recordedAt-${suffix}`}>Recorded at</Label>
+          <Input
+            defaultValue={getCurrentDateTimeLocal()}
+            id={`recordedAt-${suffix}`}
+            name="recordedAt"
+            required
+            type="datetime-local"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`type-${suffix}`}>Product type</Label>
+          <select
+            className="h-11 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-xs outline-none transition-colors focus:border-zinc-950"
+            defaultValue="M"
+            id={`type-${suffix}`}
+            name="type"
+          >
+            <option value="H">Type H</option>
+            <option value="L">Type L</option>
+            <option value="M">Type M</option>
+          </select>
+        </div>
+        <ReadingNumberField
+          label="Air temperature (K)"
+          name="airTemperatureKelvin"
+          suffix={suffix}
+        />
+        <ReadingNumberField
+          label="Process temperature (K)"
+          name="processTemperatureKelvin"
+          suffix={suffix}
+        />
+        <ReadingNumberField
+          label="Rotational speed (rpm)"
+          name="rotationalSpeedRpm"
+          suffix={suffix}
+        />
+        <ReadingNumberField label="Torque (Nm)" name="torqueNm" suffix={suffix} />
+        <ReadingNumberField
+          label="Tool wear (min)"
+          name="toolWearMinutes"
+          suffix={suffix}
+        />
+        <ReadingNumberField
+          label="Pressure (bar)"
+          name="pressureBar"
+          required={false}
+          suffix={suffix}
+        />
+        <ReadingNumberField
+          label="Vibration (mm/s)"
+          name="vibrationMmS"
+          required={false}
+          suffix={suffix}
+        />
+        <ReadingNumberField
+          label="Flow rate (bpd)"
+          name="flowRateBpd"
+          required={false}
+          suffix={suffix}
+        />
+        <ReadingNumberField
+          label="Operating hours"
+          name="operatingHours"
+          required={false}
+          suffix={suffix}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ReadingNumberField({
+  label,
+  name,
+  required = true,
+  suffix,
+}: {
+  label: string;
+  name: string;
+  required?: boolean;
+  suffix: string;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={`${name}-${suffix}`}>{label}</Label>
+      <Input
+        id={`${name}-${suffix}`}
+        inputMode="decimal"
+        min="0"
+        name={name}
+        required={required}
+        step="any"
+        type="number"
+      />
+    </div>
+  );
+}
+
+function InitialReadingPlaceholders() {
+  return (
+    <>
+      {[
+        "recordedAt",
+        "type",
+        "airTemperatureKelvin",
+        "processTemperatureKelvin",
+        "rotationalSpeedRpm",
+        "torqueNm",
+        "toolWearMinutes",
+        "pressureBar",
+        "vibrationMmS",
+        "flowRateBpd",
+        "operatingHours",
+      ].map((name) => (
+        <input key={name} name={name} type="hidden" value="" />
+      ))}
+    </>
+  );
+}
+
+function getCurrentDateTimeLocal() {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16);
 }

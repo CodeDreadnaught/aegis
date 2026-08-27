@@ -22,6 +22,10 @@ const routeToasts = {
     title: "Equipment updated",
     description: "The asset profile changes were saved.",
   },
+  "equipment-deleted": {
+    title: "Equipment deleted",
+    description: "The equipment record and linked operating history were removed.",
+  },
 } as const;
 
 type RouteToastKey = keyof typeof routeToasts;
