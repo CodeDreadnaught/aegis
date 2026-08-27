@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LockSimple } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
 import { getNavigationItems } from "@/components/app-shell/navigation";
@@ -30,22 +31,13 @@ export function NavigationLinks({
     <nav className={cn("grid gap-1", compact && "justify-items-center")}>
       {navigationItems.map((item) => {
         const Icon = item.icon;
+        const isAvailable = item.available;
         const isActive =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+          isAvailable &&
+          (pathname === item.href || pathname.startsWith(`${item.href}/`));
 
-        const link = (
-          <Link
-            className={cn(
-              "group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-500 transition-all duration-200 hover:bg-zinc-50 hover:text-zinc-950",
-              isActive &&
-                "bg-zinc-950 text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)]",
-              compact &&
-                "size-10 justify-center rounded-full px-0 hover:bg-zinc-100",
-              compact && isActive && "bg-[#2f9da7] text-white"
-            )}
-            href={item.href}
-            onClick={onNavigate}
-          >
+        const linkContent = (
+          <>
             {isActive && !compact && (
               <span
                 aria-hidden="true"
@@ -58,14 +50,44 @@ export function NavigationLinks({
               weight={isActive ? "fill" : "regular"}
             />
             <span className={cn(compact && "sr-only")}>{item.label}</span>
+            {!isAvailable && !compact && (
+              <LockSimple aria-hidden="true" className="ml-auto size-3.5" />
+            )}
+          </>
+        );
+
+        const link = isAvailable ? (
+          <Link
+            className={cn(
+              "group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-500 transition-all duration-200 hover:bg-zinc-50 hover:text-zinc-950",
+              isActive &&
+                "bg-zinc-950 text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)]",
+              compact &&
+                "size-10 justify-center rounded-full px-0 hover:bg-zinc-100",
+              compact && isActive && "bg-[#2f9da7] text-white"
+            )}
+            href={item.href}
+            onClick={onNavigate}
+          >
+            {linkContent}
           </Link>
+        ) : (
+          <span
+            aria-disabled="true"
+            className={cn(
+              "group relative flex min-h-10 cursor-not-allowed items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-300",
+              compact && "size-10 justify-center rounded-full px-0"
+            )}
+          >
+            {linkContent}
+          </span>
         );
 
         return (
           <Tooltip key={item.href}>
             <TooltipTrigger render={link} />
             <TooltipContent side={compact ? "right" : "top"}>
-              {item.label}
+              {isAvailable ? item.label : `${item.label} - Administrator only`}
             </TooltipContent>
           </Tooltip>
         );
