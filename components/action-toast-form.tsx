@@ -3,6 +3,7 @@
 import { useTransition, type FormEvent } from "react";
 
 import { getActionErrorMessage } from "@/lib/action-error";
+import { isNextRedirectError } from "@/lib/next-action-errors";
 import { toast } from "@/components/ui/toast";
 
 type ActionToastFormProps = {
@@ -36,6 +37,10 @@ export function ActionToastForm({
           description: successDescription,
         });
       } catch (error) {
+        if (isNextRedirectError(error)) {
+          throw error;
+        }
+
         toast.error({
           title: errorTitle,
           description: getActionErrorMessage(error),

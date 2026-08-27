@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition, type FormEvent } from "react";
 
 import { getActionErrorMessage } from "@/lib/action-error";
+import { isNextRedirectError } from "@/lib/next-action-errors";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import {
@@ -56,6 +57,10 @@ export function ConfirmActionForm({
         formDataRef.current = null;
         setOpen(false);
       } catch (error) {
+        if (isNextRedirectError(error)) {
+          throw error;
+        }
+
         toast.error({
           title: errorTitle,
           description: getActionErrorMessage(error),
