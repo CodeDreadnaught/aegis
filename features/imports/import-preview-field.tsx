@@ -179,7 +179,7 @@ export function ImportPreviewField({
             </DialogHeader>
           </div>
 
-          <div className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+          <div className="grid min-h-0 min-w-0 gap-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
             {fileError ? (
               <StatusPanel
                 icon={<XCircle className="size-5" />}
@@ -190,7 +190,7 @@ export function ImportPreviewField({
 
             {preview ? (
               <>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid min-w-0 gap-3 md:grid-cols-3">
                   <Metric label="Rows" value={preview.rowCount.toLocaleString()} />
                   <Metric
                     label="Recognized"
@@ -219,8 +219,8 @@ export function ImportPreviewField({
                   </StatusPanel>
                 ) : null}
 
-                <div className="rounded-lg border border-zinc-200">
-                  <div className="hidden gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 md:grid md:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="min-w-0 overflow-hidden rounded-lg border border-zinc-200">
+                  <div className="hidden gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 lg:grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)]">
                     <span>System field</span>
                     <span>Spreadsheet column</span>
                     <span>Suggestion</span>
@@ -236,7 +236,7 @@ export function ImportPreviewField({
 
                       return (
                         <div
-                          className="grid min-w-0 gap-3 px-4 py-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center"
+                          className="grid min-w-0 gap-3 px-4 py-3 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-center"
                           key={field.canonical}
                         >
                           <div className="min-w-0">
@@ -262,7 +262,7 @@ export function ImportPreviewField({
                               </option>
                             ))}
                           </select>
-                          <p className="text-sm font-medium text-zinc-500">
+                          <p className="min-w-0 break-words text-sm font-medium text-zinc-500">
                             {match
                               ? `${match.kind === "manual" ? "Manual" : "Exact"}: ${
                                   match.header
@@ -278,7 +278,7 @@ export function ImportPreviewField({
                 </div>
 
                 {preview.mappedRowsPreview.length ? (
-                  <div className="rounded-lg border border-zinc-200">
+                  <div className="min-w-0 overflow-hidden rounded-lg border border-zinc-200">
                     <div className="flex flex-col gap-1 border-b border-zinc-100 bg-zinc-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold text-zinc-950">
@@ -290,8 +290,8 @@ export function ImportPreviewField({
                         </p>
                       </div>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-[58rem] w-full text-left text-sm">
+                    <div className="max-w-full overflow-x-auto">
+                      <table className="w-full min-w-[58rem] text-left text-sm">
                         <thead className="bg-zinc-50 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
                           <tr>
                             {definition.fields.slice(0, 8).map((field) => (
