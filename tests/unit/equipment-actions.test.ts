@@ -18,6 +18,7 @@ const { createPredictionsForReadings, mockPrisma, redirect, requirePermission } 
       equipment: {
         create: vi.fn(),
         delete: vi.fn(),
+        findMany: vi.fn(),
         findUnique: vi.fn(),
       },
       maintenanceRecord: {
@@ -65,6 +66,7 @@ describe("equipment actions", () => {
       id: "equipment_1",
       name: "Injection Pump",
     });
+    mockPrisma.equipment.findMany.mockResolvedValue([]);
     mockPrisma.operationalReading.findMany.mockResolvedValue([
       { id: "reading_1" },
     ]);
@@ -215,5 +217,63 @@ describe("equipment actions", () => {
     expect(redirect).toHaveBeenCalledWith(
       "/equipment/equipment_1?toast=equipment-created"
     );
+  });
+
+  it("rejects duplicate asset tags in the same registration submission", async () => {
+    const formData = new FormData();
+    formData.set("registrationMode", "manual");
+
+    for (const rowId of ["row_1", "row_2"]) {
+      formData.append("equipmentRowId", rowId);
+      formData.append("assetTag", "REAL-PMP-001");
+      formData.append("name", "Injection Pump");
+      formData.append("category", "PUMP");
+      formData.append("status", "ACTIVE");
+      formData.append("location", "Flow Station A");
+      formData.append("manufacturer", "");
+      formData.append("model", "");
+      formData.append("serialNumber", "");
+      formData.append("installationDate", "");
+      formData.append("description", "");
+    }
+
+    await expect(createEquipmentAction(formData)).rejects.toThrow(
+      "Each asset tag must be unique. Duplicate in this submission: REAL-PMP-001."
+    );
+
+    expect(mockPrisma.equipment.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.equipment.create).not.toHaveBeenCalled();
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects equipment registration when an asset tag already exists", async () => {
+    mockPrisma.equipment.findMany.mockResolvedValueOnce([
+      { assetTag: "REAL-PMP-001" },
+    ]);
+
+    const formData = new FormData();
+    formData.set("registrationMode", "manual");
+    formData.append("equipmentRowId", "row_1");
+    formData.append("assetTag", "REAL-PMP-001");
+    formData.append("name", "Injection Pump");
+    formData.append("category", "PUMP");
+    formData.append("status", "ACTIVE");
+    formData.append("location", "Flow Station A");
+    formData.append("manufacturer", "");
+    formData.append("model", "");
+    formData.append("serialNumber", "");
+    formData.append("installationDate", "");
+    formData.append("description", "");
+
+    await expect(createEquipmentAction(formData)).rejects.toThrow(
+      "These asset tags already exist: REAL-PMP-001. Use a new asset tag or edit the existing equipment."
+    );
+
+    expect(mockPrisma.equipment.findMany).toHaveBeenCalledWith({
+      where: { assetTag: { in: ["REAL-PMP-001"] } },
+      select: { assetTag: true },
+    });
+    expect(mockPrisma.equipment.create).not.toHaveBeenCalled();
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 });

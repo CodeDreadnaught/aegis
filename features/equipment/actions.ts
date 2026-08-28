@@ -83,6 +83,8 @@ export async function createEquipmentAction(formData: FormData) {
     throw new Error("Add at least one equipment record.");
   }
 
+  await assertUniqueEquipmentAssetTags(inputs.map((input) => input.equipment.assetTag));
+
   const equipment = await prisma.$transaction(
     inputs.map((input) =>
       prisma.equipment.create({
@@ -157,6 +159,48 @@ export async function createEquipmentAction(formData: FormData) {
   }
 
   redirect("/equipment?toast=equipment-bulk-created");
+}
+
+async function assertUniqueEquipmentAssetTags(assetTags: string[]) {
+  const normalizedTags = assetTags.map((assetTag) => assetTag.trim());
+  const uniqueTags = [...new Set(normalizedTags)];
+  const duplicateSubmittedTags = Array.from(
+    normalizedTags
+      .reduce((counts, assetTag) => {
+        counts.set(assetTag, (counts.get(assetTag) ?? 0) + 1);
+        return counts;
+      }, new Map<string, number>())
+      .entries()
+  )
+    .filter(([, count]) => count > 1)
+    .map(([assetTag]) => assetTag);
+
+  if (duplicateSubmittedTags.length) {
+    throw new Error(
+      `Each asset tag must be unique. Duplicate in this submission: ${duplicateSubmittedTags.join(
+        ", "
+      )}.`
+    );
+  }
+
+  const existingEquipment = await prisma.equipment.findMany({
+    where: {
+      assetTag: {
+        in: uniqueTags,
+      },
+    },
+    select: {
+      assetTag: true,
+    },
+  });
+
+  if (existingEquipment.length) {
+    throw new Error(
+      `These asset tags already exist: ${existingEquipment
+        .map((equipment) => equipment.assetTag)
+        .join(", ")}. Use a new asset tag or edit the existing equipment.`
+    );
+  }
 }
 
 export async function updateEquipmentAction(id: string, formData: FormData) {
