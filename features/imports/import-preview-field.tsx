@@ -43,6 +43,8 @@ const validators = {
   operationalReadings: validateOperationalReadingImportRow,
 } satisfies Record<ImportKind, (row: Record<string, string>) => string[]>;
 
+const maxPreviewValidatedRows = 250;
+
 export function ImportPreviewField({
   disabled = false,
   kind,
@@ -62,19 +64,24 @@ export function ImportPreviewField({
       )}`,
     [definition]
   );
-  const preview: ImportPreview | null = sheet
-    ? buildImportPreview(
-        definition,
-        sheet,
-        manualMapping,
-        (row) => validators[kind](row)
-      )
-    : null;
+  const preview: ImportPreview | null = useMemo(
+    () =>
+      sheet
+        ? buildImportPreview(
+            definition,
+            sheet,
+            manualMapping,
+            (row) => validators[kind](row),
+            { maxValidatedRows: maxPreviewValidatedRows }
+          )
+        : null,
+    [definition, kind, manualMapping, sheet]
+  );
   const canSubmit =
     Boolean(selectedFileName) &&
     Boolean(preview) &&
     !preview?.missingRequired.length &&
-    !preview?.rowErrors.length;
+    !preview?.rowErrorCount;
 
   async function handleFileChange(file: File | undefined) {
     setSelectedFileName(file?.name ?? "");
@@ -203,7 +210,7 @@ export function ImportPreviewField({
                   <Metric
                     label="Issues"
                     value={(
-                      preview.missingRequired.length + preview.rowErrors.length
+                      preview.missingRequired.length + preview.rowErrorCount
                     ).toLocaleString()}
                   />
                 </div>
@@ -219,6 +226,19 @@ export function ImportPreviewField({
                       {preview.missingRequired
                         .map((canonical) => fieldLabel(definition, canonical))
                         .join(", ")}
+                    </p>
+                  </StatusPanel>
+                ) : null}
+
+                {preview.rowValidationTruncated ? (
+                  <StatusPanel
+                    icon={<WarningCircle className="size-5" />}
+                    tone="warning"
+                    title={`Preview checked the first ${maxPreviewValidatedRows.toLocaleString()} rows`}
+                  >
+                    <p className="mt-1 text-sm text-amber-700/80">
+                      The full spreadsheet is validated again before any record is
+                      saved.
                     </p>
                   </StatusPanel>
                 ) : null}

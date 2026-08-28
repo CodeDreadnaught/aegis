@@ -23,12 +23,18 @@ export type ImportPreview = {
   matches: HeaderMatch[];
   missingRequired: string[];
   rowCount: number;
+  rowErrorCount: number;
   rowErrors: Array<{
     message: string;
     rowNumber: number;
   }>;
+  rowValidationTruncated: boolean;
   suggestions: HeaderMatch[];
   unknownHeaders: string[];
+};
+
+type ImportPreviewOptions = {
+  maxValidatedRows?: number;
 };
 
 export async function parseImportFile(file: File): Promise<ParsedImportSheet> {
@@ -72,14 +78,17 @@ export function buildImportPreview(
   definition: ImportDefinition,
   sheet: ParsedImportSheet,
   mapping: ImportColumnMapping = {},
-  validateRow?: (row: Record<string, string>, rowNumber: number) => string[]
+  validateRow?: (row: Record<string, string>, rowNumber: number) => string[],
+  options: ImportPreviewOptions = {}
 ): ImportPreview {
   const resolved = resolveImportMapping(definition, sheet.headers, mapping);
   const matchedHeaders = new Set(resolved.matches.map((match) => match.header));
   const mappedRows = mapImportRows(sheet.rows, resolved.mapping);
+  const maxValidatedRows = options.maxValidatedRows ?? mappedRows.length;
+  const rowsToValidate = mappedRows.slice(0, maxValidatedRows);
   const rowErrors =
     validateRow && !resolved.missingRequired.length
-      ? mappedRows.flatMap((row, index) =>
+      ? rowsToValidate.flatMap((row, index) =>
           validateRow(row, index + 2).map((message) => ({
             message,
             rowNumber: index + 2,
@@ -93,7 +102,13 @@ export function buildImportPreview(
     matches: resolved.matches,
     missingRequired: resolved.missingRequired,
     rowCount: sheet.rows.length,
+    rowErrorCount: rowErrors.length,
     rowErrors,
+    rowValidationTruncated: Boolean(
+      validateRow &&
+        !resolved.missingRequired.length &&
+        mappedRows.length > rowsToValidate.length
+    ),
     suggestions: resolved.suggestions,
     unknownHeaders: sheet.headers.filter((header) => !matchedHeaders.has(header)),
   };

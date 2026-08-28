@@ -23,7 +23,7 @@ import {
   normaliseEnumCell,
   validateEquipmentImportRow,
 } from "@/features/imports/preview-validation";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/client";
 import { requirePermission } from "@/server/auth/session";
 
@@ -85,45 +85,61 @@ export async function createEquipmentAction(formData: FormData) {
 
   await assertUniqueEquipmentAssetTags(inputs.map((input) => input.equipment.assetTag));
 
-  const equipment = await prisma.$transaction(
-    inputs.map((input) =>
-      prisma.equipment.create({
-        data: input.equipment,
-        select: { id: true },
-      })
-    )
-  );
-  const readingsToCreate = inputs.flatMap((input, index) =>
-    input.initialReading
-      ? [
-          {
-            equipmentId: equipment[index].id,
-            input: input.initialReading,
+  let equipment: Array<{ assetTag: string; id: string }>;
+  let readings: Array<{ equipmentId: string; id: string }> = [];
+
+  try {
+    equipment = await prisma.equipment.createManyAndReturn({
+      data: inputs.map((input) => input.equipment),
+      select: {
+        assetTag: true,
+        id: true,
+      },
+    });
+    const equipmentIdByAssetTag = new Map(
+      equipment.map((record) => [record.assetTag, record.id])
+    );
+    const readingsToCreate = inputs.flatMap((input) => {
+      const equipmentId = equipmentIdByAssetTag.get(input.equipment.assetTag);
+
+      return input.initialReading && equipmentId
+        ? [
+            {
+              equipmentId,
+              input: input.initialReading,
+            },
+          ]
+        : [];
+    });
+
+    readings = readingsToCreate.length
+      ? await prisma.operationalReading.createManyAndReturn({
+          data: readingsToCreate.map((reading) => ({
+            equipmentId: reading.equipmentId,
+            recordedAt: reading.input.recordedAt,
+            sourceType: reading.input.sourceType,
+            createdById: actor.id,
+            parameters: buildReadingParameters(reading.input),
+          })),
+          select: {
+            equipmentId: true,
+            id: true,
           },
-        ]
-      : []
+        })
+      : [];
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new Error(
+        "One or more asset tags already exist. Use a new asset tag or edit the existing equipment."
+      );
+    }
+
+    throw error;
+  }
+
+  const equipmentIdByAssetTag = new Map(
+    equipment.map((record) => [record.assetTag, record.id])
   );
-
-  const readings = readingsToCreate.length
-    ? await prisma.$transaction(
-        readingsToCreate.map((reading) =>
-          prisma.operationalReading.create({
-            data: {
-              equipmentId: reading.equipmentId,
-              recordedAt: reading.input.recordedAt,
-              sourceType: reading.input.sourceType,
-              createdById: actor.id,
-              parameters: buildReadingParameters(reading.input),
-            },
-            select: {
-              equipmentId: true,
-              id: true,
-            },
-          })
-        )
-      )
-    : [];
-
   if (readings.length) {
     await prisma.auditLog.createMany({
       data: readings.map((reading) => ({
@@ -155,12 +171,17 @@ export async function createEquipmentAction(formData: FormData) {
   revalidatePath("/reports");
 
   if (equipment.length === 1) {
-    redirect(`/equipment/${equipment[0].id}?toast=equipment-created`);
+    redirect(`/equipment/${equipmentIdByAssetTag.get(inputs[0].equipment.assetTag)}?toast=equipment-created`);
   }
 
   redirect("/equipment?toast=equipment-bulk-created");
 }
 
+function isUniqueConstraintError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+  );
+}
 async function assertUniqueEquipmentAssetTags(assetTags: string[]) {
   const normalizedTags = assetTags.map((assetTag) => assetTag.trim());
   const uniqueTags = [...new Set(normalizedTags)];

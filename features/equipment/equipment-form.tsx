@@ -1,10 +1,10 @@
 "use client";
 
 import type { Equipment } from "@/generated/prisma/client";
-import { useState } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Plus, Pulse, Trash } from "@phosphor-icons/react";
+import { Plus, Pulse, SpinnerGap, Trash } from "@phosphor-icons/react";
 
 import {
   equipmentCategories,
@@ -21,6 +21,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { getActionErrorMessage } from "@/lib/action-error";
+import { isNextRedirectError } from "@/lib/next-action-errors";
+import { toast } from "@/components/ui/toast";
 
 const ImportPreviewField = dynamic(() =>
   import("@/features/imports/import-preview-field").then(
@@ -45,6 +48,7 @@ export function EquipmentForm({
   equipment,
   submitLabel,
 }: EquipmentFormProps) {
+  const [pending, startTransition] = useTransition();
   const [registrationMode, setRegistrationMode] = useState<"manual" | "sheet">(
     "manual"
   );
@@ -89,13 +93,34 @@ export function EquipmentForm({
     });
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+
+    startTransition(async () => {
+      try {
+        await action(new FormData(form));
+      } catch (error) {
+        if (isNextRedirectError(error)) {
+          throw error;
+        }
+
+        toast.error({
+          title: isSheetMode ? "Equipment import failed" : "Equipment was not saved",
+          description: getActionErrorMessage(error),
+        });
+      }
+    });
+  }
+
   return (
     <Card className="premium-panel">
       <CardHeader className="px-4 sm:px-6">
         <CardTitle>{equipment ? "Edit Equipment" : "Register Equipment"}</CardTitle>
       </CardHeader>
       <CardContent className="px-4 sm:px-6">
-        <form action={action} className="grid gap-5">
+        <form aria-busy={pending} className="grid gap-5" onSubmit={handleSubmit}>
+                    <fieldset className="contents" disabled={pending}>
           {isCreateMode ? (
             <div className="grid gap-2">
               <Label htmlFor="registrationMode">Registration method</Label>
@@ -200,12 +225,24 @@ export function EquipmentForm({
             </div>
           )}
 
+          </fieldset>
+
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
-              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800"
+              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={pending}
               type="submit"
             >
-              {isSheetMode ? "Import equipment" : submitLabel}
+              {pending ? (
+                <>
+                  <SpinnerGap aria-hidden="true" className="size-4 animate-spin" />
+                  {isSheetMode ? "Importing equipment..." : "Saving equipment..."}
+                </>
+              ) : isSheetMode ? (
+                "Import equipment"
+              ) : (
+                submitLabel
+              )}
             </Button>
             {cancelHref && (
               <Link

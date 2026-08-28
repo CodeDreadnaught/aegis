@@ -115,6 +115,84 @@ describe("spreadsheet imports", () => {
     expect(preview.rowErrors[0]?.message).toContain("airTemperatureKelvin");
   });
 
+  it("can cap row validation work for responsive client-side previews", () => {
+    const sheet = {
+      headers: [
+        "Asset Tag",
+        "Recorded At",
+        "Air Temperature K",
+        "Process Temperature K",
+        "Rotational Speed RPM",
+        "Torque Nm",
+        "Tool Wear Min",
+      ],
+      rows: Array.from({ length: 20 }, (_, index) => ({
+        "Air Temperature K": "100",
+        "Asset Tag": `AEG-PMP-${String(index + 1).padStart(3, "0")}`,
+        "Process Temperature K": "307",
+        "Recorded At": "2026-08-25T12:30:00",
+        "Rotational Speed RPM": "1450",
+        "Tool Wear Min": "120",
+        "Torque Nm": "42",
+      })),
+    };
+    const preview = buildImportPreview(
+      importDefinitions.operationalReadings,
+      sheet,
+      {
+        airTemperatureKelvin: "Air Temperature K",
+        processTemperatureKelvin: "Process Temperature K",
+        rotationalSpeedRpm: "Rotational Speed RPM",
+        toolWearMinutes: "Tool Wear Min",
+        torqueNm: "Torque Nm",
+      },
+      validateOperationalReadingImportRow,
+      { maxValidatedRows: 5 }
+    );
+
+    expect(preview.rowCount).toBe(20);
+    expect(preview.rowErrorCount).toBe(5);
+    expect(preview.rowErrors).toHaveLength(5);
+    expect(preview.rowValidationTruncated).toBe(true);
+  });
+
+  it("validates every row by default for server-side import safety", () => {
+    const sheet = {
+      headers: [
+        "Asset Tag",
+        "Recorded At",
+        "Air Temperature K",
+        "Process Temperature K",
+        "Rotational Speed RPM",
+        "Torque Nm",
+        "Tool Wear Min",
+      ],
+      rows: Array.from({ length: 10 }, (_, index) => ({
+        "Air Temperature K": "100",
+        "Asset Tag": `AEG-PMP-${String(index + 1).padStart(3, "0")}`,
+        "Process Temperature K": "307",
+        "Recorded At": "2026-08-25T12:30:00",
+        "Rotational Speed RPM": "1450",
+        "Tool Wear Min": "120",
+        "Torque Nm": "42",
+      })),
+    };
+    const preview = buildImportPreview(
+      importDefinitions.operationalReadings,
+      sheet,
+      {
+        airTemperatureKelvin: "Air Temperature K",
+        processTemperatureKelvin: "Process Temperature K",
+        rotationalSpeedRpm: "Rotational Speed RPM",
+        toolWearMinutes: "Tool Wear Min",
+        torqueNm: "Torque Nm",
+      },
+      validateOperationalReadingImportRow
+    );
+
+    expect(preview.rowErrorCount).toBe(10);
+    expect(preview.rowValidationTruncated).toBe(false);
+  });
   it("allows equipment imports without optional initial reading values", () => {
     expect(
       validateEquipmentImportRow({

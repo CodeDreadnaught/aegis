@@ -17,6 +17,7 @@ const { createPredictionsForReadings, mockPrisma, redirect, requirePermission } 
       },
       equipment: {
         create: vi.fn(),
+        createManyAndReturn: vi.fn(),
         delete: vi.fn(),
         findMany: vi.fn(),
         findUnique: vi.fn(),
@@ -27,6 +28,7 @@ const { createPredictionsForReadings, mockPrisma, redirect, requirePermission } 
       },
       operationalReading: {
         create: vi.fn(),
+        createManyAndReturn: vi.fn(),
         deleteMany: vi.fn(),
         findMany: vi.fn(),
       },
@@ -88,10 +90,19 @@ describe("equipment actions", () => {
       Promise.all(operations)
     );
     mockPrisma.equipment.create.mockResolvedValue({ id: "equipment_1" });
+    mockPrisma.equipment.createManyAndReturn.mockResolvedValue([
+      { assetTag: "REAL-PMP-001", id: "equipment_1" },
+    ]);
     mockPrisma.operationalReading.create.mockResolvedValue({
       equipmentId: "equipment_1",
       id: "reading_1",
     });
+    mockPrisma.operationalReading.createManyAndReturn.mockResolvedValue([
+      {
+        equipmentId: "equipment_1",
+        id: "reading_1",
+      },
+    ]);
     mockPrisma.auditLog.createMany.mockResolvedValue({ count: 1 });
     createPredictionsForReadings.mockResolvedValue([
       {
@@ -187,24 +198,28 @@ describe("equipment actions", () => {
 
     await createEquipmentAction(formData);
 
-    expect(mockPrisma.equipment.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        assetTag: "REAL-PMP-001",
-        name: "Injection Pump",
-      }),
-      select: { id: true },
-    });
-    expect(mockPrisma.operationalReading.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        createdById: "admin_1",
-        equipmentId: "equipment_1",
-        sourceType: "MANUAL_ENTRY",
-        parameters: expect.objectContaining({
-          airTemperatureKelvin: 300,
-          pressureBar: 52,
-          vibrationMmS: 2.4,
+    expect(mockPrisma.equipment.createManyAndReturn).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          assetTag: "REAL-PMP-001",
+          name: "Injection Pump",
         }),
-      }),
+      ],
+      select: { assetTag: true, id: true },
+    });
+    expect(mockPrisma.operationalReading.createManyAndReturn).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          createdById: "admin_1",
+          equipmentId: "equipment_1",
+          sourceType: "MANUAL_ENTRY",
+          parameters: expect.objectContaining({
+            airTemperatureKelvin: 300,
+            pressureBar: 52,
+            vibrationMmS: 2.4,
+          }),
+        }),
+      ],
       select: {
         equipmentId: true,
         id: true,
@@ -242,7 +257,7 @@ describe("equipment actions", () => {
     );
 
     expect(mockPrisma.equipment.findMany).not.toHaveBeenCalled();
-    expect(mockPrisma.equipment.create).not.toHaveBeenCalled();
+    expect(mockPrisma.equipment.createManyAndReturn).not.toHaveBeenCalled();
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -273,7 +288,7 @@ describe("equipment actions", () => {
       where: { assetTag: { in: ["REAL-PMP-001"] } },
       select: { assetTag: true },
     });
-    expect(mockPrisma.equipment.create).not.toHaveBeenCalled();
+    expect(mockPrisma.equipment.createManyAndReturn).not.toHaveBeenCalled();
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 });
