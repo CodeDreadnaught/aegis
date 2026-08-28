@@ -28,6 +28,12 @@ import {
   productTypes,
   sourceTypes,
 } from "@/features/operational-readings/validation";
+import {
+  getTelemetryRule,
+  telemetryFieldNames,
+  type TelemetryFieldName,
+} from "@/features/operational-readings/telemetry-rules";
+import type { EquipmentCategory } from "@/generated/prisma/enums";
 import { getActionErrorMessage } from "@/lib/action-error";
 import { toast } from "@/components/ui/toast";
 
@@ -49,6 +55,7 @@ type ReadingFormProps = {
   equipment: Array<{
     id: string;
     assetTag: string;
+    category: EquipmentCategory;
     name: string;
   }>;
   onEquipmentChange?: (equipmentId: string) => void;
@@ -59,6 +66,22 @@ type ManualReadingRow = {
   id: string;
 };
 
+type ReadingFieldConfig = {
+  label: string;
+  step: string;
+};
+
+const readingFieldConfigs = {
+  airTemperatureKelvin: { label: "Air temperature (K)", step: "0.01" },
+  processTemperatureKelvin: { label: "Process temperature (K)", step: "0.01" },
+  rotationalSpeedRpm: { label: "Rotational speed (rpm)", step: "1" },
+  torqueNm: { label: "Torque (Nm)", step: "0.01" },
+  toolWearMinutes: { label: "Tool wear (min)", step: "1" },
+  pressureBar: { label: "Pressure (bar)", step: "0.01" },
+  vibrationMmS: { label: "Vibration (mm/s)", step: "0.01" },
+  flowRateBpd: { label: "Flow rate (bpd)", step: "1" },
+  operatingHours: { label: "Operating hours", step: "0.1" },
+} satisfies Record<TelemetryFieldName, ReadingFieldConfig>;
 export function ReadingForm({
   action,
   equipment,
@@ -131,7 +154,6 @@ export function ReadingForm({
             <Label htmlFor="sourceType">Source</Label>
             <select
               className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
-              defaultValue="MANUAL_ENTRY"
               id="sourceType"
               name="sourceType"
               onChange={(event) => {
@@ -198,29 +220,6 @@ export function ReadingForm({
           )}
           {isSensorImport && (
             <div className="grid min-w-0 gap-4 md:col-span-2">
-              <div className="grid min-w-0 gap-2">
-                <Label htmlFor="equipmentId">Fallback equipment</Label>
-                <select
-                  className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
-                  disabled={!equipment.length}
-                  id="equipmentId"
-                  name="equipmentId"
-                  onChange={(event) =>
-                    onEquipmentChange?.(event.currentTarget.value)
-                  }
-                  required
-                  value={selectedEquipmentId}
-                >
-                  {!equipment.length ? (
-                    <option value="">No equipment available</option>
-                  ) : null}
-                  {equipment.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.assetTag} - {item.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <ImportPreviewField
                 disabled={pending}
                 kind="operationalReadings"
@@ -266,18 +265,26 @@ function ManualReadingFields({
   selectedEquipmentId: string;
   timestamp: string;
 }) {
+  const [currentEquipmentId, setCurrentEquipmentId] = useState(selectedEquipmentId);
+  const selectedEquipment =
+    equipment.find((item) => item.id === currentEquipmentId) ?? equipment[0];
+  const category = selectedEquipment?.category ?? "PUMP";
+
   return (
     <div className="grid min-w-0 gap-4 md:grid-cols-2">
       <div className="grid min-w-0 gap-2 md:col-span-2">
         <Label htmlFor={`equipmentId-${rowId}`}>Equipment</Label>
         <select
           className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
-          defaultValue={selectedEquipmentId}
           disabled={!equipment.length}
           id={`equipmentId-${rowId}`}
           name="equipmentId"
-          onChange={(event) => onEquipmentChange?.(event.currentTarget.value)}
+          onChange={(event) => {
+            setCurrentEquipmentId(event.currentTarget.value);
+            onEquipmentChange?.(event.currentTarget.value);
+          }}
           required
+          value={currentEquipmentId}
         >
           {!equipment.length ? <option value="">No equipment available</option> : null}
           {equipment.map((item) => (
@@ -313,60 +320,28 @@ function ManualReadingFields({
           ))}
         </select>
       </div>
-      <NumberField
-        label="Air temperature (K)"
-        name="airTemperatureKelvin"
-        required
-        rowId={rowId}
-        step="0.01"
-      />
-      <NumberField
-        label="Process temperature (K)"
-        name="processTemperatureKelvin"
-        required
-        rowId={rowId}
-        step="0.01"
-      />
-      <NumberField
-        label="Rotational speed (rpm)"
-        name="rotationalSpeedRpm"
-        required
-        rowId={rowId}
-        step="1"
-      />
-      <NumberField
-        label="Torque (Nm)"
-        name="torqueNm"
-        required
-        rowId={rowId}
-        step="0.01"
-      />
-      <NumberField
-        label="Tool wear (min)"
-        name="toolWearMinutes"
-        required
-        rowId={rowId}
-        step="1"
-      />
-      <NumberField
-        label="Pressure (bar)"
-        name="pressureBar"
-        rowId={rowId}
-        step="0.01"
-      />
-      <NumberField
-        label="Vibration (mm/s)"
-        name="vibrationMmS"
-        rowId={rowId}
-        step="0.01"
-      />
-      <NumberField label="Flow rate (bpd)" name="flowRateBpd" rowId={rowId} step="1" />
-      <NumberField
-        label="Operating hours"
-        name="operatingHours"
-        rowId={rowId}
-        step="0.1"
-      />
+      {telemetryFieldNames.map((field) => {
+        const config = readingFieldConfigs[field];
+        const rule = getTelemetryRule(category, field);
+
+        if (rule.applicability === "NOT_APPLICABLE") {
+          return rule.modelDefault === undefined ? null : (
+            <input key={field} name={field} type="hidden" value={rule.modelDefault} />
+          );
+        }
+
+        return (
+          <NumberField
+            key={field}
+            label={config.label}
+            name={field}
+            min={rule.applicability === "REQUIRED_POSITIVE" ? "0.000001" : "0"}
+            required={rule.applicability.startsWith("REQUIRED")}
+            rowId={rowId}
+            step={config.step}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -408,12 +383,14 @@ function formatReadingResult(
 function NumberField({
   label,
   name,
+  min,
   required = false,
   rowId,
   step,
 }: {
   label: string;
   name: string;
+  min?: string;
   required?: boolean;
   rowId?: string;
   step: string;
@@ -426,6 +403,7 @@ function NumberField({
       <Input
         className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
         id={inputId}
+        min={min}
         name={name}
         required={required}
         step={step}

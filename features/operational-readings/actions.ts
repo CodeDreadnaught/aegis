@@ -16,7 +16,8 @@ import {
 } from "@/features/imports/preview-validation";
 import {
   buildReadingParameters,
-  operationalReadingSchema,
+  formatOperationalReadingValidationError,
+  parseOperationalReadingForCategory,
   parseOperationalReadingRows,
 } from "@/features/operational-readings/validation";
 import { requirePermission } from "@/server/auth/session";
@@ -28,23 +29,19 @@ export async function createOperationalReadingAction(formData: FormData) {
 
   if (sourceType === "SENSOR_IMPORT") {
     const importedReadings = await parseSensorImport(formData);
-    const readings = await prisma.$transaction(
-      importedReadings.map((input) =>
-        prisma.operationalReading.create({
-          data: {
-            equipmentId: input.equipmentId,
-            recordedAt: input.recordedAt,
-            sourceType: "SENSOR_IMPORT",
-            createdById: actor.id,
-            parameters: buildReadingParameters(input),
-          },
-          select: {
-            id: true,
-            equipmentId: true,
-          },
-        })
-      )
-    );
+    const readings = await prisma.operationalReading.createManyAndReturn({
+      data: importedReadings.map((input) => ({
+        equipmentId: input.equipmentId,
+        recordedAt: input.recordedAt,
+        sourceType: "SENSOR_IMPORT",
+        createdById: actor.id,
+        parameters: buildReadingParameters(input),
+      })),
+      select: {
+        id: true,
+        equipmentId: true,
+      },
+    });
 
     await prisma.auditLog.createMany({
       data: readings.map((reading) => ({
@@ -64,41 +61,31 @@ export async function createOperationalReadingAction(formData: FormData) {
       readingIds: readings.map((reading) => reading.id),
     });
 
-    revalidatePath("/operational-data");
-    revalidatePath("/analytics");
-    revalidatePath("/overview");
-    revalidatePath("/alerts");
-    revalidatePath("/reports");
-    for (const equipmentId of new Set(readings.map((reading) => reading.equipmentId))) {
-      revalidatePath(`/equipment/${equipmentId}`);
-    }
+    revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
 
     return { count: readings.length, predictions: predictionResults };
   }
 
-  const inputs = parseOperationalReadingRows(formData);
+  const categoriesByEquipmentId = await getCategoriesForFormReadings(formData);
+  const inputs = parseOperationalReadingRows(formData, categoriesByEquipmentId);
 
   if (!inputs.length) {
     throw new Error("Add at least one operational reading.");
   }
 
-  const readings = await prisma.$transaction(
-    inputs.map((input) =>
-      prisma.operationalReading.create({
-        data: {
-          equipmentId: input.equipmentId,
-          recordedAt: input.recordedAt,
-          sourceType: input.sourceType,
-          createdById: actor.id,
-          parameters: buildReadingParameters(input),
-        },
-        select: {
-          id: true,
-          equipmentId: true,
-        },
-      })
-    )
-  );
+  const readings = await prisma.operationalReading.createManyAndReturn({
+    data: inputs.map((input) => ({
+      equipmentId: input.equipmentId,
+      recordedAt: input.recordedAt,
+      sourceType: input.sourceType,
+      createdById: actor.id,
+      parameters: buildReadingParameters(input),
+    })),
+    select: {
+      id: true,
+      equipmentId: true,
+    },
+  });
 
   await prisma.auditLog.createMany({
     data: readings.map((reading) => ({
@@ -118,24 +105,13 @@ export async function createOperationalReadingAction(formData: FormData) {
     readingIds: readings.map((reading) => reading.id),
   });
 
-  revalidatePath("/operational-data");
-  revalidatePath("/analytics");
-  revalidatePath("/overview");
-  revalidatePath("/alerts");
-  revalidatePath("/reports");
-  for (const equipmentId of new Set(readings.map((reading) => reading.equipmentId))) {
-    revalidatePath(`/equipment/${equipmentId}`);
-  }
+  revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
 
   return { count: readings.length, predictions: predictionResults };
 }
 
 async function parseSensorImport(formData: FormData) {
   const file = formData.get("sensorImportFile");
-  const selectedEquipmentId =
-    typeof formData.get("equipmentId") === "string"
-      ? formData.get("equipmentId")?.toString().trim()
-      : undefined;
 
   if (!file || typeof file !== "object" || !("arrayBuffer" in file)) {
     throw new Error("Upload a CSV or Excel sensor import sheet.");
@@ -179,42 +155,27 @@ async function parseSensorImport(formData: FormData) {
   }
 
   const rows = mapImportRows(sheet.rows, resolvedMapping.mapping);
-  const assetTags = rows
-    .map((row) => row.assetTag?.trim())
-    .filter((value): value is string => Boolean(value));
-  const equipmentRecords = assetTags.length
-    ? await prisma.equipment.findMany({
-        where: {
-          assetTag: {
-            in: [...new Set(assetTags)],
-          },
-        },
-        select: {
-          assetTag: true,
-          id: true,
-        },
-      })
-    : [];
-  const equipmentByAssetTag = new Map(
-    equipmentRecords.map((equipment) => [equipment.assetTag, equipment.id])
-  );
+  const equipmentByReference = await getEquipmentForSensorImportRows(rows);
 
   return rows.map((row, index) => {
     const rowNumber = index + 2;
-    const equipmentId =
-      row.equipmentId?.trim() ??
-      equipmentByAssetTag.get(row.assetTag?.trim() ?? "") ??
-      selectedEquipmentId;
+    const explicitEquipmentId = row.equipmentId?.trim();
+    const assetTag = row.assetTag?.trim();
+    const equipment = explicitEquipmentId
+      ? equipmentByReference.byId.get(explicitEquipmentId)
+      : assetTag
+        ? equipmentByReference.byAssetTag.get(assetTag)
+        : undefined;
 
-    if (!equipmentId) {
+    if (!equipment) {
       throw new Error(
-        `Row ${rowNumber} must include a valid equipmentId or assetTag, or use a selected equipment item.`
+        `Row ${rowNumber} must include a valid equipmentId or assetTag.`
       );
     }
 
     try {
-      return operationalReadingSchema.parse({
-        equipmentId,
+      return parseOperationalReadingForCategory(equipment.category, {
+        equipmentId: equipment.id,
         recordedAt: row.recordedAt,
         sourceType: "SENSOR_IMPORT",
         type: row.type || "M",
@@ -229,11 +190,97 @@ async function parseSensorImport(formData: FormData) {
         operatingHours: row.operatingHours,
       });
     } catch (error) {
-      throw new Error(`Row ${rowNumber} contains invalid reading values.`, {
-        cause: error,
-      });
+      throw new Error(
+        `Row ${rowNumber} - ${formatOperationalReadingValidationError(error)}`
+      );
     }
   });
+}
+
+async function getCategoriesForFormReadings(formData: FormData) {
+  const equipmentIds = [
+    ...new Set(
+      formData
+        .getAll("equipmentId")
+        .map((value) => String(value).trim())
+        .filter(Boolean)
+    ),
+  ];
+  const equipment = await prisma.equipment.findMany({
+    where: {
+      id: {
+        in: equipmentIds,
+      },
+    },
+    select: {
+      category: true,
+      id: true,
+    },
+  });
+
+  return new Map(equipment.map((item) => [item.id, item.category]));
+}
+
+async function getEquipmentForSensorImportRows(rows: Array<Record<string, string>>) {
+  const equipmentIds = rows
+    .map((row) => row.equipmentId?.trim())
+    .filter((value): value is string => Boolean(value));
+  const assetTags = rows
+    .map((row) => row.assetTag?.trim())
+    .filter((value): value is string => Boolean(value));
+  if (!equipmentIds.length && !assetTags.length) {
+    return {
+      byAssetTag: new Map<string, { assetTag: string; category: import("@/generated/prisma/enums").EquipmentCategory; id: string }>(),
+      byId: new Map<string, { assetTag: string; category: import("@/generated/prisma/enums").EquipmentCategory; id: string }>(),
+    };
+  }
+
+  const equipmentRecords = await prisma.equipment.findMany({
+    where: {
+      OR: [
+        equipmentIds.length
+          ? {
+              id: {
+                in: [...new Set(equipmentIds)],
+              },
+            }
+          : undefined,
+        assetTags.length
+          ? {
+              assetTag: {
+                in: [...new Set(assetTags)],
+              },
+            }
+          : undefined,
+      ].filter(Boolean) as Array<
+        | { id: { in: string[] } }
+        | { assetTag: { in: string[] } }
+      >,
+    },
+    select: {
+      assetTag: true,
+      category: true,
+      id: true,
+    },
+  });
+
+  return {
+    byAssetTag: new Map(
+      equipmentRecords.map((equipment) => [equipment.assetTag, equipment])
+    ),
+    byId: new Map(equipmentRecords.map((equipment) => [equipment.id, equipment])),
+  };
+}
+
+function revalidateOperationalReadingPaths(equipmentIds: string[]) {
+  revalidatePath("/operational-data");
+  revalidatePath("/analytics");
+  revalidatePath("/overview");
+  revalidatePath("/alerts");
+  revalidatePath("/reports");
+  for (const equipmentId of new Set(equipmentIds)) {
+    revalidatePath(`/equipment/${equipmentId}`);
+  }
 }
 
 function formatImportRowErrors(

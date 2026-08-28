@@ -7,7 +7,8 @@ import { createPredictionsForReadings } from "@/features/analytics/prediction-se
 import { equipmentSchema } from "@/features/equipment/validation";
 import {
   buildReadingParameters,
-  operationalReadingSchema,
+  formatOperationalReadingValidationError,
+  parseOperationalReadingForCategory,
 } from "@/features/operational-readings/validation";
 import { importDefinitions } from "@/features/imports/definitions";
 import {
@@ -50,22 +51,28 @@ function parseEquipmentRows(formData: FormData) {
 
   return assetTags.map((_, index) => {
     const rowId = String(formData.getAll("equipmentRowId")[index] ?? index);
+    const equipment = equipmentSchema.parse({
+      assetTag: formData.getAll("assetTag")[index],
+      name: formData.getAll("name")[index],
+      category: formData.getAll("category")[index],
+      status: formData.getAll("status")[index] || "ACTIVE",
+      location: formData.getAll("location")[index],
+      manufacturer: formData.getAll("manufacturer")[index],
+      model: formData.getAll("model")[index],
+      serialNumber: formData.getAll("serialNumber")[index],
+      installationDate: formData.getAll("installationDate")[index],
+      description: formData.getAll("description")[index],
+    });
 
     return {
-      equipment: equipmentSchema.parse({
-        assetTag: formData.getAll("assetTag")[index],
-        name: formData.getAll("name")[index],
-        category: formData.getAll("category")[index],
-        status: formData.getAll("status")[index] || "ACTIVE",
-        location: formData.getAll("location")[index],
-        manufacturer: formData.getAll("manufacturer")[index],
-        model: formData.getAll("model")[index],
-        serialNumber: formData.getAll("serialNumber")[index],
-        installationDate: formData.getAll("installationDate")[index],
-        description: formData.getAll("description")[index],
-      }),
+      equipment,
       initialReading: readingEnabledRows.has(rowId)
-        ? parseInitialReadingFormRow(formData, index, "MANUAL_ENTRY")
+        ? parseInitialReadingFormRow(
+            formData,
+            index,
+            equipment.category,
+            "MANUAL_ENTRY"
+          )
         : undefined,
     };
   });
@@ -500,7 +507,7 @@ async function parseEquipmentImport(formData: FormData) {
       equipment,
       initialReading:
         hasInitialReadingValues(row) && hasCompleteInitialReadingValues(row)
-          ? safeParseInitialReadingCsvRow(row, rowNumber, "SENSOR_IMPORT")
+          ? safeParseInitialReadingCsvRow(row, rowNumber, equipment.category, "SENSOR_IMPORT")
         : undefined,
     };
   });
@@ -509,9 +516,10 @@ async function parseEquipmentImport(formData: FormData) {
 function parseInitialReadingFormRow(
   formData: FormData,
   index: number,
+  category: import("@/generated/prisma/enums").EquipmentCategory,
   sourceType: "MANUAL_ENTRY" | "SENSOR_IMPORT"
 ) {
-  return operationalReadingSchema.parse({
+  return parseOperationalReadingForCategory(category, {
     equipmentId: "pending-registration",
     recordedAt: formData.getAll("recordedAt")[index] || new Date(),
     sourceType,
@@ -531,10 +539,11 @@ function parseInitialReadingFormRow(
 function parseInitialReadingCsvRow(
   row: Record<string, string>,
   rowNumber: number,
+  category: import("@/generated/prisma/enums").EquipmentCategory,
   sourceType: "MANUAL_ENTRY" | "SENSOR_IMPORT"
 ) {
   try {
-    return operationalReadingSchema.parse({
+    return parseOperationalReadingForCategory(category, {
       equipmentId: "pending-registration",
       recordedAt: row.recordedAt || new Date(),
       sourceType,
@@ -550,19 +559,20 @@ function parseInitialReadingCsvRow(
       operatingHours: row.operatingHours,
     });
   } catch (error) {
-    throw new Error(`Row ${rowNumber} contains invalid initial reading values.`, {
-      cause: error,
-    });
+    throw new Error(
+      `Row ${rowNumber} - ${formatOperationalReadingValidationError(error)}`
+    );
   }
 }
 
 function safeParseInitialReadingCsvRow(
   row: Record<string, string>,
   rowNumber: number,
+  category: import("@/generated/prisma/enums").EquipmentCategory,
   sourceType: "MANUAL_ENTRY" | "SENSOR_IMPORT"
 ) {
   try {
-    return parseInitialReadingCsvRow(row, rowNumber, sourceType);
+    return parseInitialReadingCsvRow(row, rowNumber, category, sourceType);
   } catch {
     return undefined;
   }

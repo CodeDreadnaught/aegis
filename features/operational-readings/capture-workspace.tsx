@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { EquipmentCategory } from "@/generated/prisma/enums";
 import { Waveform } from "@phosphor-icons/react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { ReadingForm } from "@/features/operational-readings/reading-form";
 type EquipmentOption = {
   id: string;
   assetTag: string;
+  category: EquipmentCategory;
   name: string;
 };
 

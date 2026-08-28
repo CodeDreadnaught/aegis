@@ -1,6 +1,7 @@
 "use client";
 
 import type { Equipment } from "@/generated/prisma/client";
+import type { EquipmentCategory } from "@/generated/prisma/enums";
 import { useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -12,6 +13,11 @@ import {
   formatEquipmentCategory,
 } from "@/features/equipment/validation";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  getTelemetryRule,
+  telemetryFieldNames,
+  type TelemetryFieldName,
+} from "@/features/operational-readings/telemetry-rules";
 import {
   Card,
   CardContent,
@@ -42,6 +48,23 @@ type ManualRow = {
   id: string;
 };
 
+type ReadingFieldConfig = {
+  label: string;
+  step: string;
+};
+
+const readingFieldConfigs = {
+  airTemperatureKelvin: { label: "Air temperature (K)", step: "0.01" },
+  processTemperatureKelvin: { label: "Process temperature (K)", step: "0.01" },
+  rotationalSpeedRpm: { label: "Rotational speed (rpm)", step: "1" },
+  torqueNm: { label: "Torque (Nm)", step: "0.01" },
+  toolWearMinutes: { label: "Tool wear (min)", step: "1" },
+  pressureBar: { label: "Pressure (bar)", step: "0.01" },
+  vibrationMmS: { label: "Vibration (mm/s)", step: "0.01" },
+  flowRateBpd: { label: "Flow rate (bpd)", step: "1" },
+  operatingHours: { label: "Operating hours", step: "0.1" },
+} satisfies Record<TelemetryFieldName, ReadingFieldConfig>;
+
 export function EquipmentForm({
   action,
   cancelHref,
@@ -58,6 +81,9 @@ export function EquipmentForm({
   const [initialReadingRowIds, setInitialReadingRowIds] = useState<Set<string>>(
     () => new Set()
   );
+  const [manualRowCategories, setManualRowCategories] = useState<
+    Record<string, EquipmentCategory>
+  >(() => ({ "equipment-row-1": "PUMP" }));
   const isCreateMode = !equipment;
   const isSheetMode = isCreateMode && registrationMode === "sheet";
 
@@ -76,6 +102,11 @@ export function EquipmentForm({
       const nextRowIds = new Set(rowIds);
       nextRowIds.delete(rowId);
       return nextRowIds;
+    });
+    setManualRowCategories((categories) => {
+      const nextCategories = { ...categories };
+      delete nextCategories[rowId];
+      return nextCategories;
     });
   }
 
@@ -188,8 +219,15 @@ export function EquipmentForm({
                     ) : null}
                     <input name="equipmentRowId" type="hidden" value={row.id} />
                     <EquipmentFields
+                      category={manualRowCategories[row.id] ?? equipment?.category ?? "PUMP"}
                       equipment={equipment}
                       index={index}
+                      onCategoryChange={(category) =>
+                        setManualRowCategories((categories) => ({
+                          ...categories,
+                          [row.id]: category,
+                        }))
+                      }
                       rowId={row.id}
                     />
                     {isCreateMode ? (
@@ -213,7 +251,11 @@ export function EquipmentForm({
                           />
                         </label>
                         {initialReadingRowIds.has(row.id) ? (
-                          <InitialReadingFields index={index} rowId={row.id} />
+                          <InitialReadingFields
+                            category={manualRowCategories[row.id] ?? "PUMP"}
+                            index={index}
+                            rowId={row.id}
+                          />
                         ) : (
                           <InitialReadingPlaceholders />
                         )}
@@ -264,12 +306,16 @@ export function EquipmentForm({
 }
 
 function EquipmentFields({
+  category,
   equipment,
   index,
+  onCategoryChange,
   rowId,
 }: {
+  category: EquipmentCategory;
   equipment?: Equipment;
   index: number;
+  onCategoryChange?: (category: EquipmentCategory) => void;
   rowId: string;
 }) {
   const installationDate = equipment?.installationDate
@@ -301,9 +347,12 @@ function EquipmentFields({
         <Label htmlFor={`category-${suffix}`}>Category</Label>
         <select
           className="h-11 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-xs outline-none transition-colors focus:border-zinc-950"
-          defaultValue={equipment?.category ?? "PUMP"}
           id={`category-${suffix}`}
           name="category"
+          onChange={(event) =>
+            onCategoryChange?.(event.currentTarget.value as EquipmentCategory)
+          }
+          value={category}
         >
           {equipmentCategories.map((category) => (
             <option key={category} value={category}>
@@ -382,9 +431,11 @@ function EquipmentFields({
 }
 
 function InitialReadingFields({
+  category,
   index,
   rowId,
 }: {
+  category: EquipmentCategory;
   index: number;
   rowId: string;
 }) {
@@ -429,51 +480,28 @@ function InitialReadingFields({
             <option value="M">Type M</option>
           </select>
         </div>
-        <ReadingNumberField
-          label="Air temperature (K)"
-          name="airTemperatureKelvin"
-          suffix={suffix}
-        />
-        <ReadingNumberField
-          label="Process temperature (K)"
-          name="processTemperatureKelvin"
-          suffix={suffix}
-        />
-        <ReadingNumberField
-          label="Rotational speed (rpm)"
-          name="rotationalSpeedRpm"
-          suffix={suffix}
-        />
-        <ReadingNumberField label="Torque (Nm)" name="torqueNm" suffix={suffix} />
-        <ReadingNumberField
-          label="Tool wear (min)"
-          name="toolWearMinutes"
-          suffix={suffix}
-        />
-        <ReadingNumberField
-          label="Pressure (bar)"
-          name="pressureBar"
-          required={false}
-          suffix={suffix}
-        />
-        <ReadingNumberField
-          label="Vibration (mm/s)"
-          name="vibrationMmS"
-          required={false}
-          suffix={suffix}
-        />
-        <ReadingNumberField
-          label="Flow rate (bpd)"
-          name="flowRateBpd"
-          required={false}
-          suffix={suffix}
-        />
-        <ReadingNumberField
-          label="Operating hours"
-          name="operatingHours"
-          required={false}
-          suffix={suffix}
-        />
+        {telemetryFieldNames.map((field) => {
+          const config = readingFieldConfigs[field];
+          const rule = getTelemetryRule(category, field);
+
+          if (rule.applicability === "NOT_APPLICABLE") {
+            return rule.modelDefault === undefined ? null : (
+              <input key={field} name={field} type="hidden" value={rule.modelDefault} />
+            );
+          }
+
+          return (
+            <ReadingNumberField
+              key={field}
+              label={config.label}
+              name={field}
+              min={rule.applicability === "REQUIRED_POSITIVE" ? "0.000001" : "0"}
+              required={rule.applicability.startsWith("REQUIRED")}
+              step={config.step}
+              suffix={suffix}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -482,12 +510,16 @@ function InitialReadingFields({
 function ReadingNumberField({
   label,
   name,
+  min,
   required = true,
+  step = "any",
   suffix,
 }: {
   label: string;
   name: string;
+  min?: string;
   required?: boolean;
+  step?: string;
   suffix: string;
 }) {
   return (
@@ -496,10 +528,10 @@ function ReadingNumberField({
       <Input
         id={`${name}-${suffix}`}
         inputMode="decimal"
-        min="0"
+        min={min}
         name={name}
         required={required}
-        step="any"
+        step={step}
         type="number"
       />
     </div>

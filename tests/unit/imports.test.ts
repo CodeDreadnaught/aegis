@@ -112,7 +112,7 @@ describe("spreadsheet imports", () => {
     );
 
     expect(preview.missingRequired).toEqual([]);
-    expect(preview.rowErrors[0]?.message).toContain("airTemperatureKelvin");
+    expect(preview.rowErrors[0]?.message).toContain("Air temperature must be at least 250.");
   });
 
   it("can cap row validation work for responsive client-side previews", () => {
@@ -240,4 +240,28 @@ describe("spreadsheet imports", () => {
       name: "Injection Pump",
     });
   });
-});
+
+  it("recognizes historical telemetry aliases including toolWearMin", () => {
+    const mapping = resolveImportMapping(importDefinitions.operationalReadings, [
+      "assetTag",
+      "recordedAt",
+      "productType",
+      "airTemperatureK",
+      "processTemperatureK",
+      "rotationalSpeedRpm",
+      "torqueNm",
+      "toolWearMin",
+      "pressureBar",
+      "vibrationMmS",
+      "flowRateBpd",
+      "operatingHours",
+    ]);
+
+    expect(mapping.missingRequired).toEqual([]);
+    expect(mapping.mapping).toMatchObject({
+      airTemperatureKelvin: "airTemperatureK",
+      processTemperatureKelvin: "processTemperatureK",
+      toolWearMinutes: "toolWearMin",
+      type: "productType",
+    });
+  });});

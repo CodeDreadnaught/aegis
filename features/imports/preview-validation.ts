@@ -1,9 +1,7 @@
 import { z } from "zod";
 
 import { equipmentSchema } from "@/features/equipment/validation";
-import {
-  operationalReadingSchema,
-} from "@/features/operational-readings/validation";
+import { validateOperationalReadingPreview } from "@/features/operational-readings/validation";
 import { maintenanceRecordSchema } from "@/features/maintenance/validation";
 
 export function validateEquipmentImportRow(row: Record<string, string>) {
@@ -30,10 +28,15 @@ export function validateEquipmentImportRow(row: Record<string, string>) {
 }
 
 export function validateOperationalReadingImportRow(row: Record<string, string>) {
-  return validateInitialReadingRow({
-    ...row,
-    equipmentId: row.equipmentId || "preview-equipment",
-  });
+  const errors: string[] = [];
+
+  if (!row.equipmentId?.trim() && !row.assetTag?.trim()) {
+    errors.push("Provide equipmentId or assetTag.");
+  }
+
+  errors.push(...validateOperationalReadingPreview(row));
+
+  return errors;
 }
 
 export function validateMaintenanceImportRow(row: Record<string, string>) {
@@ -60,29 +63,22 @@ export function validateMaintenanceImportRow(row: Record<string, string>) {
 }
 
 export function validateInitialReadingRow(row: Record<string, string>) {
-  try {
-    operationalReadingSchema.parse({
-      equipmentId: row.equipmentId || "preview-equipment",
-      recordedAt: row.recordedAt || new Date(),
-      sourceType: "SENSOR_IMPORT",
-      type: row.type || "M",
-      airTemperatureKelvin: row.airTemperatureKelvin,
-      processTemperatureKelvin: row.processTemperatureKelvin,
-      rotationalSpeedRpm: row.rotationalSpeedRpm,
-      torqueNm: row.torqueNm,
-      toolWearMinutes: row.toolWearMinutes,
-      pressureBar: row.pressureBar,
-      vibrationMmS: row.vibrationMmS,
-      flowRateBpd: row.flowRateBpd,
-      operatingHours: row.operatingHours,
-    });
-
-    return [];
-  } catch (error) {
-    return formatZodIssues(error, "reading");
-  }
+  return validateOperationalReadingPreview({
+    equipmentId: row.equipmentId || "preview-equipment",
+    recordedAt: row.recordedAt || new Date().toISOString(),
+    sourceType: "SENSOR_IMPORT",
+    type: row.type || "M",
+    airTemperatureKelvin: row.airTemperatureKelvin,
+    processTemperatureKelvin: row.processTemperatureKelvin,
+    rotationalSpeedRpm: row.rotationalSpeedRpm,
+    torqueNm: row.torqueNm,
+    toolWearMinutes: row.toolWearMinutes,
+    pressureBar: row.pressureBar,
+    vibrationMmS: row.vibrationMmS,
+    flowRateBpd: row.flowRateBpd,
+    operatingHours: row.operatingHours,
+  });
 }
-
 export function hasInitialReadingValues(row: Record<string, string>) {
   return initialReadingFields.some((key) => Boolean(row[key]?.trim()));
 }
@@ -117,8 +113,6 @@ const initialReadingRequiredFields = [
   "type",
   "airTemperatureKelvin",
   "processTemperatureKelvin",
-  "rotationalSpeedRpm",
-  "torqueNm",
   "toolWearMinutes",
 ];
 
