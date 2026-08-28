@@ -93,7 +93,7 @@ export async function createEquipmentAction(formData: FormData) {
   await assertUniqueEquipmentAssetTags(inputs.map((input) => input.equipment.assetTag));
 
   let equipment: Array<{ assetTag: string; id: string }>;
-  let readings: Array<{ equipmentId: string; id: string }> = [];
+  let readings: Array<{ equipmentId: string; id: string; sourceType: string }> = [];
 
   try {
     equipment = await prisma.equipment.createManyAndReturn({
@@ -125,12 +125,14 @@ export async function createEquipmentAction(formData: FormData) {
             equipmentId: reading.equipmentId,
             recordedAt: reading.input.recordedAt,
             sourceType: reading.input.sourceType,
+            predictionEligible: true,
             createdById: actor.id,
             parameters: buildReadingParameters(reading.input),
           })),
           select: {
             equipmentId: true,
             id: true,
+            sourceType: true,
           },
         })
       : [];
@@ -159,7 +161,7 @@ export async function createEquipmentAction(formData: FormData) {
         entityId: reading.id,
         metadata: {
           equipmentId: reading.equipmentId,
-          sourceType: registrationMode === "sheet" ? "SENSOR_IMPORT" : "MANUAL_ENTRY",
+          sourceType: reading.sourceType,
         },
       })),
     });

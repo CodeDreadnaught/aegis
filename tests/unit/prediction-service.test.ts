@@ -115,6 +115,15 @@ describe("prediction job processing", () => {
 
     await processPendingPredictionJobs({ limit: 9 });
 
+    expect(mockPrisma.operationalReading.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 9,
+        where: expect.objectContaining({
+          predictionEligible: true,
+        }),
+      })
+    );
+
     expect(mockPrisma.predictionJob.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 9,

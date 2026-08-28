@@ -133,6 +133,7 @@ model OperationalReading {
   recordedAt      DateTime
   parameters      Json
   sourceType      String
+  predictionEligible Boolean  @default(true)
   createdById     String?
   createdAt       DateTime     @default(now())
   equipment       Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
@@ -140,7 +141,8 @@ model OperationalReading {
   predictions     Prediction[]
   predictionJob   PredictionJob?
 
-  @@index([equipmentId, recordedAt])
+  @@unique([equipmentId, recordedAt])
+  @@index([predictionEligible, recordedAt])
   @@index([createdById])
 }
 
@@ -158,6 +160,7 @@ model MaintenanceRecord {
   equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
   recordedBy    User?             @relation(fields: [recordedById], references: [id], onDelete: SetNull)
 
+  @@unique([equipmentId, type, performedAt, description])
   @@index([equipmentId, performedAt])
   @@index([status])
   @@index([recordedById])

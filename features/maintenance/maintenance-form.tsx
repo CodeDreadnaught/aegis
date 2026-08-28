@@ -33,7 +33,11 @@ const ImportPreviewField = dynamic(() =>
 );
 
 type MaintenanceFormProps = {
-  action: (formData: FormData) => Promise<{ count: number } | void>;
+  action: (formData: FormData) => Promise<{
+    count: number;
+    processed?: number;
+    skippedDuplicates?: number;
+  } | void>;
   equipment: Array<{
     id: string;
     assetTag: string;
@@ -80,10 +84,7 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
         setManualRows([{ id: "maintenance-row-1" }]);
         toast.success({
           title: isSheetMode ? "Maintenance imported" : "Maintenance saved",
-          description:
-            result?.count && result.count > 1
-              ? `${result.count} maintenance records were saved.`
-              : "The maintenance record was saved.",
+          description: formatMaintenanceResult(result, isSheetMode),
         });
       } catch (error) {
         toast.error({
@@ -201,6 +202,40 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
       </CardContent>
     </Card>
   );
+}
+
+function formatMaintenanceResult(
+  result:
+    | {
+        count: number;
+        processed?: number;
+        skippedDuplicates?: number;
+      }
+    | void,
+  isSheetMode: boolean
+) {
+  const count = result?.count ?? 1;
+  const skippedDuplicates = result?.skippedDuplicates ?? 0;
+  const processed = result?.processed ?? count;
+  const recordLabel =
+    count === 1 ? "1 maintenance record" : `${count.toLocaleString()} maintenance records`;
+
+  if (isSheetMode && skippedDuplicates > 0) {
+    const duplicateLabel =
+      skippedDuplicates === 1
+        ? "1 duplicate skipped"
+        : `${skippedDuplicates.toLocaleString()} duplicates skipped`;
+
+    return `${processed.toLocaleString()} rows processed. ${recordLabel} saved, ${duplicateLabel}.`;
+  }
+
+  if (count > 1) {
+    return `${recordLabel} were saved.`;
+  }
+
+  return count === 1
+    ? "The maintenance record was saved."
+    : "No new maintenance records were saved.";
 }
 
 function MaintenanceFields({

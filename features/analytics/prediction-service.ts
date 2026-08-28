@@ -255,6 +255,7 @@ export async function processPendingPredictionJobs({
 async function enqueueMissingPredictionJobs(limit: number) {
   const readings = await prisma.operationalReading.findMany({
     where: {
+      predictionEligible: true,
       predictionJob: null,
       predictions: {
         none: {},

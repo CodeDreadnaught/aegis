@@ -69,6 +69,7 @@ async function hasEligiblePredictionWork() {
     }),
     prisma.operationalReading.findFirst({
       where: {
+        predictionEligible: true,
         predictionJob: null,
         predictions: {
           none: {},

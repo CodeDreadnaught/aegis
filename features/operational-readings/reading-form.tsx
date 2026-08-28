@@ -46,11 +46,14 @@ const ImportPreviewField = dynamic(() =>
 type ReadingFormProps = {
   action: (formData: FormData) => Promise<{
     count: number;
+    importMode?: "LIVE_IMPORT" | "HISTORICAL_IMPORT";
     predictions?: {
       created: number;
       failed: number;
       skipped: number;
     };
+    processed?: number;
+    skippedDuplicates?: number;
   } | void>;
   equipment: Array<{
     id: string;
@@ -220,6 +223,19 @@ export function ReadingForm({
           )}
           {isSensorImport && (
             <div className="grid min-w-0 gap-4 md:col-span-2">
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor="importMode">Import purpose</Label>
+                <select
+                  className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+                  defaultValue="LIVE_IMPORT"
+                  disabled={pending}
+                  id="importMode"
+                  name="importMode"
+                >
+                  <option value="LIVE_IMPORT">Live/current readings</option>
+                  <option value="HISTORICAL_IMPORT">Historical/reference readings</option>
+                </select>
+              </div>
               <ImportPreviewField
                 disabled={pending}
                 kind="operationalReadings"
@@ -350,22 +366,45 @@ function formatReadingResult(
   result:
     | {
         count: number;
+        importMode?: "LIVE_IMPORT" | "HISTORICAL_IMPORT";
         predictions?: {
           created: number;
           failed: number;
           skipped: number;
         };
+        processed?: number;
+        skippedDuplicates?: number;
       }
     | void,
   isSensorImport: boolean
 ) {
   const readingCount = result?.count ?? 1;
+  const processedCount = result?.processed ?? readingCount;
+  const skippedDuplicates = result?.skippedDuplicates ?? 0;
   const readingLabel =
     readingCount === 1
       ? "1 reading"
       : `${readingCount.toLocaleString()} readings`;
   const predictionCount = result?.predictions?.created ?? 0;
   const failedCount = result?.predictions?.failed ?? 0;
+
+  if (isSensorImport && skippedDuplicates > 0) {
+    const duplicateLabel =
+      skippedDuplicates === 1
+        ? "1 duplicate skipped"
+        : `${skippedDuplicates.toLocaleString()} duplicates skipped`;
+    const processedLabel = `${processedCount.toLocaleString()} rows processed`;
+
+    if (result?.importMode === "HISTORICAL_IMPORT") {
+      return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}. Historical rows were not queued for prediction.`;
+    }
+
+    return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}.`;
+  }
+
+  if (isSensorImport && result?.importMode === "HISTORICAL_IMPORT") {
+    return `${readingLabel} imported for history. No prediction jobs were queued.`;
+  }
 
   if (failedCount > 0) {
     return `${readingLabel} saved. ${failedCount.toLocaleString()} prediction runs need review.`;

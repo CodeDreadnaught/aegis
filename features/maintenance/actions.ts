@@ -14,7 +14,10 @@ import {
   normaliseEnumCell,
   validateMaintenanceImportRow,
 } from "@/features/imports/preview-validation";
-import { maintenanceRecordSchema } from "@/features/maintenance/validation";
+import {
+  maintenanceRecordSchema,
+  type MaintenanceRecordInput,
+} from "@/features/maintenance/validation";
 import { requirePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db/client";
 
@@ -58,42 +61,28 @@ export async function createMaintenanceRecordAction(formData: FormData) {
     throw new Error("Add at least one maintenance record.");
   }
 
-  const records = await prisma.$transaction(
-    inputs.map((input) =>
-      prisma.maintenanceRecord.create({
-        data: {
-          equipmentId: input.equipmentId,
-          type: input.type,
-          description: input.description,
-          performedAt: input.performedAt,
-          nextDueDate: input.nextDueDate,
-          status: input.status,
-          recordedById: actor.id,
-        },
-        select: {
-          id: true,
-          equipmentId: true,
-          status: true,
-        },
-      })
-    )
-  );
-
-  await prisma.auditLog.createMany({
-    data: records.map((record) => ({
-      userId: actor.id,
-      action:
-        entryMode === "sheet"
-          ? "IMPORT_MAINTENANCE_RECORDS"
-          : "CREATE_MAINTENANCE_RECORD",
-      entityType: "MaintenanceRecord",
-      entityId: record.id,
-      metadata: {
-        equipmentId: record.equipmentId,
-        status: record.status,
-      },
-    })),
+  const { records, skippedDuplicates } = await createUniqueMaintenanceRecords({
+    actorId: actor.id,
+    inputs,
   });
+
+  if (records.length) {
+    await prisma.auditLog.createMany({
+      data: records.map((record) => ({
+        userId: actor.id,
+        action:
+          entryMode === "sheet"
+            ? "IMPORT_MAINTENANCE_RECORDS"
+            : "CREATE_MAINTENANCE_RECORD",
+        entityType: "MaintenanceRecord",
+        entityId: record.id,
+        metadata: {
+          equipmentId: record.equipmentId,
+          status: record.status,
+        },
+      })),
+    });
+  }
 
   revalidatePath("/maintenance");
 
@@ -101,7 +90,11 @@ export async function createMaintenanceRecordAction(formData: FormData) {
     revalidatePath(`/equipment/${equipmentId}`);
   }
 
-  return { count: records.length };
+  return {
+    count: records.length,
+    processed: inputs.length,
+    skippedDuplicates,
+  };
 }
 
 async function parseMaintenanceImport(formData: FormData) {
@@ -173,9 +166,9 @@ async function parseMaintenanceImport(formData: FormData) {
 
   return rows.map((row, index) => {
     const rowNumber = index + 2;
-    const equipmentId =
-      row.equipmentId?.trim() ??
-      equipmentByAssetTag.get(row.assetTag?.trim() ?? "");
+    const explicitEquipmentId = row.equipmentId?.trim();
+    const assetTag = row.assetTag?.trim();
+    const equipmentId = explicitEquipmentId || equipmentByAssetTag.get(assetTag ?? "");
 
     if (!equipmentId) {
       throw new Error(
@@ -198,6 +191,98 @@ async function parseMaintenanceImport(formData: FormData) {
       });
     }
   });
+}
+
+async function createUniqueMaintenanceRecords({
+  actorId,
+  inputs,
+}: {
+  actorId: string;
+  inputs: MaintenanceRecordInput[];
+}) {
+  const existingKeys = await getExistingMaintenanceKeys(inputs);
+  const seenKeys = new Set(existingKeys);
+  const data = [];
+
+  for (const input of inputs) {
+    const key = maintenanceRecordKey(input);
+
+    if (seenKeys.has(key)) {
+      continue;
+    }
+
+    seenKeys.add(key);
+    data.push({
+      equipmentId: input.equipmentId,
+      type: input.type,
+      description: input.description,
+      performedAt: input.performedAt,
+      nextDueDate: input.nextDueDate,
+      status: input.status,
+      recordedById: actorId,
+    });
+  }
+
+  const records = data.length
+    ? await prisma.maintenanceRecord.createManyAndReturn({
+        data,
+        skipDuplicates: true,
+        select: {
+          id: true,
+          equipmentId: true,
+          status: true,
+        },
+      })
+    : [];
+
+  return {
+    records,
+    skippedDuplicates: inputs.length - records.length,
+  };
+}
+
+async function getExistingMaintenanceKeys(inputs: MaintenanceRecordInput[]) {
+  const equipmentIds = [...new Set(inputs.map((input) => input.equipmentId))];
+  const performedAts = [
+    ...new Set(inputs.map((input) => input.performedAt.getTime())),
+  ].map((timestamp) => new Date(timestamp));
+
+  if (!equipmentIds.length || !performedAts.length) {
+    return [];
+  }
+
+  const records = await prisma.maintenanceRecord.findMany({
+    where: {
+      equipmentId: {
+        in: equipmentIds,
+      },
+      performedAt: {
+        in: performedAts,
+      },
+    },
+    select: {
+      description: true,
+      equipmentId: true,
+      performedAt: true,
+      type: true,
+    },
+  });
+
+  return records.map(maintenanceRecordKey);
+}
+
+function maintenanceRecordKey(input: {
+  description: string;
+  equipmentId: string;
+  performedAt: Date;
+  type: string;
+}) {
+  return [
+    input.equipmentId,
+    input.type.trim().toLowerCase(),
+    input.performedAt.toISOString(),
+    input.description.trim().toLowerCase(),
+  ].join(":");
 }
 
 function formatImportRowErrors(

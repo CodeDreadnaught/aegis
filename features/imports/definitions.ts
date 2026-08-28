@@ -81,6 +81,7 @@ export const importDefinitions = {
       field("equipmentId", "Equipment ID", false, ["equipment_id"]),
       field("assetTag", "Asset tag", false, ["asset_tag", "equipmentAssetTag"]),
       field("recordedAt", "Recorded at", true, ["recorded_at", "timestamp"]),
+      field("sourceType", "Source type", false, ["source_type", "provenance"]),
       field("type", "Product type", false, ["productType", "product_type"]),
       field("airTemperatureKelvin", "Air temperature (K)", true, [
         "air_temperature_k",
@@ -184,6 +185,7 @@ function sampleValue(canonical: string) {
     pressureBar: "46",
     processTemperatureKelvin: "307.15",
     recordedAt: "2026-08-25T12:30:00",
+    sourceType: "REFERENCE_DATASET",
     rotationalSpeedRpm: "1450",
     serialNumber: "SN-014",
     status: "ACTIVE",

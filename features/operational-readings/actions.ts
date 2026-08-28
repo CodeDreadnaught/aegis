@@ -19,51 +19,56 @@ import {
   formatOperationalReadingValidationError,
   parseOperationalReadingForCategory,
   parseOperationalReadingRows,
+  type OperationalReadingInput,
 } from "@/features/operational-readings/validation";
 import { requirePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db/client";
+
+type OperationalReadingImportMode = "LIVE_IMPORT" | "HISTORICAL_IMPORT";
+
+type CreatedOperationalReading = {
+  equipmentId: string;
+  id: string;
+  sourceType: string;
+};
 
 export async function createOperationalReadingAction(formData: FormData) {
   const actor = await requirePermission("recordOperationalData");
   const sourceType = formData.get("sourceType") || "MANUAL_ENTRY";
 
   if (sourceType === "SENSOR_IMPORT") {
+    const importMode = parseImportMode(formData);
     const importedReadings = await parseSensorImport(formData);
-    const readings = await prisma.operationalReading.createManyAndReturn({
-      data: importedReadings.map((input) => ({
-        equipmentId: input.equipmentId,
-        recordedAt: input.recordedAt,
-        sourceType: "SENSOR_IMPORT",
-        createdById: actor.id,
-        parameters: buildReadingParameters(input),
-      })),
-      select: {
-        id: true,
-        equipmentId: true,
-      },
-    });
-
-    await prisma.auditLog.createMany({
-      data: readings.map((reading) => ({
-        userId: actor.id,
-        action: "IMPORT_OPERATIONAL_READINGS",
-        entityType: "OperationalReading",
-        entityId: reading.id,
-        metadata: {
-          equipmentId: reading.equipmentId,
-          sourceType: "SENSOR_IMPORT",
-        },
-      })),
-    });
-
-    const predictionResults = await createPredictionsForReadings({
+    const { readings, skippedDuplicates } = await createUniqueOperationalReadings({
       actorId: actor.id,
-      readingIds: readings.map((reading) => reading.id),
+      inputs: importedReadings,
+      predictionEligible: importMode === "LIVE_IMPORT",
     });
+
+    await createOperationalReadingAuditLogs({
+      action: "IMPORT_OPERATIONAL_READINGS",
+      actorId: actor.id,
+      importMode,
+      readings,
+    });
+
+    const predictionResults =
+      importMode === "LIVE_IMPORT"
+        ? await createPredictionsForReadings({
+            actorId: actor.id,
+            readingIds: readings.map((reading) => reading.id),
+          })
+        : undefined;
 
     revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
 
-    return { count: readings.length, predictions: predictionResults };
+    return {
+      count: readings.length,
+      importMode,
+      predictions: predictionResults,
+      processed: importedReadings.length,
+      skippedDuplicates,
+    };
   }
 
   const categoriesByEquipmentId = await getCategoriesForFormReadings(formData);
@@ -73,31 +78,17 @@ export async function createOperationalReadingAction(formData: FormData) {
     throw new Error("Add at least one operational reading.");
   }
 
-  const readings = await prisma.operationalReading.createManyAndReturn({
-    data: inputs.map((input) => ({
-      equipmentId: input.equipmentId,
-      recordedAt: input.recordedAt,
-      sourceType: input.sourceType,
-      createdById: actor.id,
-      parameters: buildReadingParameters(input),
-    })),
-    select: {
-      id: true,
-      equipmentId: true,
-    },
+  const { readings, skippedDuplicates } = await createUniqueOperationalReadings({
+    actorId: actor.id,
+    inputs,
+    predictionEligible: true,
   });
 
-  await prisma.auditLog.createMany({
-    data: readings.map((reading) => ({
-      userId: actor.id,
-      action: "CREATE_OPERATIONAL_READING",
-      entityType: "OperationalReading",
-      entityId: reading.id,
-      metadata: {
-        equipmentId: reading.equipmentId,
-        sourceType: "MANUAL_ENTRY",
-      },
-    })),
+  await createOperationalReadingAuditLogs({
+    action: "CREATE_OPERATIONAL_READING",
+    actorId: actor.id,
+    importMode: "LIVE_IMPORT",
+    readings,
   });
 
   const predictionResults = await createPredictionsForReadings({
@@ -107,7 +98,13 @@ export async function createOperationalReadingAction(formData: FormData) {
 
   revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
 
-  return { count: readings.length, predictions: predictionResults };
+  return {
+    count: readings.length,
+    importMode: "LIVE_IMPORT",
+    predictions: predictionResults,
+    processed: inputs.length,
+    skippedDuplicates,
+  };
 }
 
 async function parseSensorImport(formData: FormData) {
@@ -177,7 +174,7 @@ async function parseSensorImport(formData: FormData) {
       return parseOperationalReadingForCategory(equipment.category, {
         equipmentId: equipment.id,
         recordedAt: row.recordedAt,
-        sourceType: "SENSOR_IMPORT",
+        sourceType: row.sourceType?.trim() || "SENSOR_IMPORT",
         type: row.type || "M",
         airTemperatureKelvin: row.airTemperatureKelvin,
         processTemperatureKelvin: row.processTemperatureKelvin,
@@ -194,6 +191,115 @@ async function parseSensorImport(formData: FormData) {
         `Row ${rowNumber} - ${formatOperationalReadingValidationError(error)}`
       );
     }
+  });
+}
+
+async function createUniqueOperationalReadings({
+  actorId,
+  inputs,
+  predictionEligible,
+}: {
+  actorId: string;
+  inputs: OperationalReadingInput[];
+  predictionEligible: boolean;
+}) {
+  const existingKeys = await getExistingOperationalReadingKeys(inputs);
+  const seenKeys = new Set(existingKeys);
+  const data = [];
+
+  for (const input of inputs) {
+    const key = operationalReadingKey(input.equipmentId, input.recordedAt);
+
+    if (seenKeys.has(key)) {
+      continue;
+    }
+
+    seenKeys.add(key);
+    data.push({
+      equipmentId: input.equipmentId,
+      recordedAt: input.recordedAt,
+      sourceType: input.sourceType,
+      predictionEligible,
+      createdById: actorId,
+      parameters: buildReadingParameters(input),
+    });
+  }
+
+  const readings = data.length
+    ? await prisma.operationalReading.createManyAndReturn({
+        data,
+        skipDuplicates: true,
+        select: {
+          id: true,
+          equipmentId: true,
+          sourceType: true,
+        },
+      })
+    : [];
+
+  return {
+    readings,
+    skippedDuplicates: inputs.length - readings.length,
+  };
+}
+
+async function getExistingOperationalReadingKeys(inputs: OperationalReadingInput[]) {
+  const equipmentIds = [...new Set(inputs.map((input) => input.equipmentId))];
+  const recordedAts = [
+    ...new Set(inputs.map((input) => input.recordedAt.getTime())),
+  ].map((timestamp) => new Date(timestamp));
+
+  if (!equipmentIds.length || !recordedAts.length) {
+    return [];
+  }
+
+  const existingReadings = await prisma.operationalReading.findMany({
+    where: {
+      equipmentId: {
+        in: equipmentIds,
+      },
+      recordedAt: {
+        in: recordedAts,
+      },
+    },
+    select: {
+      equipmentId: true,
+      recordedAt: true,
+    },
+  });
+
+  return existingReadings.map((reading) =>
+    operationalReadingKey(reading.equipmentId, reading.recordedAt)
+  );
+}
+
+async function createOperationalReadingAuditLogs({
+  action,
+  actorId,
+  importMode,
+  readings,
+}: {
+  action: "CREATE_OPERATIONAL_READING" | "IMPORT_OPERATIONAL_READINGS";
+  actorId: string;
+  importMode: OperationalReadingImportMode;
+  readings: CreatedOperationalReading[];
+}) {
+  if (!readings.length) {
+    return;
+  }
+
+  await prisma.auditLog.createMany({
+    data: readings.map((reading) => ({
+      userId: actorId,
+      action,
+      entityType: "OperationalReading",
+      entityId: reading.id,
+      metadata: {
+        equipmentId: reading.equipmentId,
+        importMode,
+        sourceType: reading.sourceType,
+      },
+    })),
   });
 }
 
@@ -270,6 +376,16 @@ async function getEquipmentForSensorImportRows(rows: Array<Record<string, string
     ),
     byId: new Map(equipmentRecords.map((equipment) => [equipment.id, equipment])),
   };
+}
+
+function parseImportMode(formData: FormData): OperationalReadingImportMode {
+  return formData.get("importMode") === "HISTORICAL_IMPORT"
+    ? "HISTORICAL_IMPORT"
+    : "LIVE_IMPORT";
+}
+
+function operationalReadingKey(equipmentId: string, recordedAt: Date) {
+  return `${equipmentId}:${recordedAt.toISOString()}`;
 }
 
 function revalidateOperationalReadingPaths(equipmentIds: string[]) {

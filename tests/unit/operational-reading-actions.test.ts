@@ -12,6 +12,7 @@ const { createPredictionsForReadings, mockPrisma, revalidatePath, requirePermiss
       },
       operationalReading: {
         createManyAndReturn: vi.fn(),
+        findMany: vi.fn(),
       },
     },
     revalidatePath: vi.fn(),
@@ -36,8 +37,9 @@ describe("operational reading actions", () => {
         id: "equipment_1",
       },
     ]);
+    mockPrisma.operationalReading.findMany.mockResolvedValue([]);
     mockPrisma.operationalReading.createManyAndReturn.mockResolvedValue([
-      { equipmentId: "equipment_1", id: "reading_1" },
+      { equipmentId: "equipment_1", id: "reading_1", sourceType: "REFERENCE_DATASET" },
     ]);
     mockPrisma.auditLog.createMany.mockResolvedValue({ count: 1 });
     createPredictionsForReadings.mockResolvedValue({
@@ -47,31 +49,26 @@ describe("operational reading actions", () => {
     });
   });
 
-  it("imports historical Christmas Tree telemetry with zero RPM and torque", async () => {
+  it("imports historical Christmas Tree telemetry with zero RPM and torque without predictions", async () => {
     const { createOperationalReadingAction } = await import(
       "@/features/operational-readings/actions"
     );
     const formData = new FormData();
     const csv = [
       "assetTag,recordedAt,productType,airTemperatureK,processTemperatureK,rotationalSpeedRpm,torqueNm,toolWearMin,pressureBar,vibrationMmS,flowRateBpd,operatingHours,sourceType",
-      "XTR-001,2026-08-25T12:30:00,M,298.15,307.15,0,0,0,46,0,1145,1280,SENSOR_IMPORT",
+      "XTR-001,2026-08-25T12:30:00,M,298.15,307.15,0,0,0,46,0,1145,1280,REFERENCE_DATASET",
     ].join("\n");
 
     formData.set("sourceType", "SENSOR_IMPORT");
+    formData.set("importMode", "HISTORICAL_IMPORT");
     formData.set("sensorImportFile", new File([csv], "readings.csv", { type: "text/csv" }));
 
     await expect(createOperationalReadingAction(formData)).resolves.toMatchObject({
       count: 1,
+      importMode: "HISTORICAL_IMPORT",
+      processed: 1,
+      skippedDuplicates: 0,
     });
-    expect(mockPrisma.equipment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        select: {
-          assetTag: true,
-          category: true,
-          id: true,
-        },
-      })
-    );
     expect(mockPrisma.operationalReading.createManyAndReturn).toHaveBeenCalledWith({
       data: [
         expect.objectContaining({
@@ -81,19 +78,77 @@ describe("operational reading actions", () => {
             torqueNm: 0,
             toolWearMinutes: 0,
           }),
-          sourceType: "SENSOR_IMPORT",
+          predictionEligible: false,
+          sourceType: "REFERENCE_DATASET",
         }),
       ],
+      skipDuplicates: true,
       select: {
         equipmentId: true,
         id: true,
+        sourceType: true,
       },
     });
+    expect(createPredictionsForReadings).not.toHaveBeenCalled();
+    expect(revalidatePath).toHaveBeenCalledWith("/operational-data");
+  });
+
+  it("keeps live sensor imports prediction eligible", async () => {
+    mockPrisma.operationalReading.createManyAndReturn.mockResolvedValueOnce([
+      { equipmentId: "equipment_1", id: "reading_1", sourceType: "SENSOR_IMPORT" },
+    ]);
+    const { createOperationalReadingAction } = await import(
+      "@/features/operational-readings/actions"
+    );
+    const formData = new FormData();
+    const csv = [
+      "assetTag,recordedAt,productType,airTemperatureK,processTemperatureK,rotationalSpeedRpm,torqueNm,toolWearMin,pressureBar,vibrationMmS,flowRateBpd,operatingHours",
+      "XTR-001,2026-08-25T12:30:00,M,298.15,307.15,0,0,0,46,0,1145,1280",
+    ].join("\n");
+
+    formData.set("sourceType", "SENSOR_IMPORT");
+    formData.set("sensorImportFile", new File([csv], "readings.csv", { type: "text/csv" }));
+
+    await expect(createOperationalReadingAction(formData)).resolves.toMatchObject({
+      count: 1,
+      importMode: "LIVE_IMPORT",
+    });
+    expect(mockPrisma.operationalReading.createManyAndReturn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [expect.objectContaining({ predictionEligible: true })],
+      })
+    );
     expect(createPredictionsForReadings).toHaveBeenCalledWith({
       actorId: "operator_1",
       readingIds: ["reading_1"],
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/operational-data");
+  });
+
+  it("skips duplicate historical readings by equipment and timestamp", async () => {
+    mockPrisma.operationalReading.findMany.mockResolvedValueOnce([
+      { equipmentId: "equipment_1", recordedAt: new Date("2026-08-25T12:30:00.000Z") },
+    ]);
+    const { createOperationalReadingAction } = await import(
+      "@/features/operational-readings/actions"
+    );
+    const formData = new FormData();
+    const csv = [
+      "assetTag,recordedAt,productType,airTemperatureK,processTemperatureK,rotationalSpeedRpm,torqueNm,toolWearMin,pressureBar,vibrationMmS,flowRateBpd,operatingHours,sourceType",
+      "XTR-001,2026-08-25T12:30:00Z,M,298.15,307.15,0,0,0,46,0,1145,1280,REFERENCE_DATASET",
+    ].join("\n");
+
+    formData.set("sourceType", "SENSOR_IMPORT");
+    formData.set("importMode", "HISTORICAL_IMPORT");
+    formData.set("sensorImportFile", new File([csv], "readings.csv", { type: "text/csv" }));
+
+    await expect(createOperationalReadingAction(formData)).resolves.toMatchObject({
+      count: 0,
+      processed: 1,
+      skippedDuplicates: 1,
+    });
+    expect(mockPrisma.operationalReading.createManyAndReturn).not.toHaveBeenCalled();
+    expect(mockPrisma.auditLog.createMany).not.toHaveBeenCalled();
+    expect(createPredictionsForReadings).not.toHaveBeenCalled();
   });
 
   it("rejects sensor imports that cannot identify equipment per row", async () => {

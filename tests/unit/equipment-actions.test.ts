@@ -101,6 +101,7 @@ describe("equipment actions", () => {
       {
         equipmentId: "equipment_1",
         id: "reading_1",
+        sourceType: "MANUAL_ENTRY",
       },
     ]);
     mockPrisma.auditLog.createMany.mockResolvedValue({ count: 1 });
@@ -213,6 +214,7 @@ describe("equipment actions", () => {
           createdById: "admin_1",
           equipmentId: "equipment_1",
           sourceType: "MANUAL_ENTRY",
+          predictionEligible: true,
           parameters: expect.objectContaining({
             airTemperatureKelvin: 300,
             pressureBar: 52,
@@ -223,6 +225,7 @@ describe("equipment actions", () => {
       select: {
         equipmentId: true,
         id: true,
+        sourceType: true,
       },
     });
     expect(createPredictionsForReadings).toHaveBeenCalledWith({

@@ -12,6 +12,16 @@ export const productTypes = ["H", "L", "M"] as const;
 
 export const sourceTypes = ["MANUAL_ENTRY", "SENSOR_IMPORT"] as const;
 
+const sourceTypeSchema = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() ? value.trim().toUpperCase() : "MANUAL_ENTRY",
+  z
+    .string()
+    .min(1, "Source type is required.")
+    .max(80, "Source type is too long.")
+    .regex(/^[A-Z][A-Z0-9_]*$/, "Source type must use uppercase letters, numbers, and underscores.")
+);
+
 const optionalNumber = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.coerce.number().finite().optional()
@@ -20,7 +30,7 @@ const optionalNumber = z.preprocess(
 export const operationalReadingSchema = z.object({
   equipmentId: z.string().trim().min(1, "Equipment is required."),
   recordedAt: z.coerce.date(),
-  sourceType: z.enum(sourceTypes).default("MANUAL_ENTRY"),
+  sourceType: sourceTypeSchema.default("MANUAL_ENTRY"),
   type: z.enum(productTypes),
   airTemperatureKelvin: optionalNumber,
   processTemperatureKelvin: optionalNumber,
@@ -156,7 +166,7 @@ export function validateOperationalReadingPreview(row: Record<string, string>) {
     operationalReadingSchema.parse({
       equipmentId: row.equipmentId || row.assetTag || "preview-equipment",
       recordedAt: row.recordedAt || new Date(),
-      sourceType: "SENSOR_IMPORT",
+      sourceType: row.sourceType || "SENSOR_IMPORT",
       type: row.type || "M",
       airTemperatureKelvin: row.airTemperatureKelvin,
       processTemperatureKelvin: row.processTemperatureKelvin,

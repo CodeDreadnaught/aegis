@@ -44,6 +44,13 @@ describe("prediction recovery worker", () => {
       total: 0,
     });
 
+    expect(mockPrisma.operationalReading.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          predictionEligible: true,
+        }),
+      })
+    );
     expect(processPendingPredictionJobs).not.toHaveBeenCalled();
   });
 
