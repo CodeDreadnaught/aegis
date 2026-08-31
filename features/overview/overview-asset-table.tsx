@@ -102,6 +102,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           <TableHeader>
             <TableRow className="border-zinc-200 bg-zinc-50/70">
               <TableHead>Asset</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Health</TableHead>
               <TableHead>Failure</TableHead>
               <TableHead>Risk</TableHead>
@@ -122,6 +123,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                     <p className="text-xs text-zinc-400">{row.location}</p>
                   </div>
                 </TableCell>
+                <TableCell className="text-zinc-500">{row.category}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">

@@ -182,17 +182,16 @@ function readParameter(parameters: unknown, key: string) {
 
 
 function buildLinePoints(values: number[]) {
-  const left = 34;
-  const width = 646;
-  const height = 230;
-  const top = 12;
+  const width = 640;
+  const height = 224;
+  const top = 8;
   const fallback = values.length ? values : [0];
   const max = Math.max(100, ...fallback);
   const coordinates = fallback.map((value, index) => {
     const x =
       fallback.length === 1
-        ? left + width / 2
-        : left + (index / (fallback.length - 1)) * width;
+        ? width / 2
+        : (index / (fallback.length - 1)) * width;
     const y = top + height - (Math.min(value, max) / max) * height;
 
     return {
@@ -202,7 +201,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
+    ? `${path} L ${width},${height + top} L 0,${height + top} Z`
     : "";
 
   return {

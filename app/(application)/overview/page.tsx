@@ -644,86 +644,83 @@ function LineTrend({
           </span>
         </div>
       </div>
-      <svg
-        aria-label="Prediction health and failure risk trend"
-        className="h-64 w-full overflow-visible"
-        preserveAspectRatio="none"
-        role="img"
-        viewBox="0 0 680 260"
-      >
-        <defs>
-          <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
-            <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0, 1, 2, 3, 4].map(line => (
-          <g key={line}>
+      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3">
+        <div className="grid h-64 grid-rows-5 py-1 text-right text-xs font-medium text-zinc-500">
+          {[100, 75, 50, 25, 0].map(label => (
+            <span className="leading-none" key={label}>{label}%</span>
+          ))}
+        </div>
+        <svg
+          aria-label="Prediction health and failure risk trend"
+          className="h-64 w-full overflow-hidden"
+          preserveAspectRatio="none"
+          role="img"
+          viewBox="0 0 640 240"
+        >
+          <defs>
+            <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
+              <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0, 1, 2, 3, 4].map(line => (
             <line
+              key={line}
               stroke="#e4e4e7"
               strokeDasharray="5 8"
               strokeWidth="1"
-              x1="34"
-              x2="680"
-              y1={line * 60 + 10}
-              y2={line * 60 + 10}
+              x1="0"
+              x2="640"
+              y1={line * 56 + 8}
+              y2={line * 56 + 8}
             />
-            <text
-              fill="#71717a"
-              fontSize="10"
-              textAnchor="end"
-              x="24"
-              y={line * 60 + 14}
-            >
-              {100 - line * 25}%
-            </text>
+          ))}
+          <path
+            d={healthPoints.area}
+            data-overview-live="telemetry-health-area"
+            fill="url(#health-fill)"
+            style={{ opacity: hasData ? 1 : 0 }}
+          />
+          <path
+            className="aegis-line-trace"
+            data-overview-live="telemetry-health-path"
+            d={healthPoints.path}
+            fill="none"
+            stroke="#a8ff9f"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="4"
+            style={{ opacity: hasData ? 1 : 0 }}
+          />
+          <path
+            className="aegis-line-trace aegis-line-trace-delayed"
+            data-overview-live="telemetry-risk-path"
+            d={failurePoints.path}
+            fill="none"
+            stroke="#18181b"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            style={{ opacity: hasData ? 1 : 0 }}
+          />
+          <g data-overview-live="telemetry-dots">
+            {hasData &&
+              healthPoints.coordinates.map(point => (
+                <circle
+                  className="aegis-chart-dot"
+                  cx={point.x}
+                  cy={point.y}
+                  fill="#a8ff9f"
+                  key={point.x + "-" + point.y}
+                  r="4"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                />
+              ))}
           </g>
-        ))}
-        <path
-          d={healthPoints.area}
-          data-overview-live="telemetry-health-area"
-          fill="url(#health-fill)"
-          style={{ opacity: hasData ? 1 : 0 }}
-        />
-        <path
-          className="aegis-line-trace"
-          data-overview-live="telemetry-health-path"
-          d={healthPoints.path}
-          fill="none"
-          stroke="#a8ff9f"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="4"
-          style={{ opacity: hasData ? 1 : 0 }}
-        />
-        <path
-          className="aegis-line-trace aegis-line-trace-delayed"
-          data-overview-live="telemetry-risk-path"
-          d={failurePoints.path}
-          fill="none"
-          stroke="#18181b"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-          style={{ opacity: hasData ? 1 : 0 }}
-        />
-        <g data-overview-live="telemetry-dots">
-          {hasData &&
-            healthPoints.coordinates.map(point => (
-              <circle
-                className="aegis-chart-dot"
-                cx={point.x}
-                cy={point.y}
-                fill="#a8ff9f"
-                key={`${point.x}-${point.y}`}
-                r="4"
-                stroke="#ffffff"
-                strokeWidth="2"
-              />
-            ))}
-        </g>
-      </svg>
-      <div className="mt-2 flex items-center justify-between text-xs font-medium text-zinc-500">
+        </svg>
+      </div>
+      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-xs font-medium text-zinc-500">
         <span>Oldest prediction</span>
         <span>Latest prediction</span>
       </div>
@@ -1089,17 +1086,16 @@ function buildSparklinePoints(values: number[]) {
   };
 }
 function buildLinePoints(values: number[]) {
-  const left = 34;
-  const width = 646;
-  const height = 230;
-  const top = 12;
+  const width = 640;
+  const height = 224;
+  const top = 8;
   const fallback = values.length ? values : [0];
   const max = Math.max(100, ...fallback);
   const coordinates = fallback.map((value, index) => {
     const x =
       fallback.length === 1
-        ? left + width / 2
-        : left + (index / (fallback.length - 1)) * width;
+        ? width / 2
+        : (index / (fallback.length - 1)) * width;
     const y = top + height - (Math.min(value, max) / max) * height;
 
     return {
@@ -1109,7 +1105,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
+    ? `${path} L ${width},${height + top} L 0,${height + top} Z`
     : "";
 
   return {
