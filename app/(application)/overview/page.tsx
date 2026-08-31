@@ -483,8 +483,8 @@ export default async function OverviewPage({
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
-                <CardTitle>Telemetry Flow</CardTitle>
-                <p className="text-sm text-zinc-500">Health and failure risk</p>
+                <CardTitle>Prediction Trend</CardTitle>
+                <p className="text-sm text-zinc-500">Health score and failure risk</p>
               </div>
               <Badge
                 className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
@@ -645,7 +645,7 @@ function LineTrend({
         </div>
       </div>
       <svg
-        aria-label="Predictive telemetry trend"
+        aria-label="Prediction health and failure risk trend"
         className="h-64 w-full overflow-visible"
         preserveAspectRatio="none"
         role="img"
@@ -724,8 +724,8 @@ function LineTrend({
         </g>
       </svg>
       <div className="mt-2 flex items-center justify-between text-xs font-medium text-zinc-500">
-        <span>Oldest</span>
-        <span>Latest</span>
+        <span>Oldest prediction</span>
+        <span>Latest prediction</span>
       </div>
     </div>
   );

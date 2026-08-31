@@ -18,7 +18,6 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     maintenanceStatusCounts,
     predictionRunCount,
     predictionAssetGroups,
-    latestPredictions,
     predictionTrend,
     latestReadings,
     latestMaintenance,
@@ -51,37 +50,6 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     prisma.prediction.groupBy({
       by: ["equipmentId"],
       where: { createdAt: { gte: since } },
-    }),
-    prisma.prediction.findMany({
-      where: { createdAt: { gte: since } },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      select: {
-        id: true,
-        failureProbability: true,
-        riskLevel: true,
-        healthScore: true,
-        equipmentId: true,
-        modelVersion: true,
-        createdAt: true,
-        recommendations: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: {
-            message: true,
-            priority: true,
-          },
-        },
-        equipment: {
-          select: {
-            id: true,
-            assetTag: true,
-            name: true,
-            category: true,
-            location: true,
-          },
-        },
-      },
     }),
     prisma.prediction.findMany({
       where: { createdAt: { gte: since } },
@@ -163,6 +131,61 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
       },
     }),
   ]);
+
+  const latestPredictionGroups = await prisma.prediction.groupBy({
+    by: ["equipmentId"],
+    where: { createdAt: { gte: since } },
+    _max: { createdAt: true },
+  });
+  const latestPredictionFilters = latestPredictionGroups.flatMap((group) =>
+    group._max.createdAt
+      ? [{ equipmentId: group.equipmentId, createdAt: group._max.createdAt }]
+      : [],
+  );
+  const latestPredictionCandidates = latestPredictionFilters.length
+    ? await prisma.prediction.findMany({
+        where: { OR: latestPredictionFilters },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          failureProbability: true,
+          riskLevel: true,
+          healthScore: true,
+          equipmentId: true,
+          modelVersion: true,
+          createdAt: true,
+          recommendations: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              message: true,
+              priority: true,
+            },
+          },
+          equipment: {
+            select: {
+              id: true,
+              assetTag: true,
+              name: true,
+              category: true,
+              location: true,
+            },
+          },
+        },
+      })
+    : [];
+  const latestPredictionByAsset = new Map<
+    string,
+    (typeof latestPredictionCandidates)[number]
+  >();
+
+  for (const prediction of latestPredictionCandidates) {
+    if (!latestPredictionByAsset.has(prediction.equipmentId)) {
+      latestPredictionByAsset.set(prediction.equipmentId, prediction);
+    }
+  }
+
+  const latestPredictions = Array.from(latestPredictionByAsset.values());
 
   const riskCounts = latestPredictions.reduce(
     (summary, prediction) => {
