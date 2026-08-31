@@ -392,11 +392,9 @@ export default async function OverviewPage({
                 <CardTitle>Asset Mix</CardTitle>
                 <p className="text-sm text-zinc-500">Equipment distribution</p>
               </div>
-              <div className="rounded-full bg-zinc-100 p-1 text-xs font-semibold text-zinc-500">
-                <span className="rounded-full bg-[#2f9da7] px-3 py-1 text-white">
-                  {stats.equipmentCount} assets
-                </span>
-              </div>
+              <span className="inline-flex min-w-fit items-center whitespace-nowrap rounded-full bg-[#2f9da7] px-3 py-1 text-xs font-semibold leading-none text-white">
+                {stats.equipmentCount} assets
+              </span>
             </CardHeader>
             <CardContent className="p-5 pt-1">
               {assetMixRows.length ? (
@@ -1084,3 +1082,7 @@ function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
     return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
   }, "");
 }
+
+
+
+

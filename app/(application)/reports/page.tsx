@@ -9,6 +9,7 @@ import {
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { csvDataHref, toCsv } from "@/features/reports/csv";
 import { getReportsWorkspace } from "@/features/reports/queries";
+import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -33,9 +35,23 @@ const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
   month: "short",
 });
 
-export default async function ReportsPage() {
+type ReportsPageProps = {
+  searchParams?: Promise<{
+    alertsPage?: string | string[];
+    equipmentPage?: string | string[];
+    maintenancePage?: string | string[];
+    predictionsPage?: string | string[];
+  }>;
+};
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   await requirePermission("viewReports");
+  const params = await searchParams;
   const reports = await getReportsWorkspace();
+  const paginatedEquipment = paginateItems(reports.equipment, parsePageParam(params?.equipmentPage));
+  const paginatedMaintenance = paginateItems(reports.maintenance, parsePageParam(params?.maintenancePage));
+  const paginatedPredictions = paginateItems(reports.predictions, parsePageParam(params?.predictionsPage));
+  const paginatedAlerts = paginateItems(reports.alerts, parsePageParam(params?.alertsPage));
 
   const equipmentCsv = toCsv(
     reports.equipment.map((equipment) => ({
@@ -137,7 +153,7 @@ export default async function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.equipment.slice(0, 8).map((equipment) => (
+              {paginatedEquipment.items.map((equipment) => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={equipment.assetTag}
@@ -170,6 +186,12 @@ export default async function ReportsPage() {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls
+            page={paginatedEquipment.currentPage}
+            pageParam="equipmentPage"
+            searchParams={params}
+            total={paginatedEquipment.total}
+          />
         </ReportPanel>
 
         <ReportPanel
@@ -190,7 +212,7 @@ export default async function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.maintenance.slice(0, 8).map((record) => (
+              {paginatedMaintenance.items.map((record) => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${record.equipment.assetTag}-${record.performedAt.toISOString()}`}
@@ -225,6 +247,12 @@ export default async function ReportsPage() {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls
+            page={paginatedMaintenance.currentPage}
+            pageParam="maintenancePage"
+            searchParams={params}
+            total={paginatedMaintenance.total}
+          />
         </ReportPanel>
 
         <ReportPanel
@@ -245,7 +273,7 @@ export default async function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.predictions.slice(0, 8).map((prediction) => (
+              {paginatedPredictions.items.map((prediction) => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${prediction.equipment.assetTag}-${prediction.createdAt.toISOString()}`}
@@ -273,6 +301,12 @@ export default async function ReportsPage() {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls
+            page={paginatedPredictions.currentPage}
+            pageParam="predictionsPage"
+            searchParams={params}
+            total={paginatedPredictions.total}
+          />
         </ReportPanel>
 
         <ReportPanel
@@ -293,7 +327,7 @@ export default async function ReportsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.alerts.slice(0, 8).map((alert) => (
+              {paginatedAlerts.items.map((alert) => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${alert.equipment.assetTag}-${alert.createdAt.toISOString()}`}
@@ -326,6 +360,12 @@ export default async function ReportsPage() {
               ))}
             </TableBody>
           </Table>
+          <PaginationControls
+            page={paginatedAlerts.currentPage}
+            pageParam="alertsPage"
+            searchParams={params}
+            total={paginatedAlerts.total}
+          />
         </ReportPanel>
       </section>
     </div>
@@ -403,3 +443,4 @@ function ReportPanel({
     </Card>
   );
 }
+

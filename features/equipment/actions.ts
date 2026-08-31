@@ -286,6 +286,35 @@ export async function recommissionEquipmentAction(id: string) {
   revalidatePath(`/equipment/${id}`);
 }
 
+export async function deleteEquipmentBulkAction(formData: FormData) {
+  const actor = await requirePermission("deleteEquipment");
+  const equipmentIds = Array.from(
+    new Set(
+      formData
+        .getAll("equipmentId")
+        .map((value) => String(value).trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (!equipmentIds.length) {
+    throw new Error("Select at least one equipment record to delete.");
+  }
+
+  for (const equipmentId of equipmentIds) {
+    await deleteEquipmentWithDependencies(equipmentId, actor.id);
+  }
+
+  revalidatePath("/equipment");
+  revalidatePath("/overview");
+  revalidatePath("/operational-data");
+  revalidatePath("/maintenance");
+  revalidatePath("/analytics");
+  revalidatePath("/alerts");
+  revalidatePath("/reports");
+
+  return { count: equipmentIds.length };
+}
 export async function deleteEquipmentWithDependencies(
   id: string,
   actorId: string | null = null

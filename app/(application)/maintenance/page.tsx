@@ -8,6 +8,7 @@ import {
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -25,6 +26,7 @@ import {
   formatMaintenanceStatus,
   isOverdue,
 } from "@/features/maintenance/validation";
+import { parsePageParam } from "@/lib/pagination";
 import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
@@ -37,10 +39,16 @@ const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
   month: "short",
 });
 
-export default async function MaintenancePage() {
+type MaintenancePageProps = {
+  searchParams?: Promise<{ page?: string | string[] }>;
+};
+
+export default async function MaintenancePage({ searchParams }: MaintenancePageProps) {
   const user = await requirePermission("viewMaintenance");
+  const params = await searchParams;
+  const page = parsePageParam(params?.page);
   const canRecordMaintenance = can(user.role, "recordMaintenance");
-  const { equipment, records, totals } = await getMaintenanceWorkspace();
+  const { equipment, records, totals } = await getMaintenanceWorkspace(page);
   const now = new Date();
   const activeAssetCount = equipment.length;
   const overdueCount = records.filter((record) =>
@@ -115,12 +123,13 @@ export default async function MaintenancePage() {
               className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
               variant="outline"
             >
-              {records.length} records
+              {totals.total} records
             </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {records.length ? (
-              <div className="overflow-x-auto px-4 pb-4">
+              <>
+                <div className="overflow-x-auto px-4 pb-4">
                 <Table className="min-w-[980px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
@@ -185,6 +194,12 @@ export default async function MaintenancePage() {
                   </TableBody>
                 </Table>
               </div>
+              <PaginationControls
+                page={page}
+                searchParams={params}
+                total={totals.total}
+              />
+            </>
             ) : (
               <EmptyState icon={Wrench} label="No maintenance records" />
             )}
@@ -417,3 +432,4 @@ function percentage(value: number, total: number) {
 
   return Math.round((value / total) * 100);
 }
+

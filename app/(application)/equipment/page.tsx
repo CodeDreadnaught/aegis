@@ -12,6 +12,8 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { Badge } from "@/components/ui/badge";
+import { PaginationControls } from "@/components/table-pagination";
+import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -28,6 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { deleteEquipmentBulkAction } from "@/features/equipment/actions";
+import { EquipmentBulkDeleteForm } from "@/features/equipment/equipment-bulk-delete-form";
 import { getEquipmentList } from "@/features/equipment/queries";
 import {
   equipmentCategories,
@@ -50,6 +54,7 @@ type EquipmentPageProps = {
   searchParams?: Promise<{
     category?: string | string[];
     q?: string | string[];
+    page?: string | string[];
     status?: string | string[];
   }>;
 };
@@ -64,11 +69,14 @@ export default async function EquipmentPage({
 }: EquipmentPageProps) {
   const user = await requirePermission("viewEquipment");
   const canCreateEquipment = can(user.role, "createEquipment");
+  const canDeleteEquipment = can(user.role, "deleteEquipment");
   const params = await searchParams;
   const query = getParam(params?.q);
+  const page = parsePageParam(params?.page);
   const status = parseStatus(getParam(params?.status));
   const category = parseCategory(getParam(params?.category));
   const equipment = await getEquipmentList(query, { category, status });
+  const paginatedEquipment = paginateItems(equipment, page);
   const now = new Date();
   const activeCount = equipment.filter((item) => item.status === "ACTIVE").length;
   const maintenanceCount = equipment.filter(
@@ -374,10 +382,15 @@ export default async function EquipmentPage({
         </CardHeader>
         <CardContent className="p-0">
           {equipment.length ? (
+            <EquipmentBulkDeleteForm
+              action={deleteEquipmentBulkAction}
+              enabled={canDeleteEquipment}
+            >
             <div className="overflow-x-auto px-4 pb-4">
-              <Table className="min-w-[980px]">
+              <Table className="min-w-[1020px]">
                 <TableHeader>
                   <TableRow className="border-zinc-200 bg-zinc-50">
+                    {canDeleteEquipment ? <TableHead className="w-12">Select</TableHead> : null}
                     <TableHead>Asset</TableHead>
                     <TableHead className="text-center">Classification</TableHead>
                     <TableHead className="text-center">Health</TableHead>
@@ -388,7 +401,7 @@ export default async function EquipmentPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {equipment.map((item) => {
+                  {paginatedEquipment.items.map((item) => {
                     const prediction = item.predictions[0];
                     const health = Number(prediction?.healthScore ?? 0);
                     const failure = Math.round(
@@ -400,6 +413,17 @@ export default async function EquipmentPage({
                         className="border-zinc-100 transition-all duration-300 hover:bg-zinc-50"
                         key={item.id}
                       >
+                        {canDeleteEquipment ? (
+                          <TableCell>
+                            <input
+                              aria-label={`Select ${item.assetTag}`}
+                              className="size-4 rounded border-zinc-300 text-zinc-950"
+                              name="equipmentId"
+                              type="checkbox"
+                              value={item.id}
+                            />
+                          </TableCell>
+                        ) : null}
                         <TableCell>
                           <div className="min-w-[14rem]">
                             <p className="font-semibold text-zinc-950">
@@ -494,6 +518,12 @@ export default async function EquipmentPage({
                 </TableBody>
               </Table>
             </div>
+            <PaginationControls
+              page={paginatedEquipment.currentPage}
+              searchParams={params}
+              total={paginatedEquipment.total}
+            />
+            </EquipmentBulkDeleteForm>
           ) : (
             <div className="px-6 py-14 text-center">
               <div className="mx-auto grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-950">

@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { ActionToastForm } from "@/components/action-toast-form";
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
   formatAlertLabel,
 } from "@/features/alerts/formatting";
 import { getAlertsWorkspace } from "@/features/alerts/queries";
+import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -44,9 +46,15 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
-export default async function AlertsPage() {
+type AlertsPageProps = {
+  searchParams?: Promise<{ page?: string | string[] }>;
+};
+
+export default async function AlertsPage({ searchParams }: AlertsPageProps) {
   await requirePermission("manageAlerts");
-  const { alerts, totals } = await getAlertsWorkspace();
+  const params = await searchParams;
+  const page = parsePageParam(params?.page);
+  const { alerts, totals } = await getAlertsWorkspace(page);
   const highSeverityCount = alerts.filter((alert) => alert.severity === "HIGH").length;
   const predictionAlerts = alerts.filter(
     (alert) => alert.type === "PREDICTION_RISK"
@@ -102,12 +110,13 @@ export default async function AlertsPage() {
               <p className="text-sm text-zinc-500">Equipment risk and response state</p>
             </div>
             <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
-              {alerts.length} alerts
+              {totals.total} alerts
             </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {alerts.length ? (
-              <div className="px-4 pb-4">
+              <>
+                <div className="px-4 pb-4">
                 <Table className="w-full table-fixed">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
@@ -212,6 +221,12 @@ export default async function AlertsPage() {
                   </TableBody>
                 </Table>
               </div>
+              <PaginationControls
+                page={page}
+                searchParams={params}
+                total={totals.total}
+              />
+            </>
             ) : (
               <EmptyState icon={Bell} label="No alerts stored" />
             )}
@@ -228,9 +243,9 @@ export default async function AlertsPage() {
               <Bell aria-hidden="true" className="size-5 text-zinc-500" />
             </CardHeader>
             <CardContent className="grid gap-2 p-4 pt-0">
-              <DistributionRow label="Active" total={alerts.length} value={totals.active} />
-              <DistributionRow label="Acknowledged" total={alerts.length} value={totals.acknowledged} />
-              <DistributionRow label="Resolved" total={alerts.length} value={totals.resolved} />
+              <DistributionRow label="Active" total={totals.total} value={totals.active} />
+              <DistributionRow label="Acknowledged" total={totals.total} value={totals.acknowledged} />
+              <DistributionRow label="Resolved" total={totals.total} value={totals.resolved} />
             </CardContent>
           </Card>
 
@@ -342,3 +357,4 @@ function EmptyState({ icon: Icon, label }: { icon: AlertIcon; label: string }) {
     </div>
   );
 }
+

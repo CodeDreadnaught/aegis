@@ -146,7 +146,6 @@ function applySnapshot(snapshot: OverviewLiveSnapshot) {
   setPath("telemetry-health-area", snapshot.healthArea, snapshot.predictionSampleCount);
   setPath("telemetry-health-path", snapshot.healthPath, snapshot.predictionSampleCount);
   setPath("telemetry-risk-path", snapshot.riskPath, snapshot.predictionSampleCount);
-  setDots(snapshot.healthCoordinates, snapshot.predictionSampleCount);
 }
 
 function setText(name: string, value: number | string) {
@@ -190,33 +189,7 @@ function setPath(name: string, value: string, sampleCount: number) {
   element.style.opacity = sampleCount ? "1" : "0";
 }
 
-function setDots(
-  coordinates: Array<{ x: number; y: number }>,
-  sampleCount: number
-) {
-  const container = document.querySelector<SVGGElement>(
-    '[data-overview-live="telemetry-dots"]'
-  );
 
-  if (!container) {
-    return;
-  }
 
-  container.replaceChildren();
 
-  if (!sampleCount) {
-    return;
-  }
 
-  for (const point of coordinates) {
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("class", "aegis-chart-dot");
-    circle.setAttribute("cx", String(point.x));
-    circle.setAttribute("cy", String(point.y));
-    circle.setAttribute("fill", "#a8ff9f");
-    circle.setAttribute("r", "4");
-    circle.setAttribute("stroke", "#ffffff");
-    circle.setAttribute("stroke-width", "2");
-    container.append(circle);
-  }
-}

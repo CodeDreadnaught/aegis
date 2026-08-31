@@ -1,9 +1,11 @@
 import "server-only";
 
+import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 
-export async function getOperationalDataWorkspace() {
-  const [equipment, readings] = await Promise.all([
+export async function getOperationalDataWorkspace(page = 1) {
+  const skip = (Math.max(1, page) - 1) * tablePageSize;
+  const [equipment, readings, readingCount] = await Promise.all([
     prisma.equipment.findMany({
       where: {
         status: {
@@ -20,7 +22,8 @@ export async function getOperationalDataWorkspace() {
     }),
     prisma.operationalReading.findMany({
       orderBy: { recordedAt: "desc" },
-      take: 25,
+      skip,
+      take: tablePageSize,
       select: {
         id: true,
         equipmentId: true,
@@ -40,10 +43,12 @@ export async function getOperationalDataWorkspace() {
         },
       },
     }),
+    prisma.operationalReading.count(),
   ]);
 
   return {
     equipment,
+    readingCount,
     readings,
   };
 }

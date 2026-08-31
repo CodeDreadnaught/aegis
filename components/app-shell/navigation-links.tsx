@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { cn } from "@/lib/utils";
 import { getNavigationItems } from "@/components/app-shell/navigation";
 import {
   Tooltip,
@@ -11,20 +10,38 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { UserRole } from "@/generated/prisma/enums";
+import { cn } from "@/lib/utils";
 
 type NavigationLinksProps = {
   compact?: boolean;
   onNavigate?: () => void;
   role: UserRole;
+  section?: "all" | "admin" | "primary" | "secondary";
 };
+
+const primaryRoutes = [
+  "/overview",
+  "/equipment",
+  "/operational-data",
+  "/maintenance",
+  "/analytics",
+];
+const secondaryRoutes = ["/alerts", "/reports"];
+const adminRoutes = ["/users", "/audit"];
 
 export function NavigationLinks({
   compact = false,
   onNavigate,
   role,
+  section = "all",
 }: NavigationLinksProps) {
   const pathname = usePathname();
-  const navigationItems = getNavigationItems(role);
+  const navigationItems = getNavigationItems(role).filter((item) => {
+    if (section === "all") return true;
+    if (section === "primary") return primaryRoutes.includes(item.href);
+    if (section === "secondary") return secondaryRoutes.includes(item.href);
+    return adminRoutes.includes(item.href);
+  });
 
   return (
     <nav className={cn("grid gap-1", compact && "justify-items-center")}>
@@ -41,17 +58,19 @@ export function NavigationLinks({
                 "bg-zinc-950 text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)]",
               compact &&
                 "size-10 justify-center rounded-full px-0 hover:bg-zinc-100",
-              compact && isActive && "bg-[#2f9da7] text-white"
+              compact &&
+                isActive &&
+                "bg-emerald-600 text-white hover:bg-emerald-600 hover:text-white"
             )}
             href={item.href}
             onClick={onNavigate}
           >
-            {isActive && !compact && (
+            {isActive && !compact ? (
               <span
                 aria-hidden="true"
                 className="absolute left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-white/70"
               />
-            )}
+            ) : null}
             <Icon
               aria-hidden="true"
               className="size-4 shrink-0 transition-transform duration-200 group-hover:scale-110"

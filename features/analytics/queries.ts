@@ -1,12 +1,15 @@
 import "server-only";
 
+import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 
-export async function getAnalyticsWorkspace() {
-  const [readings, predictions] = await Promise.all([
+export async function getAnalyticsWorkspace(page = 1) {
+  const skip = (Math.max(1, page) - 1) * tablePageSize;
+  const [readings, readingCount, predictions] = await Promise.all([
     prisma.operationalReading.findMany({
       orderBy: { recordedAt: "desc" },
-      take: 25,
+      skip,
+      take: tablePageSize,
       select: {
         id: true,
         recordedAt: true,
@@ -41,6 +44,7 @@ export async function getAnalyticsWorkspace() {
         },
       },
     }),
+    prisma.operationalReading.count(),
     prisma.prediction.findMany({
       orderBy: { createdAt: "desc" },
       take: 25,
@@ -74,7 +78,9 @@ export async function getAnalyticsWorkspace() {
   ]);
 
   return {
-    readings,
+    predictionCount: predictions.length,
     predictions,
+    readingCount,
+    readings,
   };
 }

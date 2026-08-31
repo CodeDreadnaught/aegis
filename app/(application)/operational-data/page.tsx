@@ -6,6 +6,7 @@ import {
   Pulse,
 } from "@phosphor-icons/react/ssr";
 
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,6 +21,7 @@ import { createOperationalReadingAction } from "@/features/operational-readings/
 import { CaptureWorkspace } from "@/features/operational-readings/capture-workspace";
 import { getOperationalDataWorkspace } from "@/features/operational-readings/queries";
 import { formatSourceType } from "@/features/operational-readings/validation";
+import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -31,9 +33,17 @@ const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
   month: "short",
 });
 
-export default async function OperationalDataPage() {
+type OperationalDataPageProps = {
+  searchParams?: Promise<{ page?: string | string[] }>;
+};
+
+export default async function OperationalDataPage({
+  searchParams,
+}: OperationalDataPageProps) {
   await requirePermission("recordOperationalData");
-  const { equipment, readings } = await getOperationalDataWorkspace();
+  const params = await searchParams;
+  const page = parsePageParam(params?.page);
+  const { equipment, readingCount, readings } = await getOperationalDataWorkspace(page);
   const activeSources = new Set(readings.map((reading) => reading.sourceType)).size;
   const signalReadings = readings.map((reading) => ({
     assetTag: reading.equipment.assetTag,
@@ -106,12 +116,13 @@ export default async function OperationalDataPage() {
               className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
               variant="outline"
             >
-              {readings.length} records
+              {readingCount} records
             </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {readings.length ? (
-              <div className="min-w-0 max-w-full px-4 pb-4">
+              <>
+                <div className="min-w-0 max-w-full px-4 pb-4">
                 <Table className="min-w-[920px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
@@ -222,6 +233,12 @@ export default async function OperationalDataPage() {
                   </TableBody>
                 </Table>
               </div>
+              <PaginationControls
+                page={page}
+                searchParams={params}
+                total={readingCount}
+              />
+            </>
             ) : (
               <div className="px-6 py-14 text-center">
                 <div className="mx-auto grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-950">
@@ -321,3 +338,4 @@ function percentage(value: number, total: number) {
 
   return Math.round((value / total) * 100);
 }
+

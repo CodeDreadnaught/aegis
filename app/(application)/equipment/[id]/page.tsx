@@ -18,6 +18,7 @@ import {
 import { ActionToastForm } from "@/components/action-toast-form";
 import { BackButton } from "@/components/back-button";
 import { ConfirmActionForm } from "@/components/confirm-action-form";
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,12 +37,14 @@ import {
 } from "@/features/equipment/actions";
 import { getEquipmentDetails } from "@/features/equipment/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
+import { parsePageParam } from "@/lib/pagination";
 import type { EquipmentStatus, RiskLevel } from "@/generated/prisma/enums";
 import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 type EquipmentDetailsPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ page?: string | string[] }>;
 };
 
 const chartWidth = 680;
@@ -53,12 +56,15 @@ export const metadata: Metadata = {
 
 export default async function EquipmentDetailsPage({
   params,
+  searchParams,
 }: EquipmentDetailsPageProps) {
   const user = await requirePermission("viewEquipment");
   const canUpdateEquipment = can(user.role, "updateEquipment");
   const canDeleteEquipment = can(user.role, "deleteEquipment");
   const { id } = await params;
-  const equipment = await getEquipmentDetails(id);
+  const queryParams = await searchParams;
+  const readingPage = parsePageParam(queryParams?.page);
+  const equipment = await getEquipmentDetails(id, readingPage);
 
   if (!equipment) {
     notFound();
@@ -393,8 +399,9 @@ export default async function EquipmentDetailsPage({
           </CardHeader>
           <CardContent className="p-0">
             {equipment.operationalReadings.length ? (
-              <div className="overflow-x-auto px-4 pb-4">
-                <Table className="min-w-[720px]">
+              <>
+                <div className="overflow-x-auto px-4 pb-4">
+                  <Table className="min-w-[720px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
                       <TableHead className="text-center">Recorded</TableHead>
@@ -437,8 +444,14 @@ export default async function EquipmentDetailsPage({
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
-              </div>
+                  </Table>
+                </div>
+                <PaginationControls
+                  page={readingPage}
+                  searchParams={queryParams}
+                  total={equipment._count.operationalReadings}
+                />
+              </>
             ) : (
               <div className="px-4 pb-4">
                 <EmptyState label="No readings available" />
@@ -765,3 +778,6 @@ function formatDate(value: Date | null | undefined) {
       }).format(value)
     : "Not scheduled";
 }
+
+
+

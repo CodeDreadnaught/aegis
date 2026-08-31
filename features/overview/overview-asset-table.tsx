@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -12,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { paginateItems, tablePageSize } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 export type OverviewAssetRow = {
@@ -35,6 +37,7 @@ const riskFilters = ["ALL", "HIGH", "MEDIUM", "LOW"] as const;
 export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
   const [query, setQuery] = useState("");
   const [risk, setRisk] = useState<(typeof riskFilters)[number]>("ALL");
+  const [page, setPage] = useState(1);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -53,6 +56,8 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
     });
   }, [query, risk, rows]);
 
+  const paginatedRows = paginateItems(filteredRows, page);
+
   return (
     <div className="grid gap-3">
       <div className="flex flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
@@ -64,7 +69,10 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           <Input
             aria-label="Search overview assets"
             className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
             value={query}
           />
         </div>
@@ -77,7 +85,10 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                 risk === item && "bg-white text-zinc-950 shadow-sm"
               )}
               key={item}
-              onClick={() => setRisk(item)}
+              onClick={() => {
+                setRisk(item);
+                setPage(1);
+              }}
               type="button"
             >
               {item}
@@ -98,10 +109,10 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRows.map((row) => (
+            {paginatedRows.items.map((row, index) => (
               <TableRow
                 className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                key={`${row.asset}-${row.updated}`}
+                key={`${row.asset}-${row.updated}-${paginatedRows.currentPage}-${index}`}
               >
                 <TableCell>
                   <div>
@@ -146,6 +157,40 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           </TableBody>
         </Table>
       </div>
+      {filteredRows.length > tablePageSize && (
+        <div className="flex flex-col gap-3 border-t border-zinc-100 px-4 py-3 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Showing {((paginatedRows.currentPage - 1) * tablePageSize + 1).toLocaleString()}-{Math.min(filteredRows.length, paginatedRows.currentPage * tablePageSize).toLocaleString()} of {filteredRows.length.toLocaleString()}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              className="rounded-full border-zinc-200 bg-white text-zinc-700"
+              disabled={paginatedRows.currentPage === 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <CaretLeft />
+              Previous
+            </Button>
+            <span className="rounded-full bg-zinc-50 px-3 py-1 font-semibold text-zinc-700">
+              {paginatedRows.currentPage} / {paginatedRows.pageCount}
+            </span>
+            <Button
+              className="rounded-full border-zinc-200 bg-white text-zinc-700"
+              disabled={paginatedRows.currentPage === paginatedRows.pageCount}
+              onClick={() => setPage((value) => Math.min(paginatedRows.pageCount, value + 1))}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Next
+              <CaretRight />
+            </Button>
+          </div>
+        </div>
+      )}
       {!filteredRows.length && (
         <div className="mx-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
           No matching assets
@@ -171,3 +216,6 @@ function RiskBadge({ risk }: { risk: string }) {
     </span>
   );
 }
+
+
+

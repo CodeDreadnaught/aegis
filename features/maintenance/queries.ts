@@ -1,9 +1,11 @@
 import "server-only";
 
+import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 
-export async function getMaintenanceWorkspace() {
-  const [equipment, records] = await Promise.all([
+export async function getMaintenanceWorkspace(page = 1) {
+  const skip = (Math.max(1, page) - 1) * tablePageSize;
+  const [equipment, records, totalRecords, statusGroups] = await Promise.all([
     prisma.equipment.findMany({
       where: {
         status: {
@@ -20,7 +22,8 @@ export async function getMaintenanceWorkspace() {
     }),
     prisma.maintenanceRecord.findMany({
       orderBy: [{ nextDueDate: "asc" }, { performedAt: "desc" }],
-      take: 30,
+      skip,
+      take: tablePageSize,
       select: {
         id: true,
         type: true,
@@ -43,22 +46,26 @@ export async function getMaintenanceWorkspace() {
         },
       },
     }),
+    prisma.maintenanceRecord.count(),
+    prisma.maintenanceRecord.groupBy({
+      by: ["status"],
+      _count: {
+        _all: true,
+      },
+    }),
   ]);
 
-  const totals = records.reduce(
-    (summary, record) => {
-      summary.total += 1;
-      summary[record.status.toLowerCase() as keyof typeof summary] += 1;
-      return summary;
-    },
-    {
-      total: 0,
-      planned: 0,
-      in_progress: 0,
-      completed: 0,
-      deferred: 0,
-    }
-  );
+  const totals = {
+    total: totalRecords,
+    planned: 0,
+    in_progress: 0,
+    completed: 0,
+    deferred: 0,
+  };
+
+  for (const group of statusGroups) {
+    totals[group.status.toLowerCase() as keyof typeof totals] = group._count._all;
+  }
 
   return {
     equipment,

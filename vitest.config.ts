@@ -15,7 +15,8 @@ export default defineConfig({
     environment: "jsdom",
     exclude: ["**/node_modules/**", "**/tests/e2e/**"],
     globals: true,
-    pool: "threads",
+    pool: "forks",
     setupFiles: ["./vitest.setup.ts"],
   },
 });
+

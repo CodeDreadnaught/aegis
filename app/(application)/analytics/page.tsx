@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { ActionToastForm } from "@/components/action-toast-form";
+import { PaginationControls } from "@/components/table-pagination";
 import { PremiumMotion } from "@/components/motion/premium-motion";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import { runPredictionAction } from "@/features/analytics/actions";
 import { getAnalyticsWorkspace } from "@/features/analytics/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import { formatSourceType } from "@/features/operational-readings/validation";
+import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -44,9 +46,15 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
-export default async function AnalyticsPage() {
+type AnalyticsPageProps = {
+  searchParams?: Promise<{ page?: string | string[] }>;
+};
+
+export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
   await requirePermission("runPrediction");
-  const { predictions, readings } = await getAnalyticsWorkspace();
+  const params = await searchParams;
+  const page = parsePageParam(params?.page);
+  const { predictions, readingCount, readings } = await getAnalyticsWorkspace(page);
   const predictedReadingCount = readings.filter(
     (reading) => reading.predictions.length > 0
   ).length;
@@ -86,7 +94,7 @@ export default async function AnalyticsPage() {
       detail: `${pendingJobCount} jobs pending`,
       icon: Brain,
       label: "Inference",
-      value: readings.length,
+      value: readingCount,
     },
     {
       detail: `${readiness}% queue coverage`,
@@ -155,12 +163,13 @@ export default async function AnalyticsPage() {
                 className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
                 variant="outline"
               >
-                {readings.length} readings
+                {readingCount} readings
               </Badge>
             </CardHeader>
             <CardContent className="p-0">
               {readings.length ? (
-                <div className="px-4 pb-4">
+                <>
+                  <div className="px-4 pb-4">
                   <Table className="w-full table-fixed">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
@@ -285,6 +294,12 @@ export default async function AnalyticsPage() {
                     </TableBody>
                   </Table>
                 </div>
+                <PaginationControls
+                  page={page}
+                  searchParams={params}
+                  total={readingCount}
+                />
+              </>
               ) : (
                 <EmptyState icon={Brain} label="No readings available" />
               )}
@@ -382,7 +397,8 @@ export default async function AnalyticsPage() {
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {trendPredictions.length ? (
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                   <svg
                     className="h-48 w-full overflow-visible"
                     role="img"
@@ -423,6 +439,12 @@ export default async function AnalyticsPage() {
                     })}
                   </svg>
                 </div>
+                <PaginationControls
+                  page={page}
+                  searchParams={params}
+                  total={readingCount}
+                />
+              </>
               ) : (
                 <EmptyState label="No prediction trend yet" />
               )}
@@ -694,3 +716,4 @@ function buildLinePoints(values: number[]) {
     })
     .join(" ");
 }
+

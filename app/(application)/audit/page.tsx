@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fingerprint, LockKey, Pulse, ShieldCheck } from "@phosphor-icons/react/ssr";
 
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +17,7 @@ import {
   safeMetadataSummary,
 } from "@/features/audit/formatting";
 import { getAuditTrail } from "@/features/audit/queries";
+import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -32,9 +34,16 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
-export default async function AuditPage() {
+type AuditPageProps = {
+  searchParams?: Promise<{ page?: string | string[] }>;
+};
+
+export default async function AuditPage({ searchParams }: AuditPageProps) {
   await requirePermission("viewAudit");
+  const params = await searchParams;
+  const page = parsePageParam(params?.page);
   const auditLogs = await getAuditTrail();
+  const paginatedAuditLogs = paginateItems(auditLogs, page);
   const systemEvents = auditLogs.filter((entry) => !entry.user).length;
   const userEvents = auditLogs.length - systemEvents;
   const entityTypes = new Set(auditLogs.map((entry) => entry.entityType)).size;
@@ -69,7 +78,8 @@ export default async function AuditPage() {
         </CardHeader>
         <CardContent className="p-0">
           {auditLogs.length ? (
-            <div className="px-4 pb-4">
+            <>
+              <div className="px-4 pb-4">
               <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow className="border-zinc-200 bg-zinc-50">
@@ -83,7 +93,7 @@ export default async function AuditPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {auditLogs.map((entry) => (
+                  {paginatedAuditLogs.items.map((entry) => (
                     <TableRow
                       className="border-zinc-100 transition-colors hover:bg-zinc-50"
                       key={entry.id}
@@ -127,6 +137,12 @@ export default async function AuditPage() {
                 </TableBody>
               </Table>
             </div>
+            <PaginationControls
+              page={paginatedAuditLogs.currentPage}
+              searchParams={params}
+              total={paginatedAuditLogs.total}
+            />
+          </>
           ) : (
             <EmptyState />
           )}
@@ -177,3 +193,4 @@ function EmptyState() {
     </div>
   );
 }
+

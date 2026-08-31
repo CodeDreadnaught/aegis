@@ -8,6 +8,7 @@ import {
   Users,
 } from "@phosphor-icons/react/ssr";
 
+import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -30,13 +31,21 @@ import {
   userStatusLabels,
 } from "@/features/users/validation";
 import { UserAccessForm } from "@/features/users/user-access-form";
+import { paginateItems, parsePageParam } from "@/lib/pagination";
 
 export const metadata: Metadata = {
   title: "AEGIS - User Management",
 };
 
-export default async function UsersPage() {
+type UsersPageProps = {
+  searchParams?: Promise<{ page?: string | string[] }>;
+};
+
+export default async function UsersPage({ searchParams }: UsersPageProps) {
+  const params = await searchParams;
+  const page = parsePageParam(params?.page);
   const { totals, users } = await getUserAdministrationData();
+  const paginatedUsers = paginateItems(users, page);
   const auditEntries = users.reduce((sum, user) => sum + user._count.auditLogs, 0);
 
   return (
@@ -79,7 +88,7 @@ export default async function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {paginatedUsers.items.map((user) => (
                     <TableRow
                       className="border-zinc-100 transition-colors hover:bg-zinc-50"
                       key={user.id}
@@ -129,6 +138,11 @@ export default async function UsersPage() {
                 </TableBody>
               </Table>
             </div>
+            <PaginationControls
+              page={paginatedUsers.currentPage}
+              searchParams={params}
+              total={paginatedUsers.total}
+            />
           </CardContent>
         </Card>
 

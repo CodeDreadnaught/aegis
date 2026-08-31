@@ -57,6 +57,7 @@ vi.mock("@/features/analytics/prediction-service", () => ({
 
 import {
   createEquipmentAction,
+  deleteEquipmentBulkAction,
   deleteEquipmentWithDependencies,
 } from "@/features/equipment/actions";
 
@@ -168,6 +169,27 @@ describe("equipment actions", () => {
 
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     expect(mockPrisma.equipment.delete).not.toHaveBeenCalled();
+  });
+  it("bulk deletes selected equipment once per selected id", async () => {
+    const formData = new FormData();
+    formData.append("equipmentId", "equipment_1");
+    formData.append("equipmentId", "equipment_2");
+    formData.append("equipmentId", "equipment_1");
+
+    const result = await deleteEquipmentBulkAction(formData);
+
+    expect(result).toEqual({ count: 2 });
+    expect(requirePermission).toHaveBeenCalledWith("deleteEquipment");
+    expect(mockPrisma.equipment.findUnique).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects bulk delete without selected equipment", async () => {
+    await expect(deleteEquipmentBulkAction(new FormData())).rejects.toThrow(
+      "Select at least one equipment record to delete."
+    );
+
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("creates initial readings and immediate predictions during registration", async () => {
@@ -295,3 +317,6 @@ describe("equipment actions", () => {
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 });
+
+
+

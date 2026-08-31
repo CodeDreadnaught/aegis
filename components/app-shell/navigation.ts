@@ -45,3 +45,11 @@ export const navigationItems: NavigationItem[] = [
 export function getNavigationItems(role: UserRole) {
   return navigationItems.filter((item) => item.roles.includes(role));
 }
+
+export function getNavigationLabel(item: NavigationItem) {
+  if (item.href === "/overview") {
+    return "Dashboard";
+  }
+
+  return item.label;
+}

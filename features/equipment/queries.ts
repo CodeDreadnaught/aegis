@@ -1,3 +1,4 @@
+import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 import type {
   EquipmentCategory,
@@ -74,7 +75,8 @@ export async function getEquipmentList(
   });
 }
 
-export async function getEquipmentDetails(id: string) {
+export async function getEquipmentDetails(id: string, readingPage = 1) {
+  const readingSkip = (Math.max(1, readingPage) - 1) * tablePageSize;
   return prisma.equipment.findUnique({
     where: { id },
     include: {
@@ -87,7 +89,8 @@ export async function getEquipmentDetails(id: string) {
       },
       operationalReadings: {
         orderBy: { recordedAt: "desc" },
-        take: 12,
+        skip: readingSkip,
+        take: tablePageSize,
       },
       maintenanceRecords: {
         orderBy: { performedAt: "desc" },
@@ -106,3 +109,5 @@ export async function getEquipmentDetails(id: string) {
     },
   });
 }
+
+
