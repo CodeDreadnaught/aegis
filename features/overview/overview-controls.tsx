@@ -27,6 +27,21 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
   const [lastSync, setLastSync] = useState("Live");
 
 
+
+  useEffect(() => {
+    const currentParams = new URLSearchParams(searchParams.toString());
+
+    for (const range of ranges) {
+      if (range.value === activeRange) {
+        continue;
+      }
+
+      const params = new URLSearchParams(currentParams.toString());
+      params.set("range", range.value);
+      router.prefetch(pathname + "?" + params.toString());
+    }
+  }, [activeRange, pathname, router, searchParams]);
+
   useEffect(() => {
     const onSynced = (event: Event) => {
       const detail = (event as CustomEvent<{ syncedAt?: string }>).detail;

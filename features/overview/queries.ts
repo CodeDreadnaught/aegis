@@ -35,6 +35,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     predictionRunCount,
     predictionAssetGroups,
     predictionTrend,
+    latestPredictionRows,
     latestReadings,
     latestMaintenance,
     latestAlerts,
@@ -79,6 +80,24 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         createdAt: true,
       },
     }),
+    prisma.$queryRaw<LatestPredictionRow[]>`
+      SELECT DISTINCT ON (p."equipmentId")
+        p.id,
+        p."equipmentId",
+        p."failureProbability",
+        p."healthScore",
+        p."riskLevel",
+        p."modelVersion",
+        p."createdAt",
+        e."assetTag" AS "equipmentAssetTag",
+        e.name AS "equipmentName",
+        e.category AS "equipmentCategory",
+        e.location AS "equipmentLocation"
+      FROM "Prediction" p
+      INNER JOIN "Equipment" e ON e.id = p."equipmentId"
+      WHERE p."createdAt" >= ${since}
+      ORDER BY p."equipmentId", p."createdAt" DESC, p.id DESC
+    `,
     prisma.operationalReading.findMany({
       where: { recordedAt: { gte: since } },
       orderBy: { recordedAt: "desc" },
@@ -100,8 +119,11 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
       },
     }),
     prisma.maintenanceRecord.findMany({
-      where: { performedAt: { gte: since } },
-      orderBy: { performedAt: "desc" },
+      where: {
+        status: { in: ["PLANNED", "IN_PROGRESS"] },
+        nextDueDate: { not: null },
+      },
+      orderBy: { nextDueDate: "asc" },
       take: 5,
       select: {
         id: true,
@@ -148,24 +170,6 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     }),
   ]);
 
-  const latestPredictionRows = await prisma.$queryRaw<LatestPredictionRow[]>`
-    SELECT DISTINCT ON (p."equipmentId")
-      p.id,
-      p."equipmentId",
-      p."failureProbability",
-      p."healthScore",
-      p."riskLevel",
-      p."modelVersion",
-      p."createdAt",
-      e."assetTag" AS "equipmentAssetTag",
-      e.name AS "equipmentName",
-      e.category AS "equipmentCategory",
-      e.location AS "equipmentLocation"
-    FROM "Prediction" p
-    INNER JOIN "Equipment" e ON e.id = p."equipmentId"
-    WHERE p."createdAt" >= ${since}
-    ORDER BY p."equipmentId", p."createdAt" DESC, p.id DESC
-  `;
   const latestPredictions = latestPredictionRows
     .map((prediction) => ({
       id: prediction.id,

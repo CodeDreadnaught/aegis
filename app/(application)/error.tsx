@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { Warning } from "@phosphor-icons/react";
 
-import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 
 export default function ApplicationError({
@@ -18,22 +17,21 @@ export default function ApplicationError({
   }, [error]);
 
   return (
-    <div className="grid min-h-[calc(100dvh-8rem)] place-items-center px-4 py-10 text-zinc-950">
-      <section className="grid w-full max-w-5xl overflow-hidden rounded-[1.5rem] border border-zinc-200 bg-white shadow-[0_26px_80px_rgba(9,9,11,0.10)] md:grid-cols-[0.9fr_1.1fr]">
-        <div className="flex flex-col justify-center p-8 sm:p-10 lg:p-12">
-          <BrandLogo className="mb-8 size-11 rounded-none shadow-none" />
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef7b63]">
-            Runtime fault
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-normal text-zinc-950 sm:text-5xl">
+    <div className="grid min-h-[calc(100dvh-8rem)] place-items-center px-3 py-4 text-white lg:px-5">
+      <section className="relative grid min-h-[30rem] w-full overflow-hidden rounded-[1.5rem] border border-zinc-900 bg-[#090b0c] shadow-[0_26px_80px_rgba(9,9,11,0.18)] md:grid-cols-[0.9fr_1.1fr]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_48%,rgba(239,68,68,0.30),transparent_30%),linear-gradient(90deg,#050707_0%,#111312_42%,#2a110d_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/10 to-transparent" />
+
+        <div className="relative z-10 flex flex-col justify-center p-8 sm:p-12 lg:p-16">
+          <h1 className="text-4xl font-semibold leading-tight tracking-normal text-white sm:text-5xl lg:text-6xl">
             Error occurred
           </h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-zinc-600">
+          <p className="mt-6 max-w-sm text-base font-medium leading-7 text-zinc-200 sm:text-lg">
             An error has occurred. Please try again later.
           </p>
-          <div className="mt-8">
+          <div className="mt-9">
             <Button
-              className="h-11 rounded-full bg-zinc-950 px-6 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="h-12 rounded-lg bg-white px-7 text-sm font-semibold uppercase tracking-normal text-zinc-950 shadow-[0_18px_40px_rgba(0,0,0,0.24)] hover:bg-zinc-100"
               onClick={reset}
               type="button"
             >
@@ -42,15 +40,17 @@ export default function ApplicationError({
           </div>
         </div>
 
-        <div className="relative grid min-h-[22rem] place-items-center overflow-hidden bg-[radial-gradient(circle_at_60%_45%,rgba(239,123,99,0.28),transparent_34%),linear-gradient(135deg,#09090b,#25100d_55%,#120907)] p-8">
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#ef7b63]/20 to-transparent" />
-          <div className="relative grid place-items-center">
-            <div className="absolute size-56 rounded-full bg-[#ef7b63]/20 blur-3xl" />
-            <div className="relative grid size-48 place-items-center rounded-[2rem] border-[10px] border-[#ff4b2f] bg-[#2b0d09] text-[#ffefe8] shadow-[0_0_38px_rgba(255,75,47,0.55)] [clip-path:polygon(50%_4%,96%_90%,4%_90%)] sm:size-60">
-              <Warning className="mt-8 size-20 drop-shadow-[0_0_12px_rgba(255,255,255,0.55)]" weight="bold" />
-              <span className="mb-6 text-3xl font-semibold tracking-[0.12em] text-[#ffdfd5] sm:text-4xl">
-                ERROR
-              </span>
+        <div className="relative z-10 grid min-h-[22rem] place-items-center p-8 sm:p-12">
+          <div className="absolute bottom-0 h-24 w-3/4 rounded-full bg-[#ef4444]/20 blur-3xl" />
+          <div className="relative grid size-64 place-items-center sm:size-80">
+            <div className="absolute size-full rounded-[2rem] bg-[#ef4444]/25 blur-2xl [clip-path:polygon(50%_4%,96%_90%,4%_90%)]" />
+            <div className="relative grid size-full place-items-center rounded-[2rem] border-[12px] border-[#ff3b25] bg-[#2a0d08]/80 text-[#fff0e8] shadow-[0_0_22px_rgba(255,59,37,0.92),inset_0_0_22px_rgba(255,59,37,0.55)] [clip-path:polygon(50%_4%,96%_90%,4%_90%)]">
+              <div className="mt-10 grid place-items-center gap-4">
+                <Warning className="size-24 drop-shadow-[0_0_16px_rgba(255,255,255,0.55)]" weight="bold" />
+                <span className="text-5xl font-semibold tracking-[0.08em] text-[#ffd8ce] drop-shadow-[0_0_12px_rgba(255,85,55,0.85)]">
+                  ERROR
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -202,7 +202,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
+    ? path + " L " + (left + width) + "," + (height + top) + " L " + left + "," + (height + top) + " Z"
     : "";
 
   return {
@@ -211,7 +211,6 @@ function buildLinePoints(values: number[]) {
     path,
   };
 }
-
 function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
   if (!coordinates.length) {
     return "";

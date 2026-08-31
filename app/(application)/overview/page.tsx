@@ -515,15 +515,15 @@ export default async function OverviewPage({
             <CardContent className="gap-4 p-4 pt-0">
               {latestMaintenance.slice(0, 5).map(record => (
                 <PlanRow
+                  dueDate={record.nextDueDate}
                   key={record.id}
                   label={record.equipment.assetTag}
-                  meta={record.status.replaceAll("_", " ")}
-                  value={record.nextDueDate ? "Due" : "Logged"}
-                  width={record.nextDueDate ? 74 : 48}
+                  meta={record.type}
+                  status={record.status.replaceAll("_", " ")}
                 />
               ))}
               {!latestMaintenance.length && (
-                <EmptyState label="No maintenance" />
+                <EmptyState label="No planned maintenance" />
               )}
             </CardContent>
           </Card>
@@ -625,15 +625,15 @@ function LineTrend({
   healthPoints: ReturnType<typeof buildLinePoints>;
 }) {
   return (
-    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-4 shadow-inner">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-3 shadow-inner sm:p-4">
+      <div className="mb-4 grid gap-3 sm:flex sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium text-zinc-500">Predictive trend - percent over time</p>
-          <p className="text-2xl font-semibold tracking-normal text-zinc-950">
+          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">Predictive trend - percent over time</p>
+          <p className="text-xl font-semibold tracking-normal text-zinc-950 sm:text-2xl">
             Health trajectory
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
+        <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 sm:gap-4">
           <span className="inline-flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-[#a8ff9f]" />
             Health
@@ -644,8 +644,8 @@ function LineTrend({
           </span>
         </div>
       </div>
-      <div className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-4">
-        <div className="relative h-64 text-right text-xs font-medium text-zinc-500">
+      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
+        <div className="relative h-48 text-right text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
           {[100, 75, 50, 25, 0].map((label, index) => (
             <span
               className="absolute right-0 leading-none"
@@ -666,7 +666,7 @@ function LineTrend({
         </div>
         <svg
           aria-label="Prediction health and failure risk trend"
-          className="h-64 w-full overflow-hidden"
+          className="h-48 w-full overflow-hidden sm:h-64"
           preserveAspectRatio="none"
           role="img"
           viewBox="0 0 640 240"
@@ -721,7 +721,7 @@ function LineTrend({
             {hasData &&
               healthPoints.coordinates.map(point => (
                 <circle
-                  className="aegis-chart-dot"
+                  className="hidden sm:block aegis-chart-dot"
                   cx={point.x}
                   cy={point.y}
                   fill="#a8ff9f"
@@ -734,9 +734,9 @@ function LineTrend({
           </g>
         </svg>
       </div>
-      <div className="mt-2 flex items-center justify-between pl-[4.25rem] text-xs font-medium text-zinc-500">
-        <span>Oldest prediction</span>
-        <span>Latest prediction</span>
+      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-[11px] font-medium text-zinc-500 sm:pl-[4.25rem] sm:text-xs">
+        <span><span className="sm:hidden">Oldest</span><span className="hidden sm:inline">Oldest prediction</span></span>
+        <span><span className="sm:hidden">Latest</span><span className="hidden sm:inline">Latest prediction</span></span>
       </div>
     </div>
   );
@@ -991,37 +991,33 @@ function DistributionRow({
 }
 
 function PlanRow({
+  dueDate,
   label,
   meta,
-  value,
-  width,
+  status,
 }: {
+  dueDate: Date | null;
   label: string;
   meta: string;
-  value: string;
-  width: number;
+  status: string;
 }) {
   return (
-    <div className="grid gap-2">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-zinc-950">{label}</p>
-          <p className="truncate text-xs text-zinc-500">{meta}</p>
-        </div>
-        <span className="shrink-0 text-xs font-semibold text-zinc-500">
-          {value}
-        </span>
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-zinc-950">{label}</p>
+        <p className="truncate text-xs text-zinc-500">{meta}</p>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
-        <div
-          className="h-full rounded-full bg-zinc-950"
-          style={{ width: `${Math.min(100, Math.max(0, width))}%` }}
-        />
+      <div className="shrink-0 text-right">
+        <p className="text-xs font-semibold text-zinc-950">
+          {dueDate ? compactDateFormatter.format(dueDate) : "No date"}
+        </p>
+        <p className="mt-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-500 shadow-sm">
+          {status}
+        </p>
       </div>
     </div>
   );
 }
-
 function EmptyState({ label }: { label: string }) {
   return (
     <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
@@ -1120,7 +1116,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
+    ? path + " L " + (left + width) + "," + (height + top) + " L " + left + "," + (height + top) + " Z"
     : "";
 
   return {
@@ -1129,7 +1125,6 @@ function buildLinePoints(values: number[]) {
     path,
   };
 }
-
 function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
   if (!coordinates.length) {
     return "";
