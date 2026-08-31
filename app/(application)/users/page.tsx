@@ -34,7 +34,7 @@ import { UserAccessForm } from "@/features/users/user-access-form";
 import { paginateItems, parsePageParam } from "@/lib/pagination";
 
 export const metadata: Metadata = {
-  title: "AEGIS - User Management",
+  title: "User Management",
 };
 
 type UsersPageProps = {
@@ -46,7 +46,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   const page = parsePageParam(params?.page);
   const { totals, users } = await getUserAdministrationData();
   const paginatedUsers = paginateItems(users, page);
-  const auditEntries = users.reduce((sum, user) => sum + user._count.auditLogs, 0);
+  const auditEntries = users.reduce(
+    (sum, user) => sum + user._count.auditLogs,
+    0,
+  );
 
   return (
     <div className="grid gap-4">
@@ -60,18 +63,43 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       </section>
 
       <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        <MetricCard detail="Authorised accounts" icon={Users} label="Users" value={totals.total} />
-        <MetricCard detail="Available operators" icon={CheckCircle} label="Active" value={totals.active} />
-        <MetricCard detail="Privileged accounts" icon={ShieldCheck} label="Admins" value={totals.administrators} />
-        <MetricCard detail={`${auditEntries} audit entries`} icon={ClockCounterClockwise} label="Disabled" value={totals.disabled} />
+        <MetricCard
+          detail="Authorised accounts"
+          icon={Users}
+          label="Users"
+          value={totals.total}
+        />
+        <MetricCard
+          detail="Available operators"
+          icon={CheckCircle}
+          label="Active"
+          value={totals.active}
+        />
+        <MetricCard
+          detail="Privileged accounts"
+          icon={ShieldCheck}
+          label="Admins"
+          value={totals.administrators}
+        />
+        <MetricCard
+          detail={`${auditEntries} audit entries`}
+          icon={ClockCounterClockwise}
+          label="Disabled"
+          value={totals.disabled}
+        />
       </section>
 
       <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
-        <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+        <Card
+          className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
               <CardTitle>Authorised Accounts</CardTitle>
-              <p className="text-sm text-zinc-500">Roles, status and activity</p>
+              <p className="text-sm text-zinc-500">
+                Roles, status and activity
+              </p>
             </div>
             <UserGear aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
@@ -81,14 +109,18 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 <TableHeader>
                   <TableRow className="border-zinc-200 bg-zinc-50">
                     <TableHead className="w-[30%]">User</TableHead>
-                    <TableHead className="hidden text-center md:table-cell">Role</TableHead>
+                    <TableHead className="hidden text-center md:table-cell">
+                      Role
+                    </TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="hidden text-center lg:table-cell">Activity</TableHead>
+                    <TableHead className="hidden text-center lg:table-cell">
+                      Activity
+                    </TableHead>
                     <TableHead className="text-center">Access</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedUsers.items.map((user) => (
+                  {paginatedUsers.items.map(user => (
                     <TableRow
                       className="border-zinc-100 transition-colors hover:bg-zinc-50"
                       key={user.id}
@@ -109,7 +141,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                         </div>
                       </TableCell>
                       <TableCell className="hidden text-center md:table-cell">
-                        <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                        <Badge
+                          className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                          variant="outline"
+                        >
                           {userRoleLabels[user.role]}
                         </Badge>
                       </TableCell>
@@ -146,13 +181,19 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+        <Card
+          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
               <CardTitle>Create Account</CardTitle>
               <p className="text-sm text-zinc-500">Operator access</p>
             </div>
-            <UserCirclePlus aria-hidden="true" className="size-5 text-zinc-500" />
+            <UserCirclePlus
+              aria-hidden="true"
+              className="size-5 text-zinc-500"
+            />
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <CreateUserForm action={createUserAction} />
@@ -177,7 +218,10 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="metric">
+    <Card
+      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      data-motion="metric"
+    >
       <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>

@@ -38,7 +38,7 @@ import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Overview",
+  title: "Overview",
 };
 
 type OverviewPageProps = {
@@ -123,7 +123,10 @@ export default async function OverviewPage({
     }));
   const averagePressure = average(signalBars.map(reading => reading.pressure));
   const averageFlow = average(signalBars.map(reading => reading.flow));
-  const latestPredictionByAsset = new Map<string, (typeof latestPredictions)[number]>();
+  const latestPredictionByAsset = new Map<
+    string,
+    (typeof latestPredictions)[number]
+  >();
 
   for (const prediction of latestPredictions) {
     if (!latestPredictionByAsset.has(prediction.equipmentId)) {
@@ -451,7 +454,11 @@ export default async function OverviewPage({
                   value={stats.activeAlertCount}
                 />
                 <FocusItem
-                  href={can(user.role, "viewMaintenance") ? "/maintenance" : undefined}
+                  href={
+                    can(user.role, "viewMaintenance")
+                      ? "/maintenance"
+                      : undefined
+                  }
                   icon={Wrench}
                   label="Maintenance"
                   liveKey="intervention-maintenance"
@@ -484,7 +491,9 @@ export default async function OverviewPage({
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
                 <CardTitle>Prediction Trend</CardTitle>
-                <p className="text-sm text-zinc-500">Health score and failure risk</p>
+                <p className="text-sm text-zinc-500">
+                  Health score and failure risk
+                </p>
               </div>
               <Badge
                 className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
@@ -601,7 +610,9 @@ function FocusItem({
   );
   const className = [
     "flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors",
-    href ? "cursor-pointer hover:border-zinc-300 hover:bg-white" : "cursor-default opacity-75",
+    href
+      ? "cursor-pointer hover:border-zinc-300 hover:bg-white"
+      : "cursor-default opacity-75",
   ].join(" ");
 
   if (href) {
@@ -628,7 +639,9 @@ function LineTrend({
     <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-3 shadow-inner sm:p-4">
       <div className="mb-4 grid gap-3 sm:flex sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">Predictive trend - percent over time</p>
+          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">
+            Predictive trend - percent over time
+          </p>
           <p className="text-xl font-semibold tracking-normal text-zinc-950 sm:text-2xl">
             Health trajectory
           </p>
@@ -735,8 +748,14 @@ function LineTrend({
         </svg>
       </div>
       <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-[11px] font-medium text-zinc-500 sm:pl-[4.25rem] sm:text-xs">
-        <span><span className="sm:hidden">Oldest</span><span className="hidden sm:inline">Oldest prediction</span></span>
-        <span><span className="sm:hidden">Latest</span><span className="hidden sm:inline">Latest prediction</span></span>
+        <span>
+          <span className="sm:hidden">Oldest</span>
+          <span className="hidden sm:inline">Oldest prediction</span>
+        </span>
+        <span>
+          <span className="sm:hidden">Latest</span>
+          <span className="hidden sm:inline">Latest prediction</span>
+        </span>
       </div>
     </div>
   );
@@ -1070,7 +1089,6 @@ function formatSignalValue(value: number, unit: string) {
   return `${formatted} ${unit}`;
 }
 
-
 function buildSparklinePoints(values: number[]) {
   const width = 180;
   const height = 32;
@@ -1116,7 +1134,16 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? path + " L " + (left + width) + "," + (height + top) + " L " + left + "," + (height + top) + " Z"
+    ? path +
+      " L " +
+      (left + width) +
+      "," +
+      (height + top) +
+      " L " +
+      left +
+      "," +
+      (height + top) +
+      " Z"
     : "";
 
   return {

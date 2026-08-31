@@ -33,7 +33,7 @@ import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Alerts",
+  title: "Alerts",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -55,9 +55,11 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
   const params = await searchParams;
   const page = parsePageParam(params?.page);
   const { alerts, totals } = await getAlertsWorkspace(page);
-  const highSeverityCount = alerts.filter((alert) => alert.severity === "HIGH").length;
+  const highSeverityCount = alerts.filter(
+    alert => alert.severity === "HIGH",
+  ).length;
   const predictionAlerts = alerts.filter(
-    (alert) => alert.type === "PREDICTION_RISK"
+    alert => alert.type === "PREDICTION_RISK",
   ).length;
   const openCount = totals.active + totals.acknowledged;
 
@@ -107,9 +109,14 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
               <CardTitle>Alert Queue</CardTitle>
-              <p className="text-sm text-zinc-500">Equipment risk and response state</p>
+              <p className="text-sm text-zinc-500">
+                Equipment risk and response state
+              </p>
             </div>
-            <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+            <Badge
+              className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+              variant="outline"
+            >
               {totals.total} alerts
             </Badge>
           </CardHeader>
@@ -117,116 +124,122 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
             {alerts.length ? (
               <>
                 <div className="px-4 pb-4">
-                <Table className="w-full table-fixed">
-                  <TableHeader>
-                    <TableRow className="border-zinc-200 bg-zinc-50">
-                      <TableHead className="w-[30%]">Equipment</TableHead>
-                      <TableHead className="hidden text-center md:table-cell">
-                        Severity
-                      </TableHead>
-                      <TableHead>Message</TableHead>
-                      <TableHead className="hidden text-center lg:table-cell">
-                        Status
-                      </TableHead>
-                      <TableHead className="text-center">Response</TableHead>
-                      <TableHead className="text-center">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {alerts.map((alert) => (
-                      <TableRow
-                        className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                        key={alert.id}
-                      >
-                        <TableCell>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-zinc-950">
-                              {alert.equipment.assetTag}
-                            </p>
-                            <p className="truncate text-xs text-zinc-500">
-                              {alert.equipment.name}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden text-center md:table-cell">
-                          <Badge
-                            className={`rounded-full ${alertSeverityClass(alert.severity)}`}
-                            variant="outline"
-                          >
-                            {formatAlertLabel(alert.severity)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <p className="line-clamp-2 text-sm font-medium text-zinc-950">
-                            {alert.message}
-                          </p>
-                          <p className="mt-1 text-xs text-zinc-500">
-                            {formatAlertLabel(alert.type)} /{" "}
-                            {compactDateFormatter.format(alert.createdAt)}{" "}
-                            {timeFormatter.format(alert.createdAt)}
-                          </p>
-                        </TableCell>
-                        <TableCell className="hidden text-center lg:table-cell">
-                          <StatusBadge status={alert.status} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {alert.status === "ACTIVE" && (
-                              <ActionToastForm
-                                action={acknowledgeAlertAction.bind(null, alert.id)}
-                                errorTitle="Alert was not acknowledged"
-                                successDescription="The alert moved into the acknowledged queue."
-                                successTitle="Alert acknowledged"
-                              >
-                                <button
-                                  className={buttonVariants({
-                                    variant: "outline",
-                                    size: "sm",
-                                    className:
-                                      "rounded-full border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white",
-                                  })}
-                                  type="submit"
-                                >
-                                  Acknowledge
-                                </button>
-                              </ActionToastForm>
-                            )}
-                            {alert.status !== "RESOLVED" && (
-                              <ActionToastForm
-                                action={resolveAlertAction.bind(null, alert.id)}
-                                errorTitle="Alert was not resolved"
-                                successDescription="The alert has been marked as resolved."
-                                successTitle="Alert resolved"
-                              >
-                                <button
-                                  className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                                  type="submit"
-                                >
-                                  Resolve
-                                </button>
-                              </ActionToastForm>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Link
-                            className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                            href={`/equipment/${alert.equipment.id}`}
-                          >
-                            View more
-                          </Link>
-                        </TableCell>
+                  <Table className="w-full table-fixed">
+                    <TableHeader>
+                      <TableRow className="border-zinc-200 bg-zinc-50">
+                        <TableHead className="w-[30%]">Equipment</TableHead>
+                        <TableHead className="hidden text-center md:table-cell">
+                          Severity
+                        </TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead className="hidden text-center lg:table-cell">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-center">Response</TableHead>
+                        <TableHead className="text-center">Action</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <PaginationControls
-                page={page}
-                searchParams={params}
-                total={totals.total}
-              />
-            </>
+                    </TableHeader>
+                    <TableBody>
+                      {alerts.map(alert => (
+                        <TableRow
+                          className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                          key={alert.id}
+                        >
+                          <TableCell>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-zinc-950">
+                                {alert.equipment.assetTag}
+                              </p>
+                              <p className="truncate text-xs text-zinc-500">
+                                {alert.equipment.name}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden text-center md:table-cell">
+                            <Badge
+                              className={`rounded-full ${alertSeverityClass(alert.severity)}`}
+                              variant="outline"
+                            >
+                              {formatAlertLabel(alert.severity)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <p className="line-clamp-2 text-sm font-medium text-zinc-950">
+                              {alert.message}
+                            </p>
+                            <p className="mt-1 text-xs text-zinc-500">
+                              {formatAlertLabel(alert.type)} /{" "}
+                              {compactDateFormatter.format(alert.createdAt)}{" "}
+                              {timeFormatter.format(alert.createdAt)}
+                            </p>
+                          </TableCell>
+                          <TableCell className="hidden text-center lg:table-cell">
+                            <StatusBadge status={alert.status} />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-wrap justify-center gap-2">
+                              {alert.status === "ACTIVE" && (
+                                <ActionToastForm
+                                  action={acknowledgeAlertAction.bind(
+                                    null,
+                                    alert.id,
+                                  )}
+                                  errorTitle="Alert was not acknowledged"
+                                  successDescription="The alert moved into the acknowledged queue."
+                                  successTitle="Alert acknowledged"
+                                >
+                                  <button
+                                    className={buttonVariants({
+                                      variant: "outline",
+                                      size: "sm",
+                                      className:
+                                        "rounded-full border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white",
+                                    })}
+                                    type="submit"
+                                  >
+                                    Acknowledge
+                                  </button>
+                                </ActionToastForm>
+                              )}
+                              {alert.status !== "RESOLVED" && (
+                                <ActionToastForm
+                                  action={resolveAlertAction.bind(
+                                    null,
+                                    alert.id,
+                                  )}
+                                  errorTitle="Alert was not resolved"
+                                  successDescription="The alert has been marked as resolved."
+                                  successTitle="Alert resolved"
+                                >
+                                  <button
+                                    className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                                    type="submit"
+                                  >
+                                    Resolve
+                                  </button>
+                                </ActionToastForm>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Link
+                              className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                              href={`/equipment/${alert.equipment.id}`}
+                            >
+                              View more
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <PaginationControls
+                  page={page}
+                  searchParams={params}
+                  total={totals.total}
+                />
+              </>
             ) : (
               <EmptyState icon={Bell} label="No alerts stored" />
             )}
@@ -234,7 +247,10 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
         </Card>
 
         <div className="grid gap-4">
-          <Card className="rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
                 <CardTitle>Response Mix</CardTitle>
@@ -243,13 +259,28 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
               <Bell aria-hidden="true" className="size-5 text-zinc-500" />
             </CardHeader>
             <CardContent className="grid gap-2 p-4 pt-0">
-              <DistributionRow label="Active" total={totals.total} value={totals.active} />
-              <DistributionRow label="Acknowledged" total={totals.total} value={totals.acknowledged} />
-              <DistributionRow label="Resolved" total={totals.total} value={totals.resolved} />
+              <DistributionRow
+                label="Active"
+                total={totals.total}
+                value={totals.active}
+              />
+              <DistributionRow
+                label="Acknowledged"
+                total={totals.total}
+                value={totals.acknowledged}
+              />
+              <DistributionRow
+                label="Resolved"
+                total={totals.total}
+                value={totals.resolved}
+              />
             </CardContent>
           </Card>
 
-          <Card className="rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+          <Card
+            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            data-motion="panel"
+          >
             <CardHeader className="pb-2">
               <CardTitle>Alert Source</CardTitle>
               <p className="text-sm text-zinc-500">Prediction-led events</p>
@@ -357,4 +388,3 @@ function EmptyState({ icon: Icon, label }: { icon: AlertIcon; label: string }) {
     </div>
   );
 }
-

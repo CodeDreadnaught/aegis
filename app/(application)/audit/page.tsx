@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Fingerprint, LockKey, Pulse, ShieldCheck } from "@phosphor-icons/react/ssr";
+import {
+  Fingerprint,
+  LockKey,
+  Pulse,
+  ShieldCheck,
+} from "@phosphor-icons/react/ssr";
 
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +26,7 @@ import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Audit",
+  title: " Audit",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -44,9 +49,9 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
   const page = parsePageParam(params?.page);
   const auditLogs = await getAuditTrail();
   const paginatedAuditLogs = paginateItems(auditLogs, page);
-  const systemEvents = auditLogs.filter((entry) => !entry.user).length;
+  const systemEvents = auditLogs.filter(entry => !entry.user).length;
   const userEvents = auditLogs.length - systemEvents;
-  const entityTypes = new Set(auditLogs.map((entry) => entry.entityType)).size;
+  const entityTypes = new Set(auditLogs.map(entry => entry.entityType)).size;
 
   return (
     <div className="grid gap-4">
@@ -60,19 +65,47 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
       </section>
 
       <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        <MetricCard detail="Recent entries" icon={Pulse} label="Events" value={auditLogs.length} />
-        <MetricCard detail="Human activity" icon={Fingerprint} label="User Events" value={userEvents} />
-        <MetricCard detail="System generated" icon={ShieldCheck} label="System" value={systemEvents} />
-        <MetricCard detail="Entity coverage" icon={LockKey} label="Entities" value={entityTypes} />
+        <MetricCard
+          detail="Recent entries"
+          icon={Pulse}
+          label="Events"
+          value={auditLogs.length}
+        />
+        <MetricCard
+          detail="Human activity"
+          icon={Fingerprint}
+          label="User Events"
+          value={userEvents}
+        />
+        <MetricCard
+          detail="System generated"
+          icon={ShieldCheck}
+          label="System"
+          value={systemEvents}
+        />
+        <MetricCard
+          detail="Entity coverage"
+          icon={LockKey}
+          label="Entities"
+          value={entityTypes}
+        />
       </section>
 
-      <Card className="rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+      <Card
+        className="rounded-lg border-zinc-200 bg-white shadow-sm"
+        data-motion="panel"
+      >
         <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
           <div>
             <CardTitle>Recent Audit Entries</CardTitle>
-            <p className="text-sm text-zinc-500">User, action, entity and redacted metadata</p>
+            <p className="text-sm text-zinc-500">
+              User, action, entity and redacted metadata
+            </p>
           </div>
-          <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+          <Badge
+            className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+            variant="outline"
+          >
             {auditLogs.length} entries
           </Badge>
         </CardHeader>
@@ -80,69 +113,74 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
           {auditLogs.length ? (
             <>
               <div className="px-4 pb-4">
-              <Table className="w-full table-fixed">
-                <TableHeader>
-                  <TableRow className="border-zinc-200 bg-zinc-50">
-                    <TableHead className="w-[22%]">Action</TableHead>
-                    <TableHead className="hidden text-center md:table-cell">
-                      Actor
-                    </TableHead>
-                    <TableHead className="text-center">Entity</TableHead>
-                    <TableHead className="hidden lg:table-cell">Metadata</TableHead>
-                    <TableHead className="text-center">Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedAuditLogs.items.map((entry) => (
-                    <TableRow
-                      className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                      key={entry.id}
-                    >
-                      <TableCell>
-                        <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
-                          {formatAuditAction(entry.action)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden text-center md:table-cell">
-                        <p className="font-semibold text-zinc-950">
-                          {entry.user?.name ?? "System"}
-                        </p>
-                        <p className="truncate text-xs text-zinc-500">
-                          {entry.user?.email ?? "No user account"}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <p className="font-semibold text-zinc-950">
-                          {entry.entityType}
-                        </p>
-                        <p className="truncate text-xs text-zinc-500">
-                          {entry.entityId ?? "No entity id"}
-                        </p>
-                      </TableCell>
-                      <TableCell className="hidden text-sm text-zinc-500 lg:table-cell">
-                        <p className="truncate">
-                          {safeMetadataSummary(entry.metadata)}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <p className="font-medium text-zinc-950">
-                          {compactDateFormatter.format(entry.timestamp)}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          {timeFormatter.format(entry.timestamp)}
-                        </p>
-                      </TableCell>
+                <Table className="w-full table-fixed">
+                  <TableHeader>
+                    <TableRow className="border-zinc-200 bg-zinc-50">
+                      <TableHead className="w-[22%]">Action</TableHead>
+                      <TableHead className="hidden text-center md:table-cell">
+                        Actor
+                      </TableHead>
+                      <TableHead className="text-center">Entity</TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Metadata
+                      </TableHead>
+                      <TableHead className="text-center">Time</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <PaginationControls
-              page={paginatedAuditLogs.currentPage}
-              searchParams={params}
-              total={paginatedAuditLogs.total}
-            />
-          </>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedAuditLogs.items.map(entry => (
+                      <TableRow
+                        className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                        key={entry.id}
+                      >
+                        <TableCell>
+                          <Badge
+                            className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                            variant="outline"
+                          >
+                            {formatAuditAction(entry.action)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden text-center md:table-cell">
+                          <p className="font-semibold text-zinc-950">
+                            {entry.user?.name ?? "System"}
+                          </p>
+                          <p className="truncate text-xs text-zinc-500">
+                            {entry.user?.email ?? "No user account"}
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <p className="font-semibold text-zinc-950">
+                            {entry.entityType}
+                          </p>
+                          <p className="truncate text-xs text-zinc-500">
+                            {entry.entityId ?? "No entity id"}
+                          </p>
+                        </TableCell>
+                        <TableCell className="hidden text-sm text-zinc-500 lg:table-cell">
+                          <p className="truncate">
+                            {safeMetadataSummary(entry.metadata)}
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <p className="font-medium text-zinc-950">
+                            {compactDateFormatter.format(entry.timestamp)}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            {timeFormatter.format(entry.timestamp)}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <PaginationControls
+                page={paginatedAuditLogs.currentPage}
+                searchParams={params}
+                total={paginatedAuditLogs.total}
+              />
+            </>
           ) : (
             <EmptyState />
           )}
@@ -166,7 +204,10 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="metric">
+    <Card
+      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      data-motion="metric"
+    >
       <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -193,4 +234,3 @@ function EmptyState() {
     </div>
   );
 }
-

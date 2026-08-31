@@ -51,7 +51,7 @@ const chartWidth = 680;
 const chartHeight = 240;
 
 export const metadata: Metadata = {
-  title: "AEGIS - Equipment Profile",
+  title: " Equipment Profile",
 };
 
 export default async function EquipmentDetailsPage({
@@ -81,21 +81,23 @@ export default async function EquipmentDetailsPage({
   const readings = equipment.operationalReadings.slice().reverse();
   const predictions = equipment.predictions.slice().reverse();
   const health = Math.round(asNumber(latestPrediction?.healthScore));
-  const failure = Math.round(asNumber(latestPrediction?.failureProbability) * 100);
-  const vibration = readings.map((reading) =>
-    readParameter(reading.parameters, "vibrationMmS")
+  const failure = Math.round(
+    asNumber(latestPrediction?.failureProbability) * 100,
   );
-  const pressure = readings.map((reading) =>
-    readParameter(reading.parameters, "pressureBar")
+  const vibration = readings.map(reading =>
+    readParameter(reading.parameters, "vibrationMmS"),
   );
-  const flow = readings.map((reading) =>
-    readParameter(reading.parameters, "flowRateBpd")
+  const pressure = readings.map(reading =>
+    readParameter(reading.parameters, "pressureBar"),
   );
-  const healthTrend = predictions.map((prediction) =>
-    asNumber(prediction.healthScore)
+  const flow = readings.map(reading =>
+    readParameter(reading.parameters, "flowRateBpd"),
+  );
+  const healthTrend = predictions.map(prediction =>
+    asNumber(prediction.healthScore),
   );
   const failureTrend = predictions.map(
-    (prediction) => asNumber(prediction.failureProbability) * 100
+    prediction => asNumber(prediction.failureProbability) * 100,
   );
 
   return (
@@ -105,7 +107,9 @@ export default async function EquipmentDetailsPage({
           <BackButton className="mb-4" />
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={equipment.status} />
-            {latestPrediction && <RiskBadge risk={latestPrediction.riskLevel} />}
+            {latestPrediction && (
+              <RiskBadge risk={latestPrediction.riskLevel} />
+            )}
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
             {equipment.name}
@@ -190,7 +194,9 @@ export default async function EquipmentDetailsPage({
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DetailMetricCard
-          detail={latestPrediction ? latestPrediction.riskLevel : "No AI run yet"}
+          detail={
+            latestPrediction ? latestPrediction.riskLevel : "No AI run yet"
+          }
           icon={Pulse}
           label="AI Health"
           value={latestPrediction ? `${health}%` : "Pending"}
@@ -360,7 +366,7 @@ export default async function EquipmentDetailsPage({
             <CardTitle>Maintenance Timeline</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {equipment.maintenanceRecords.map((record) => (
+            {equipment.maintenanceRecords.map(record => (
               <div
                 className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
                 key={record.id}
@@ -402,48 +408,48 @@ export default async function EquipmentDetailsPage({
               <>
                 <div className="overflow-x-auto px-4 pb-4">
                   <Table className="min-w-[720px]">
-                  <TableHeader>
-                    <TableRow className="border-zinc-200 bg-zinc-50">
-                      <TableHead className="text-center">Recorded</TableHead>
-                      <TableHead className="text-center">Vibration</TableHead>
-                      <TableHead className="text-center">Pressure</TableHead>
-                      <TableHead className="text-center">Flow</TableHead>
-                      <TableHead>Source</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {equipment.operationalReadings.map((reading) => (
-                      <TableRow
-                        className="border-zinc-100 hover:bg-zinc-50"
-                        key={reading.id}
-                      >
-                        <TableCell className="text-center font-medium text-zinc-950">
-                          {formatDate(reading.recordedAt)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatNumber(
-                            readParameter(reading.parameters, "vibrationMmS")
-                          )}{" "}
-                          mm/s
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatNumber(
-                            readParameter(reading.parameters, "pressureBar")
-                          )}{" "}
-                          bar
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatNumber(
-                            readParameter(reading.parameters, "flowRateBpd")
-                          )}{" "}
-                          bpd
-                        </TableCell>
-                        <TableCell className="text-zinc-500">
-                          {reading.sourceType}
-                        </TableCell>
+                    <TableHeader>
+                      <TableRow className="border-zinc-200 bg-zinc-50">
+                        <TableHead className="text-center">Recorded</TableHead>
+                        <TableHead className="text-center">Vibration</TableHead>
+                        <TableHead className="text-center">Pressure</TableHead>
+                        <TableHead className="text-center">Flow</TableHead>
+                        <TableHead>Source</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
+                    </TableHeader>
+                    <TableBody>
+                      {equipment.operationalReadings.map(reading => (
+                        <TableRow
+                          className="border-zinc-100 hover:bg-zinc-50"
+                          key={reading.id}
+                        >
+                          <TableCell className="text-center font-medium text-zinc-950">
+                            {formatDate(reading.recordedAt)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatNumber(
+                              readParameter(reading.parameters, "vibrationMmS"),
+                            )}{" "}
+                            mm/s
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatNumber(
+                              readParameter(reading.parameters, "pressureBar"),
+                            )}{" "}
+                            bar
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatNumber(
+                              readParameter(reading.parameters, "flowRateBpd"),
+                            )}{" "}
+                            bpd
+                          </TableCell>
+                          <TableCell className="text-zinc-500">
+                            {reading.sourceType}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
                   </Table>
                 </div>
                 <PaginationControls
@@ -609,7 +615,7 @@ function MultiLineChart({
   max?: number;
   series: Array<{ color: string; label: string; values: number[] }>;
 }) {
-  const values = series.flatMap((item) => item.values).filter(Number.isFinite);
+  const values = series.flatMap(item => item.values).filter(Number.isFinite);
   const chartMax = max ?? Math.max(1, ...values);
 
   if (!values.length) {
@@ -625,7 +631,7 @@ function MultiLineChart({
           preserveAspectRatio="none"
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
         >
-          {[0, 1, 2, 3].map((line) => (
+          {[0, 1, 2, 3].map(line => (
             <line
               key={line}
               stroke="#e4e4e7"
@@ -637,7 +643,7 @@ function MultiLineChart({
               y2={(chartHeight / 3) * line}
             />
           ))}
-          {series.map((item) => {
+          {series.map(item => {
             const path = buildPath(item.values, chartMax);
 
             if (!path) {
@@ -659,7 +665,7 @@ function MultiLineChart({
         </svg>
       </div>
       <div className="flex flex-wrap gap-3">
-        {series.map((item) => (
+        {series.map(item => (
           <span
             className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600"
             key={item.label}
@@ -741,7 +747,11 @@ function buildPath(values: number[], max: number) {
 }
 
 function readParameter(parameters: unknown, key: string) {
-  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
+  if (
+    !parameters ||
+    typeof parameters !== "object" ||
+    Array.isArray(parameters)
+  ) {
     return 0;
   }
 
@@ -778,6 +788,3 @@ function formatDate(value: Date | null | undefined) {
       }).format(value)
     : "Not scheduled";
 }
-
-
-

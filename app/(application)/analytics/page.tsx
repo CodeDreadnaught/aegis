@@ -31,7 +31,7 @@ import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Predictive Analytics",
+  title: "Predictive Analytics",
 };
 
 export const runtime = "nodejs";
@@ -50,25 +50,28 @@ type AnalyticsPageProps = {
   searchParams?: Promise<{ page?: string | string[] }>;
 };
 
-export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
+export default async function AnalyticsPage({
+  searchParams,
+}: AnalyticsPageProps) {
   await requirePermission("runPrediction");
   const params = await searchParams;
   const page = parsePageParam(params?.page);
-  const { predictions, readingCount, readings } = await getAnalyticsWorkspace(page);
+  const { predictions, readingCount, readings } =
+    await getAnalyticsWorkspace(page);
   const predictedReadingCount = readings.filter(
-    (reading) => reading.predictions.length > 0
+    reading => reading.predictions.length > 0,
   ).length;
   const pendingJobCount = readings.filter(
-    (reading) =>
+    reading =>
       reading.predictionJob?.status === "PENDING" ||
-      reading.predictionJob?.status === "PROCESSING"
+      reading.predictionJob?.status === "PROCESSING",
   ).length;
   const readiness = percentage(predictedReadingCount, readings.length);
   const averageHealth = average(
-    predictions.map((prediction) => Number(prediction.healthScore))
+    predictions.map(prediction => Number(prediction.healthScore)),
   );
   const averageFailure = average(
-    predictions.map((prediction) => Number(prediction.failureProbability) * 100)
+    predictions.map(prediction => Number(prediction.failureProbability) * 100),
   );
   const modelConfidence = predictions.length
     ? Math.max(0, Math.round(100 - averageFailure))
@@ -78,16 +81,16 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       summary[prediction.riskLevel.toLowerCase() as keyof typeof summary] += 1;
       return summary;
     },
-    { low: 0, medium: 0, high: 0 }
+    { low: 0, medium: 0, high: 0 },
   );
   const trendPredictions = predictions.slice().reverse().slice(-8);
   const trendPoints = buildLinePoints(
     trendPredictions.map(
-      (prediction) => Number(prediction.failureProbability) * 100
-    )
+      prediction => Number(prediction.failureProbability) * 100,
+    ),
   );
   const latestHighRisk = predictions.filter(
-    (prediction) => prediction.riskLevel === "HIGH"
+    prediction => prediction.riskLevel === "HIGH",
   ).length;
   const kpis = [
     {
@@ -136,7 +139,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
         </section>
 
         <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-          {kpis.map((kpi) => (
+          {kpis.map(kpi => (
             <MetricCard
               detail={kpi.detail}
               icon={kpi.icon}
@@ -170,136 +173,151 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               {readings.length ? (
                 <>
                   <div className="px-4 pb-4">
-                  <Table className="w-full table-fixed">
-                    <TableHeader>
-                      <TableRow className="border-zinc-200 bg-zinc-50">
-                        <TableHead className="w-[24%]">Equipment</TableHead>
-                        <TableHead className="hidden text-center md:table-cell">
-                          Recorded
-                        </TableHead>
-                        <TableHead className="hidden w-[13%] text-center lg:table-cell">
-                          Source
-                        </TableHead>
-                        <TableHead className="hidden w-[17%] text-center xl:table-cell">
-                          Signal
-                        </TableHead>
-                        <TableHead className="w-[12%] text-center">Latest</TableHead>
-                        <TableHead className="hidden w-[11%] text-center lg:table-cell">
-                          Job
-                        </TableHead>
-                        <TableHead className="w-[9%] text-center">Run</TableHead>
-                        <TableHead className="w-[10%] text-center">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {readings.map((reading) => {
-                        const latestPrediction = reading.predictions[0];
+                    <Table className="w-full table-fixed">
+                      <TableHeader>
+                        <TableRow className="border-zinc-200 bg-zinc-50">
+                          <TableHead className="w-[24%]">Equipment</TableHead>
+                          <TableHead className="hidden text-center md:table-cell">
+                            Recorded
+                          </TableHead>
+                          <TableHead className="hidden w-[13%] text-center lg:table-cell">
+                            Source
+                          </TableHead>
+                          <TableHead className="hidden w-[17%] text-center xl:table-cell">
+                            Signal
+                          </TableHead>
+                          <TableHead className="w-[12%] text-center">
+                            Latest
+                          </TableHead>
+                          <TableHead className="hidden w-[11%] text-center lg:table-cell">
+                            Job
+                          </TableHead>
+                          <TableHead className="w-[9%] text-center">
+                            Run
+                          </TableHead>
+                          <TableHead className="w-[10%] text-center">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {readings.map(reading => {
+                          const latestPrediction = reading.predictions[0];
 
-                        return (
-                          <TableRow
-                            className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                            key={reading.id}
-                          >
-                            <TableCell>
-                              <div className="min-w-0">
-                                <p className="font-semibold text-zinc-950">
-                                  {reading.equipment.assetTag}
-                                </p>
-                                <p className="truncate text-xs text-zinc-500">
-                                  {reading.equipment.name}
-                                </p>
-                                <p className="truncate text-xs text-zinc-400">
-                                  {reading.equipment.location}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden text-center md:table-cell">
-                              <p className="font-medium text-zinc-950">
-                                {compactDateFormatter.format(reading.recordedAt)}
-                              </p>
-                              <p className="text-xs text-zinc-500">
-                                {timeFormatter.format(reading.recordedAt)}
-                              </p>
-                            </TableCell>
-                            <TableCell className="hidden text-center lg:table-cell">
-                              <Badge
-                                className="max-w-full rounded-full border-zinc-200 bg-white text-zinc-700"
-                                variant="outline"
-                              >
-                                <span className="truncate">
-                                  {formatSourceType(reading.sourceType)}
-                                </span>
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="hidden text-center xl:table-cell">
-                              <SignalStack parameters={reading.parameters} />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {latestPrediction ? (
-                                <div className="inline-grid justify-items-center gap-1">
-                                  <RiskBadge riskLevel={latestPrediction.riskLevel} />
-                                  <span className="text-xs font-medium text-zinc-500">
-                                    {latestPrediction.healthScore.toString()}%
-                                    health
-                                  </span>
+                          return (
+                            <TableRow
+                              className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                              key={reading.id}
+                            >
+                              <TableCell>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-zinc-950">
+                                    {reading.equipment.assetTag}
+                                  </p>
+                                  <p className="truncate text-xs text-zinc-500">
+                                    {reading.equipment.name}
+                                  </p>
+                                  <p className="truncate text-xs text-zinc-400">
+                                    {reading.equipment.location}
+                                  </p>
                                 </div>
-                              ) : (
-                                <span className="text-sm text-zinc-400">
-                                  Not run
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="hidden text-center lg:table-cell">
-                              <PredictionJobBadge
-                                attempts={reading.predictionJob?.attempts ?? 0}
-                                status={
-                                  latestPrediction
-                                    ? "COMPLETED"
-                                    : reading.predictionJob?.status
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <ActionToastForm
-                                action={runPredictionAction.bind(null, reading.id)}
-                                errorTitle="Prediction was not run"
-                                successDescription="The model output and recommendation were saved."
-                                successTitle="Prediction complete"
-                              >
-                                <button
-                                  className={buttonVariants({
-                                    variant: "outline",
-                                    size: "sm",
-                                    className:
-                                      "rounded-full border-zinc-200 bg-white px-3 text-zinc-950 hover:bg-zinc-950 hover:text-white",
-                                  })}
-                                  type="submit"
+                              </TableCell>
+                              <TableCell className="hidden text-center md:table-cell">
+                                <p className="font-medium text-zinc-950">
+                                  {compactDateFormatter.format(
+                                    reading.recordedAt,
+                                  )}
+                                </p>
+                                <p className="text-xs text-zinc-500">
+                                  {timeFormatter.format(reading.recordedAt)}
+                                </p>
+                              </TableCell>
+                              <TableCell className="hidden text-center lg:table-cell">
+                                <Badge
+                                  className="max-w-full rounded-full border-zinc-200 bg-white text-zinc-700"
+                                  variant="outline"
                                 >
-                                  <Brain />
-                                  Run
-                                </button>
-                              </ActionToastForm>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Link
-                                className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                                href={`/equipment/${reading.equipment.id}`}
-                              >
-                                View more
-                              </Link>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-                <PaginationControls
-                  page={page}
-                  searchParams={params}
-                  total={readingCount}
-                />
-              </>
+                                  <span className="truncate">
+                                    {formatSourceType(reading.sourceType)}
+                                  </span>
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="hidden text-center xl:table-cell">
+                                <SignalStack parameters={reading.parameters} />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {latestPrediction ? (
+                                  <div className="inline-grid justify-items-center gap-1">
+                                    <RiskBadge
+                                      riskLevel={latestPrediction.riskLevel}
+                                    />
+                                    <span className="text-xs font-medium text-zinc-500">
+                                      {latestPrediction.healthScore.toString()}%
+                                      health
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-zinc-400">
+                                    Not run
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="hidden text-center lg:table-cell">
+                                <PredictionJobBadge
+                                  attempts={
+                                    reading.predictionJob?.attempts ?? 0
+                                  }
+                                  status={
+                                    latestPrediction
+                                      ? "COMPLETED"
+                                      : reading.predictionJob?.status
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <ActionToastForm
+                                  action={runPredictionAction.bind(
+                                    null,
+                                    reading.id,
+                                  )}
+                                  errorTitle="Prediction was not run"
+                                  successDescription="The model output and recommendation were saved."
+                                  successTitle="Prediction complete"
+                                >
+                                  <button
+                                    className={buttonVariants({
+                                      variant: "outline",
+                                      size: "sm",
+                                      className:
+                                        "rounded-full border-zinc-200 bg-white px-3 text-zinc-950 hover:bg-zinc-950 hover:text-white",
+                                    })}
+                                    type="submit"
+                                  >
+                                    <Brain />
+                                    Run
+                                  </button>
+                                </ActionToastForm>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Link
+                                  className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                                  href={`/equipment/${reading.equipment.id}`}
+                                >
+                                  View more
+                                </Link>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <PaginationControls
+                    page={page}
+                    searchParams={params}
+                    total={readingCount}
+                  />
+                </>
               ) : (
                 <EmptyState icon={Brain} label="No readings available" />
               )}
@@ -315,7 +333,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
                 <CardTitle>Model Confidence</CardTitle>
-                <p className="text-sm text-zinc-500">Failure probability inverse</p>
+                <p className="text-sm text-zinc-500">
+                  Failure probability inverse
+                </p>
               </div>
               <Gauge aria-hidden="true" className="size-5 text-zinc-500" />
             </CardHeader>
@@ -355,7 +375,10 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                 <CardTitle>Risk Mix</CardTitle>
                 <p className="text-sm text-zinc-500">Stored predictions</p>
               </div>
-              <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
+              <ChartLineUp
+                aria-hidden="true"
+                className="size-5 text-zinc-500"
+              />
             </CardHeader>
             <CardContent className="grid gap-2 p-4 pt-0">
               <DistributionRow
@@ -386,7 +409,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
               <div>
                 <CardTitle>Failure Trend</CardTitle>
-                <p className="text-sm text-zinc-500">Recent probability output</p>
+                <p className="text-sm text-zinc-500">
+                  Recent probability output
+                </p>
               </div>
               <Badge
                 className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
@@ -399,52 +424,52 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               {trendPredictions.length ? (
                 <>
                   <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <svg
-                    className="h-48 w-full overflow-visible"
-                    role="img"
-                    viewBox="0 0 640 220"
-                  >
-                    <title>Failure probability trend</title>
-                    {[40, 90, 140, 190].map((y) => (
-                      <line
-                        key={y}
-                        stroke="#e4e4e7"
-                        strokeDasharray="6 8"
-                        x1="0"
-                        x2="640"
-                        y1={y}
-                        y2={y}
-                      />
-                    ))}
-                    <polyline
-                      fill="none"
-                      points={trendPoints}
-                      stroke="#09090b"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="4"
-                    />
-                    {trendPoints.split(" ").map((point) => {
-                      const [x, y] = point.split(",");
-
-                      return (
-                        <circle
-                          cx={x}
-                          cy={y}
-                          fill="#09090b"
-                          key={point}
-                          r="5"
+                    <svg
+                      className="h-48 w-full overflow-visible"
+                      role="img"
+                      viewBox="0 0 640 220"
+                    >
+                      <title>Failure probability trend</title>
+                      {[40, 90, 140, 190].map(y => (
+                        <line
+                          key={y}
+                          stroke="#e4e4e7"
+                          strokeDasharray="6 8"
+                          x1="0"
+                          x2="640"
+                          y1={y}
+                          y2={y}
                         />
-                      );
-                    })}
-                  </svg>
-                </div>
-                <PaginationControls
-                  page={page}
-                  searchParams={params}
-                  total={readingCount}
-                />
-              </>
+                      ))}
+                      <polyline
+                        fill="none"
+                        points={trendPoints}
+                        stroke="#09090b"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="4"
+                      />
+                      {trendPoints.split(" ").map(point => {
+                        const [x, y] = point.split(",");
+
+                        return (
+                          <circle
+                            cx={x}
+                            cy={y}
+                            fill="#09090b"
+                            key={point}
+                            r="5"
+                          />
+                        );
+                      })}
+                    </svg>
+                  </div>
+                  <PaginationControls
+                    page={page}
+                    searchParams={params}
+                    total={readingCount}
+                  />
+                </>
               ) : (
                 <EmptyState label="No prediction trend yet" />
               )}
@@ -468,7 +493,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
               </Badge>
             </CardHeader>
             <CardContent className="grid gap-2 p-4 pt-0">
-              {predictions.slice(0, 8).map((prediction) => (
+              {predictions.slice(0, 8).map(prediction => (
                 <Link
                   className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
                   href={`/equipment/${prediction.equipment.id}`}
@@ -493,7 +518,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                     </span>
                     <span>Health {prediction.healthScore.toString()}%</span>
                     <span>{formatEquipmentCategory(prediction.riskLevel)}</span>
-                    <span>{compactDateFormatter.format(prediction.createdAt)}</span>
+                    <span>
+                      {compactDateFormatter.format(prediction.createdAt)}
+                    </span>
                   </div>
                   {prediction.recommendations[0] && (
                     <p className="mt-3 line-clamp-2 text-xs leading-5 text-zinc-500">
@@ -502,7 +529,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                   )}
                 </Link>
               ))}
-              {!predictions.length && <EmptyState label="No predictions stored" />}
+              {!predictions.length && (
+                <EmptyState label="No predictions stored" />
+              )}
             </CardContent>
           </Card>
         </section>
@@ -671,7 +700,11 @@ function EmptyState({
 }
 
 function readParameter(parameters: unknown, key: string) {
-  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
+  if (
+    !parameters ||
+    typeof parameters !== "object" ||
+    Array.isArray(parameters)
+  ) {
     return 0;
   }
 
@@ -681,13 +714,15 @@ function readParameter(parameters: unknown, key: string) {
 }
 
 function average(values: number[]) {
-  const validValues = values.filter((value) => Number.isFinite(value));
+  const validValues = values.filter(value => Number.isFinite(value));
 
   if (!validValues.length) {
     return 0;
   }
 
-  return validValues.reduce((sum, value) => sum + value, 0) / validValues.length;
+  return (
+    validValues.reduce((sum, value) => sum + value, 0) / validValues.length
+  );
 }
 
 function percentage(value: number, total: number) {
@@ -716,4 +751,3 @@ function buildLinePoints(values: number[]) {
     })
     .join(" ");
 }
-

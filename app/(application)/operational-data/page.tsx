@@ -1,10 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Database,
-  Factory,
-  Gauge,
-  Pulse,
-} from "@phosphor-icons/react/ssr";
+import { Database, Factory, Gauge, Pulse } from "@phosphor-icons/react/ssr";
 
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +20,7 @@ import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Operational Data",
+  title: " Operational Data",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -43,32 +38,40 @@ export default async function OperationalDataPage({
   await requirePermission("recordOperationalData");
   const params = await searchParams;
   const page = parsePageParam(params?.page);
-  const { equipment, readingCount, readings } = await getOperationalDataWorkspace(page);
-  const activeSources = new Set(readings.map((reading) => reading.sourceType)).size;
-  const signalReadings = readings.map((reading) => ({
+  const { equipment, readingCount, readings } =
+    await getOperationalDataWorkspace(page);
+  const activeSources = new Set(readings.map(reading => reading.sourceType))
+    .size;
+  const signalReadings = readings.map(reading => ({
     assetTag: reading.equipment.assetTag,
     equipmentId: reading.equipmentId,
     name: reading.equipment.name,
     parameters: asReadingParameters(reading.parameters),
   }));
   const averageVibration = average(
-    readings.map((reading) => asReadingParameters(reading.parameters).vibrationMmS)
+    readings.map(
+      reading => asReadingParameters(reading.parameters).vibrationMmS,
+    ),
   );
   const averagePressure = average(
-    readings.map((reading) => asReadingParameters(reading.parameters).pressureBar)
+    readings.map(
+      reading => asReadingParameters(reading.parameters).pressureBar,
+    ),
   );
   const maxVibration = Math.max(
     1,
     ...readings.map(
-      (reading) => asReadingParameters(reading.parameters).vibrationMmS ?? 0
-    )
+      reading => asReadingParameters(reading.parameters).vibrationMmS ?? 0,
+    ),
   );
 
   return (
     <div className="grid min-w-0 gap-4">
       <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div data-motion="reveal">
-          <p className="text-sm font-medium text-zinc-500">Operational telemetry</p>
+          <p className="text-sm font-medium text-zinc-500">
+            Operational telemetry
+          </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
             Data Capture
           </h1>
@@ -110,7 +113,9 @@ export default async function OperationalDataPage({
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
               <CardTitle>Recent Readings</CardTitle>
-              <p className="text-sm text-zinc-500">Model inputs and plant context</p>
+              <p className="text-sm text-zinc-500">
+                Model inputs and plant context
+              </p>
             </div>
             <Badge
               className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
@@ -123,122 +128,134 @@ export default async function OperationalDataPage({
             {readings.length ? (
               <>
                 <div className="min-w-0 max-w-full px-4 pb-4">
-                <Table className="min-w-[920px]">
-                  <TableHeader>
-                    <TableRow className="border-zinc-200 bg-zinc-50">
-                      <TableHead>Equipment</TableHead>
-                      <TableHead className="text-center">Model Inputs</TableHead>
-                      <TableHead className="text-center">Temperature (K)</TableHead>
-                      <TableHead className="text-center">Signals</TableHead>
-                      <TableHead className="text-center">Source</TableHead>
-                      <TableHead className="text-center">Recorded</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {readings.map((reading) => {
-                      const parameters = asReadingParameters(reading.parameters);
+                  <Table className="min-w-[920px]">
+                    <TableHeader>
+                      <TableRow className="border-zinc-200 bg-zinc-50">
+                        <TableHead>Equipment</TableHead>
+                        <TableHead className="text-center">
+                          Model Inputs
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Temperature (K)
+                        </TableHead>
+                        <TableHead className="text-center">Signals</TableHead>
+                        <TableHead className="text-center">Source</TableHead>
+                        <TableHead className="text-center">Recorded</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {readings.map(reading => {
+                        const parameters = asReadingParameters(
+                          reading.parameters,
+                        );
 
-                      return (
-                        <TableRow
-                          className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                          key={reading.id}
-                        >
-                          <TableCell>
-                            <div className="min-w-[13rem]">
-                              <p className="font-semibold text-zinc-950">
-                                {reading.equipment.assetTag}
+                        return (
+                          <TableRow
+                            className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                            key={reading.id}
+                          >
+                            <TableCell>
+                              <div className="min-w-[13rem]">
+                                <p className="font-semibold text-zinc-950">
+                                  {reading.equipment.assetTag}
+                                </p>
+                                <p className="text-xs text-zinc-500">
+                                  {reading.equipment.name}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="inline-flex flex-wrap justify-center gap-1.5">
+                                <Badge
+                                  className="rounded-full border-zinc-200 bg-white text-zinc-700"
+                                  variant="outline"
+                                >
+                                  Type {parameters.type ?? "M"}
+                                </Badge>
+                                <Badge
+                                  className="rounded-full border-zinc-200 bg-white text-zinc-700"
+                                  variant="outline"
+                                >
+                                  {formatNumber(parameters.torqueNm)} Nm
+                                </Badge>
+                                <Badge
+                                  className="rounded-full border-zinc-200 bg-white text-zinc-700"
+                                  variant="outline"
+                                >
+                                  {formatNumber(parameters.toolWearMinutes)} min
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center text-zinc-600">
+                              <div className="inline-grid min-w-24 gap-1 text-left">
+                                <p className="flex items-center justify-between gap-3 text-xs">
+                                  <span className="text-zinc-500">Air</span>
+                                  <span className="font-semibold text-zinc-950">
+                                    {formatNumber(
+                                      parameters.airTemperatureKelvin,
+                                    )}
+                                  </span>
+                                </p>
+                                <p className="flex items-center justify-between gap-3 text-xs">
+                                  <span className="text-zinc-500">Process</span>
+                                  <span className="font-semibold text-zinc-950">
+                                    {formatNumber(
+                                      parameters.processTemperatureKelvin,
+                                    )}
+                                  </span>
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center text-zinc-600">
+                              <div className="mx-auto grid max-w-[12rem] gap-2">
+                                <div className="flex items-center justify-between gap-3 text-xs">
+                                  <span>Vibration</span>
+                                  <span className="font-semibold text-zinc-950">
+                                    {formatNumber(parameters.vibrationMmS)} mm/s
+                                  </span>
+                                </div>
+                                <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
+                                  <span
+                                    className="block h-full rounded-full bg-zinc-950"
+                                    style={{
+                                      width: `${percentage(
+                                        parameters.vibrationMmS ?? 0,
+                                        maxVibration,
+                                      )}%`,
+                                    }}
+                                  />
+                                </span>
+                                <p className="text-xs text-zinc-400">
+                                  {formatNumber(parameters.pressureBar)} bar /{" "}
+                                  {formatNumber(parameters.flowRateBpd)} bpd
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center text-zinc-600">
+                              {formatSourceType(reading.sourceType)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <p className="font-medium text-zinc-950">
+                                {compactDateFormatter.format(
+                                  reading.recordedAt,
+                                )}
                               </p>
                               <p className="text-xs text-zinc-500">
-                                {reading.equipment.name}
+                                {reading.createdBy?.name ?? "System"}
                               </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="inline-flex flex-wrap justify-center gap-1.5">
-                              <Badge
-                                className="rounded-full border-zinc-200 bg-white text-zinc-700"
-                                variant="outline"
-                              >
-                                Type {parameters.type ?? "M"}
-                              </Badge>
-                              <Badge
-                                className="rounded-full border-zinc-200 bg-white text-zinc-700"
-                                variant="outline"
-                              >
-                                {formatNumber(parameters.torqueNm)} Nm
-                              </Badge>
-                              <Badge
-                                className="rounded-full border-zinc-200 bg-white text-zinc-700"
-                                variant="outline"
-                              >
-                                {formatNumber(parameters.toolWearMinutes)} min
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center text-zinc-600">
-                            <div className="inline-grid min-w-24 gap-1 text-left">
-                              <p className="flex items-center justify-between gap-3 text-xs">
-                                <span className="text-zinc-500">Air</span>
-                                <span className="font-semibold text-zinc-950">
-                                  {formatNumber(parameters.airTemperatureKelvin)}
-                                </span>
-                              </p>
-                              <p className="flex items-center justify-between gap-3 text-xs">
-                                <span className="text-zinc-500">Process</span>
-                                <span className="font-semibold text-zinc-950">
-                                  {formatNumber(parameters.processTemperatureKelvin)}
-                                </span>
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center text-zinc-600">
-                            <div className="mx-auto grid max-w-[12rem] gap-2">
-                              <div className="flex items-center justify-between gap-3 text-xs">
-                                <span>Vibration</span>
-                                <span className="font-semibold text-zinc-950">
-                                  {formatNumber(parameters.vibrationMmS)} mm/s
-                                </span>
-                              </div>
-                              <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
-                                <span
-                                  className="block h-full rounded-full bg-zinc-950"
-                                  style={{
-                                    width: `${percentage(
-                                      parameters.vibrationMmS ?? 0,
-                                      maxVibration
-                                    )}%`,
-                                  }}
-                                />
-                              </span>
-                              <p className="text-xs text-zinc-400">
-                                {formatNumber(parameters.pressureBar)} bar /{" "}
-                                {formatNumber(parameters.flowRateBpd)} bpd
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center text-zinc-600">
-                            {formatSourceType(reading.sourceType)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <p className="font-medium text-zinc-950">
-                              {compactDateFormatter.format(reading.recordedAt)}
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              {reading.createdBy?.name ?? "System"}
-                            </p>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              <PaginationControls
-                page={page}
-                searchParams={params}
-                total={readingCount}
-              />
-            </>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <PaginationControls
+                  page={page}
+                  searchParams={params}
+                  total={readingCount}
+                />
+              </>
             ) : (
               <div className="px-6 py-14 text-center">
                 <div className="mx-auto grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-950">
@@ -317,14 +334,17 @@ function asReadingParameters(value: unknown): ReadingParameters {
 
 function average(values: Array<number | undefined>) {
   const validValues = values.filter(
-    (value): value is number => typeof value === "number" && Number.isFinite(value)
+    (value): value is number =>
+      typeof value === "number" && Number.isFinite(value),
   );
 
   if (!validValues.length) {
     return 0;
   }
 
-  return validValues.reduce((sum, value) => sum + value, 0) / validValues.length;
+  return (
+    validValues.reduce((sum, value) => sum + value, 0) / validValues.length
+  );
 }
 
 function formatNumber(value: number | undefined) {
@@ -338,4 +358,3 @@ function percentage(value: number, total: number) {
 
   return Math.round((value / total) * 100);
 }
-

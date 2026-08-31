@@ -15,12 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { PaginationControls } from "@/components/table-pagination";
 import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -47,7 +42,7 @@ import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Equipment",
+  title: "Equipment",
 };
 
 type EquipmentPageProps = {
@@ -78,71 +73,62 @@ export default async function EquipmentPage({
   const equipment = await getEquipmentList(query, { category, status });
   const paginatedEquipment = paginateItems(equipment, page);
   const now = new Date();
-  const activeCount = equipment.filter((item) => item.status === "ACTIVE").length;
+  const activeCount = equipment.filter(item => item.status === "ACTIVE").length;
   const maintenanceCount = equipment.filter(
-    (item) => item.status === "MAINTENANCE"
+    item => item.status === "MAINTENANCE",
   ).length;
-  const overdueMaintenanceCount = equipment.filter((item) => {
+  const overdueMaintenanceCount = equipment.filter(item => {
     const nextDueDate = item.maintenanceRecords[0]?.nextDueDate;
 
     return nextDueDate ? nextDueDate < now : false;
   }).length;
-  const dueSoonCount = equipment.filter((item) => {
+  const dueSoonCount = equipment.filter(item => {
     const nextDueDate = item.maintenanceRecords[0]?.nextDueDate;
 
     if (!nextDueDate || nextDueDate < now) {
       return false;
     }
 
-    return (
-      nextDueDate.getTime() - now.getTime() <=
-      1000 * 60 * 60 * 24 * 30
-    );
+    return nextDueDate.getTime() - now.getTime() <= 1000 * 60 * 60 * 24 * 30;
   }).length;
   const highRiskCount = equipment.filter(
-    (item) => item.predictions[0]?.riskLevel === "HIGH"
+    item => item.predictions[0]?.riskLevel === "HIGH",
   ).length;
   const monitoredCount = equipment.filter(
-    (item) => item._count.operationalReadings > 0
+    item => item._count.operationalReadings > 0,
   ).length;
-  const readingCoverage = percentage(
-    monitoredCount,
-    equipment.length
-  );
+  const readingCoverage = percentage(monitoredCount, equipment.length);
   const predictionCoverage = percentage(
-    equipment.filter((item) => item.predictions[0]).length,
-    equipment.length
+    equipment.filter(item => item.predictions[0]).length,
+    equipment.length,
   );
   const averageHealth = average(
-    equipment.map((item) => Number(item.predictions[0]?.healthScore ?? 0))
+    equipment.map(item => Number(item.predictions[0]?.healthScore ?? 0)),
   );
-  const statusCounts = equipmentStatuses.map((item) => ({
+  const statusCounts = equipmentStatuses.map(item => ({
     label: formatEquipmentCategory(item),
-    value: equipment.filter((asset) => asset.status === item).length,
+    value: equipment.filter(asset => asset.status === item).length,
   }));
   const categoryCounts = equipmentCategories
-    .map((item) => ({
+    .map(item => ({
       label: formatEquipmentCategory(item),
-      value: equipment.filter((asset) => asset.category === item).length,
+      value: equipment.filter(asset => asset.category === item).length,
     }))
-    .filter((item) => item.value > 0);
+    .filter(item => item.value > 0);
   const visibleCategoryCounts = categoryCounts.slice(0, 3);
   const hiddenCategoryCount = categoryCounts
     .slice(3)
     .reduce((sum, item) => sum + item.value, 0);
   const fleetMixRows = hiddenCategoryCount
-    ? [
-        ...visibleCategoryCounts,
-        { label: "Other", value: hiddenCategoryCount },
-      ]
+    ? [...visibleCategoryCounts, { label: "Other", value: hiddenCategoryCount }]
     : visibleCategoryCounts;
   const criticalAssets = equipment
-    .filter((item) => item.predictions[0])
+    .filter(item => item.predictions[0])
     .slice()
     .sort(
       (left, right) =>
         Number(right.predictions[0]?.failureProbability ?? 0) -
-        Number(left.predictions[0]?.failureProbability ?? 0)
+        Number(left.predictions[0]?.failureProbability ?? 0),
     )
     .slice(0, 4);
 
@@ -199,7 +185,7 @@ export default async function EquipmentPage({
               name="status"
             >
               <option value="">All statuses</option>
-              {equipmentStatuses.map((item) => (
+              {equipmentStatuses.map(item => (
                 <option key={item} value={item}>
                   {formatEquipmentCategory(item)}
                 </option>
@@ -211,7 +197,7 @@ export default async function EquipmentPage({
               name="category"
             >
               <option value="">All categories</option>
-              {equipmentCategories.map((item) => (
+              {equipmentCategories.map(item => (
                 <option key={item} value={item}>
                   {formatEquipmentCategory(item)}
                 </option>
@@ -229,16 +215,16 @@ export default async function EquipmentPage({
             </button>
             {canCreateEquipment ? (
               <div className="lg:hidden">
-              <Link
-                className={buttonVariants({
-                  className:
-                    "h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
-                })}
-                href="/equipment/new"
-              >
-                <Plus />
-                Register
-              </Link>
+                <Link
+                  className={buttonVariants({
+                    className:
+                      "h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+                  })}
+                  href="/equipment/new"
+                >
+                  <Plus />
+                  Register
+                </Link>
               </div>
             ) : null}
             {(query || status || category) && (
@@ -273,7 +259,7 @@ export default async function EquipmentPage({
           detail={`${predictionCoverage}% AI coverage`}
           icon={ChartBar}
           label="Predicted"
-          value={equipment.filter((item) => item.predictions[0]).length}
+          value={equipment.filter(item => item.predictions[0]).length}
         />
         <MetricCard
           detail={`${overdueMaintenanceCount} overdue / ${dueSoonCount} due soon`}
@@ -284,7 +270,6 @@ export default async function EquipmentPage({
       </section>
 
       <section className="grid items-start gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-
         <Card
           className="rounded-lg border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
@@ -298,7 +283,7 @@ export default async function EquipmentPage({
           </CardHeader>
           <CardContent className="gap-3 p-4 pt-0">
             <div className="grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-              {statusCounts.map((item) => (
+              {statusCounts.map(item => (
                 <DistributionRow
                   key={item.label}
                   label={item.label}
@@ -307,7 +292,7 @@ export default async function EquipmentPage({
                 />
               ))}
             </div>
-            {fleetMixRows.map((item) => (
+            {fleetMixRows.map(item => (
               <DistributionRow
                 key={item.label}
                 label={item.label}
@@ -325,15 +310,20 @@ export default async function EquipmentPage({
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
-            <CardTitle>Risk Queue</CardTitle>
-              <p className="text-sm text-zinc-500">Highest failure probability</p>
+              <CardTitle>Risk Queue</CardTitle>
+              <p className="text-sm text-zinc-500">
+                Highest failure probability
+              </p>
             </div>
-            <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+            <Badge
+              className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+              variant="outline"
+            >
               {highRiskCount} high risk
             </Badge>
           </CardHeader>
           <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2">
-            {criticalAssets.map((item) => (
+            {criticalAssets.map(item => (
               <Link
                 className="group rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
                 href={`/equipment/${item.id}`}
@@ -350,7 +340,8 @@ export default async function EquipmentPage({
                   </div>
                   <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-red-600">
                     {Math.round(
-                      Number(item.predictions[0]?.failureProbability ?? 0) * 100
+                      Number(item.predictions[0]?.failureProbability ?? 0) *
+                        100,
                     )}
                     %
                   </span>
@@ -386,143 +377,156 @@ export default async function EquipmentPage({
               action={deleteEquipmentBulkAction}
               enabled={canDeleteEquipment}
             >
-            <div className="overflow-x-auto px-4 pb-4">
-              <Table className="min-w-[1020px]">
-                <TableHeader>
-                  <TableRow className="border-zinc-200 bg-zinc-50">
-                    {canDeleteEquipment ? <TableHead className="w-12">Select</TableHead> : null}
-                    <TableHead>Asset</TableHead>
-                    <TableHead className="text-center">Classification</TableHead>
-                    <TableHead className="text-center">Health</TableHead>
-                    <TableHead className="text-center">Risk</TableHead>
-                    <TableHead className="text-center">Telemetry</TableHead>
-                    <TableHead className="text-center">Maintenance</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedEquipment.items.map((item) => {
-                    const prediction = item.predictions[0];
-                    const health = Number(prediction?.healthScore ?? 0);
-                    const failure = Math.round(
-                      Number(prediction?.failureProbability ?? 0) * 100
-                    );
+              <div className="overflow-x-auto px-4 pb-4">
+                <Table className="min-w-[1020px]">
+                  <TableHeader>
+                    <TableRow className="border-zinc-200 bg-zinc-50">
+                      {canDeleteEquipment ? (
+                        <TableHead className="w-12">Select</TableHead>
+                      ) : null}
+                      <TableHead>Asset</TableHead>
+                      <TableHead className="text-center">
+                        Classification
+                      </TableHead>
+                      <TableHead className="text-center">Health</TableHead>
+                      <TableHead className="text-center">Risk</TableHead>
+                      <TableHead className="text-center">Telemetry</TableHead>
+                      <TableHead className="text-center">Maintenance</TableHead>
+                      <TableHead className="text-center">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedEquipment.items.map(item => {
+                      const prediction = item.predictions[0];
+                      const health = Number(prediction?.healthScore ?? 0);
+                      const failure = Math.round(
+                        Number(prediction?.failureProbability ?? 0) * 100,
+                      );
 
-                    return (
-                      <TableRow
-                        className="border-zinc-100 transition-all duration-300 hover:bg-zinc-50"
-                        key={item.id}
-                      >
-                        {canDeleteEquipment ? (
+                      return (
+                        <TableRow
+                          className="border-zinc-100 transition-all duration-300 hover:bg-zinc-50"
+                          key={item.id}
+                        >
+                          {canDeleteEquipment ? (
+                            <TableCell>
+                              <input
+                                aria-label={`Select ${item.assetTag}`}
+                                className="size-4 rounded border-zinc-300 text-zinc-950"
+                                name="equipmentId"
+                                type="checkbox"
+                                value={item.id}
+                              />
+                            </TableCell>
+                          ) : null}
                           <TableCell>
-                            <input
-                              aria-label={`Select ${item.assetTag}`}
-                              className="size-4 rounded border-zinc-300 text-zinc-950"
-                              name="equipmentId"
-                              type="checkbox"
-                              value={item.id}
-                            />
-                          </TableCell>
-                        ) : null}
-                        <TableCell>
-                          <div className="min-w-[14rem]">
-                            <p className="font-semibold text-zinc-950">
-                              {item.assetTag}
-                            </p>
-                            <p className="text-xs text-zinc-500">{item.name}</p>
-                            <div className="mt-1 flex items-center gap-1 text-xs text-zinc-400">
-                              <MapPin aria-hidden="true" className="size-3.5" />
-                              <span>{item.location}</span>
+                            <div className="min-w-[14rem]">
+                              <p className="font-semibold text-zinc-950">
+                                {item.assetTag}
+                              </p>
+                              <p className="text-xs text-zinc-500">
+                                {item.name}
+                              </p>
+                              <div className="mt-1 flex items-center gap-1 text-xs text-zinc-400">
+                                <MapPin
+                                  aria-hidden="true"
+                                  className="size-3.5"
+                                />
+                                <span>{item.location}</span>
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="inline-grid justify-items-center gap-2">
-                            <span className="text-sm font-semibold text-zinc-950">
-                              {formatEquipmentCategory(item.category)}
-                            </span>
-                            <StatusBadge status={item.status} />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {prediction ? (
-                            <div className="mx-auto grid min-w-[8rem] max-w-[9rem] gap-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-semibold text-zinc-950">
-                                  {health}%
-                                </span>
-                                <span className="text-xs text-zinc-400">
-                                  Health
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="inline-grid justify-items-center gap-2">
+                              <span className="text-sm font-semibold text-zinc-950">
+                                {formatEquipmentCategory(item.category)}
+                              </span>
+                              <StatusBadge status={item.status} />
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {prediction ? (
+                              <div className="mx-auto grid min-w-[8rem] max-w-[9rem] gap-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-sm font-semibold text-zinc-950">
+                                    {health}%
+                                  </span>
+                                  <span className="text-xs text-zinc-400">
+                                    Health
+                                  </span>
+                                </div>
+                                <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
+                                  <span
+                                    className="block h-full rounded-full bg-zinc-950"
+                                    style={{ width: `${health}%` }}
+                                  />
                                 </span>
                               </div>
-                              <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
-                                <span
-                                  className="block h-full rounded-full bg-zinc-950"
-                                  style={{ width: `${health}%` }}
-                                />
+                            ) : (
+                              <span className="text-sm text-zinc-400">
+                                Pending
                               </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-zinc-400">Pending</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {prediction ? (
-                            <div className="inline-grid justify-items-center gap-1">
-                              <RiskBadge risk={prediction.riskLevel} />
-                              <span className="text-xs text-zinc-500">
-                                {failure}% failure
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {prediction ? (
+                              <div className="inline-grid justify-items-center gap-1">
+                                <RiskBadge risk={prediction.riskLevel} />
+                                <span className="text-xs text-zinc-500">
+                                  {failure}% failure
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-zinc-400">
+                                Pending
                               </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-zinc-400">Pending</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center text-zinc-600">
-                          <span className="font-semibold text-zinc-950">
-                            {item._count.operationalReadings}
-                          </span>{" "}
-                          readings
-                          {item.operationalReadings[0] && (
-                            <p className="text-xs text-zinc-400">
-                              {compactDateFormatter.format(
-                                item.operationalReadings[0].recordedAt
-                              )}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center text-zinc-600">
-                          <span className="font-semibold text-zinc-950">
-                            {item._count.maintenanceRecords}
-                          </span>{" "}
-                          records
-                          {item.maintenanceRecords[0] && (
-                            <p className="text-xs text-zinc-400">
-                              {formatEquipmentCategory(
-                                item.maintenanceRecords[0].status
-                              )}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Link
-                            className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                            href={`/equipment/${item.id}`}
-                          >
-                            View more
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <PaginationControls
-              page={paginatedEquipment.currentPage}
-              searchParams={params}
-              total={paginatedEquipment.total}
-            />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center text-zinc-600">
+                            <span className="font-semibold text-zinc-950">
+                              {item._count.operationalReadings}
+                            </span>{" "}
+                            readings
+                            {item.operationalReadings[0] && (
+                              <p className="text-xs text-zinc-400">
+                                {compactDateFormatter.format(
+                                  item.operationalReadings[0].recordedAt,
+                                )}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center text-zinc-600">
+                            <span className="font-semibold text-zinc-950">
+                              {item._count.maintenanceRecords}
+                            </span>{" "}
+                            records
+                            {item.maintenanceRecords[0] && (
+                              <p className="text-xs text-zinc-400">
+                                {formatEquipmentCategory(
+                                  item.maintenanceRecords[0].status,
+                                )}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Link
+                              className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                              href={`/equipment/${item.id}`}
+                            >
+                              View more
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              <PaginationControls
+                page={paginatedEquipment.currentPage}
+                searchParams={params}
+                total={paginatedEquipment.total}
+              />
             </EquipmentBulkDeleteForm>
           ) : (
             <div className="px-6 py-14 text-center">
@@ -592,7 +596,10 @@ function DistributionRow({
         <span className="text-xs font-semibold text-zinc-500">{value}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
-        <div className="h-full rounded-full bg-zinc-950" style={{ width: `${width}%` }} />
+        <div
+          className="h-full rounded-full bg-zinc-950"
+          style={{ width: `${width}%` }}
+        />
       </div>
     </div>
   );
@@ -650,14 +657,18 @@ function parseStatus(value: string | undefined): EquipmentStatus | undefined {
     : undefined;
 }
 
-function parseCategory(value: string | undefined): EquipmentCategory | undefined {
+function parseCategory(
+  value: string | undefined,
+): EquipmentCategory | undefined {
   return equipmentCategories.includes(value as EquipmentCategory)
     ? (value as EquipmentCategory)
     : undefined;
 }
 
 function average(values: number[]) {
-  const validValues = values.filter((value) => Number.isFinite(value) && value > 0);
+  const validValues = values.filter(
+    value => Number.isFinite(value) && value > 0,
+  );
 
   if (!validValues.length) {
     return 0;

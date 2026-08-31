@@ -12,7 +12,7 @@ type EditEquipmentPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "AEGIS - Edit Equipment",
+  title: "Edit Equipment",
 };
 
 export default async function EditEquipmentPage({

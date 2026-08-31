@@ -27,7 +27,7 @@ import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "AEGIS - Reports",
+  title: " Reports",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -48,52 +48,64 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   await requirePermission("viewReports");
   const params = await searchParams;
   const reports = await getReportsWorkspace();
-  const paginatedEquipment = paginateItems(reports.equipment, parsePageParam(params?.equipmentPage));
-  const paginatedMaintenance = paginateItems(reports.maintenance, parsePageParam(params?.maintenancePage));
-  const paginatedPredictions = paginateItems(reports.predictions, parsePageParam(params?.predictionsPage));
-  const paginatedAlerts = paginateItems(reports.alerts, parsePageParam(params?.alertsPage));
+  const paginatedEquipment = paginateItems(
+    reports.equipment,
+    parsePageParam(params?.equipmentPage),
+  );
+  const paginatedMaintenance = paginateItems(
+    reports.maintenance,
+    parsePageParam(params?.maintenancePage),
+  );
+  const paginatedPredictions = paginateItems(
+    reports.predictions,
+    parsePageParam(params?.predictionsPage),
+  );
+  const paginatedAlerts = paginateItems(
+    reports.alerts,
+    parsePageParam(params?.alertsPage),
+  );
 
   const equipmentCsv = toCsv(
-    reports.equipment.map((equipment) => ({
+    reports.equipment.map(equipment => ({
       assetTag: equipment.assetTag,
       name: equipment.name,
       category: equipment.category,
       status: equipment.status,
       location: equipment.location,
-    }))
+    })),
   );
   const maintenanceCsv = toCsv(
-    reports.maintenance.map((record) => ({
+    reports.maintenance.map(record => ({
       assetTag: record.equipment.assetTag,
       equipment: record.equipment.name,
       type: record.type,
       status: record.status,
       performedAt: record.performedAt.toISOString(),
       nextDueDate: record.nextDueDate?.toISOString() ?? null,
-    }))
+    })),
   );
   const predictionCsv = toCsv(
-    reports.predictions.map((prediction) => ({
+    reports.predictions.map(prediction => ({
       assetTag: prediction.equipment.assetTag,
       equipment: prediction.equipment.name,
       riskLevel: prediction.riskLevel,
       healthScore: prediction.healthScore.toString(),
       failureProbability: prediction.failureProbability.toString(),
       createdAt: prediction.createdAt.toISOString(),
-    }))
+    })),
   );
   const alertCsv = toCsv(
-    reports.alerts.map((alert) => ({
+    reports.alerts.map(alert => ({
       assetTag: alert.equipment.assetTag,
       equipment: alert.equipment.name,
       severity: alert.severity,
       status: alert.status,
       message: alert.message,
       createdAt: alert.createdAt.toISOString(),
-    }))
+    })),
   );
   const highRiskReports = reports.predictions.filter(
-    (prediction) => prediction.riskLevel === "HIGH"
+    prediction => prediction.riskLevel === "HIGH",
   ).length;
 
   return (
@@ -153,7 +165,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedEquipment.items.map((equipment) => (
+              {paginatedEquipment.items.map(equipment => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={equipment.assetTag}
@@ -167,7 +179,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     </p>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                    <Badge
+                      className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                      variant="outline"
+                    >
                       {equipment.status}
                     </Badge>
                   </TableCell>
@@ -212,7 +227,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedMaintenance.items.map((record) => (
+              {paginatedMaintenance.items.map(record => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${record.equipment.assetTag}-${record.performedAt.toISOString()}`}
@@ -230,13 +245,17 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                       {record.type}
                     </p>
                     <p className="truncate text-xs text-zinc-500">
-                      Next {record.nextDueDate
+                      Next{" "}
+                      {record.nextDueDate
                         ? compactDateFormatter.format(record.nextDueDate)
                         : "not scheduled"}
                     </p>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                    <Badge
+                      className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                      variant="outline"
+                    >
                       {record.status}
                     </Badge>
                   </TableCell>
@@ -273,7 +292,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedPredictions.items.map((prediction) => (
+              {paginatedPredictions.items.map(prediction => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${prediction.equipment.assetTag}-${prediction.createdAt.toISOString()}`}
@@ -287,7 +306,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     </p>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                    <Badge
+                      className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                      variant="outline"
+                    >
                       {prediction.riskLevel}
                     </Badge>
                   </TableCell>
@@ -327,7 +349,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedAlerts.items.map((alert) => (
+              {paginatedAlerts.items.map(alert => (
                 <TableRow
                   className="border-zinc-100 transition-colors hover:bg-zinc-50"
                   key={`${alert.equipment.assetTag}-${alert.createdAt.toISOString()}`}
@@ -341,7 +363,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     </p>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700" variant="outline">
+                    <Badge
+                      className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                      variant="outline"
+                    >
                       {alert.severity}
                     </Badge>
                   </TableCell>
@@ -386,7 +411,10 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <Card className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="metric">
+    <Card
+      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      data-motion="metric"
+    >
       <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -417,7 +445,10 @@ function ReportPanel({
   title: string;
 }) {
   return (
-    <Card className="rounded-lg border-zinc-200 bg-white shadow-sm" data-motion="panel">
+    <Card
+      className="rounded-lg border-zinc-200 bg-white shadow-sm"
+      data-motion="panel"
+    >
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div>
           <CardTitle>{title}</CardTitle>
@@ -443,4 +474,3 @@ function ReportPanel({
     </Card>
   );
 }
-
