@@ -5,6 +5,7 @@ import { prisma } from "@/server/db/client";
 import { overviewActivePredictionWindowMs } from "./live-polling";
 import type { OverviewLiveSnapshot } from "./live-types";
 import type { OverviewRange } from "./queries";
+import { calculateAiReadinessScore, percentage } from "./score";
 
 export function parseOverviewRange(value: string | null): OverviewRange {
   if (value === "1" || value === "7" || value === "30") {
@@ -29,6 +30,8 @@ export async function getOverviewLiveSnapshot(
     activeEquipmentCount,
     maintenanceDueCount,
     activeAlertCount,
+    predictionRunCount,
+    predictionAssetGroups,
     latestPredictions,
     predictionTrend,
     latestReadings,
@@ -57,6 +60,11 @@ export async function getOverviewLiveSnapshot(
       },
     }),
     prisma.alert.count({ where: { status: "ACTIVE" } }),
+    prisma.prediction.count({ where: { createdAt: { gte: since } } }),
+    prisma.prediction.groupBy({
+      by: ["equipmentId"],
+      where: { createdAt: { gte: since } },
+    }),
     prisma.prediction.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
@@ -64,11 +72,6 @@ export async function getOverviewLiveSnapshot(
       select: {
         failureProbability: true,
         healthScore: true,
-        equipment: {
-          select: {
-            assetTag: true,
-          },
-        },
       },
     }),
     prisma.prediction.findMany({
@@ -93,17 +96,13 @@ export async function getOverviewLiveSnapshot(
   const averageHealth = average(
     latestPredictions.map((prediction) => Number(prediction.healthScore))
   );
-  const averageFailureProbability = average(
-    latestPredictions.map(
-      (prediction) => Number(prediction.failureProbability) * 100
-    )
-  );
-  const predictedAssetCoverage = new Set(
-    latestPredictions.map((prediction) => prediction.equipment.assetTag)
-  ).size;
-  const modelScore = latestPredictions.length
-    ? Math.max(0, Math.round(100 - averageFailureProbability))
-    : 0;
+  const predictedAssetCoverage = predictionAssetGroups.length;
+  const aiScore = calculateAiReadinessScore({
+    equipmentCount,
+    hasRecentReadings: latestReadings.length > 0,
+    predictedAssetCoverage,
+    predictionRunCount,
+  });
   const signalBars = latestReadings.map((reading) => ({
     vibration: readParameter(reading.parameters, "vibrationMmS"),
     pressure: readParameter(reading.parameters, "pressureBar"),
@@ -113,17 +112,10 @@ export async function getOverviewLiveSnapshot(
   const averagePressure = Math.round(
     average(signalBars.map((reading) => reading.pressure))
   );
-  const averageVibration = Math.round(
-    average(signalBars.map((reading) => reading.vibration)) * 10
-  );
   const maxFlow = Math.max(1, ...signalBars.map((reading) => reading.flow));
   const maxPressure = Math.max(
     1,
     ...signalBars.map((reading) => reading.pressure)
-  );
-  const maxVibration = Math.max(
-    1,
-    ...signalBars.map((reading) => reading.vibration * 10)
   );
   const healthPoints = buildLinePoints(
     predictionTrend
@@ -146,21 +138,19 @@ export async function getOverviewLiveSnapshot(
     averageFlow,
     averageHealth: Math.round(averageHealth),
     averagePressure,
-    averageVibration,
     equipmentCount,
     healthArea: healthPoints.area,
     healthCoordinates: healthPoints.coordinates,
     healthPath: healthPoints.path,
     maintenanceDueCount,
-    modelScore,
-    predictionCount: latestPredictions.length,
+    aiScore,
+    predictionCount: predictionRunCount,
     predictionCoverage: percentage(predictedAssetCoverage, equipmentCount),
     predictionSampleCount: predictionTrend.length,
     predictedAssetCoverage,
     riskPath: riskPoints.path,
     sensorFlowPercent: percentage(averageFlow, maxFlow),
     sensorPressurePercent: percentage(averagePressure, maxPressure),
-    sensorVibrationPercent: percentage(averageVibration, maxVibration),
     syncedAt: new Intl.DateTimeFormat("en", {
       hour: "2-digit",
       minute: "2-digit",
@@ -181,14 +171,6 @@ function average(values: number[]) {
   );
 }
 
-function percentage(value: number, total: number) {
-  if (!total) {
-    return 0;
-  }
-
-  return Math.round((value / total) * 100);
-}
-
 function readParameter(parameters: unknown, key: string) {
   if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
     return 0;
@@ -198,6 +180,7 @@ function readParameter(parameters: unknown, key: string) {
 
   return typeof value === "number" ? value : 0;
 }
+
 
 function buildLinePoints(values: number[]) {
   const width = 680;
@@ -249,3 +232,10 @@ function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
     return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
   }, "");
 }
+
+
+
+
+
+
+

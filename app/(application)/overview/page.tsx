@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Bell,
   ChartLineUp,
@@ -12,12 +13,7 @@ import {
 
 import { PremiumMotion } from "@/components/motion/premium-motion";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
@@ -34,6 +30,11 @@ import {
   type OverviewRange,
 } from "@/features/overview/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
+import {
+  calculateAiReadinessScore,
+  percentage,
+} from "@/features/overview/score";
+import { can } from "@/server/auth/permissions";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -66,7 +67,7 @@ const ringColors = [
 export default async function OverviewPage({
   searchParams,
 }: OverviewPageProps) {
-  await requirePermission("viewEquipment");
+  const user = await requirePermission("viewEquipment");
   const params = await searchParams;
   const range = parseRange(params.range);
   const {
@@ -80,56 +81,50 @@ export default async function OverviewPage({
   } = await getOverviewWorkspace(range);
 
   const averageHealth = average(
-    latestPredictions.map((prediction) => Number(prediction.healthScore))
+    latestPredictions.map(prediction => Number(prediction.healthScore)),
   );
-  const averageFailureProbability = average(
-    latestPredictions.map(
-      (prediction) => Number(prediction.failureProbability) * 100
-    )
+
+  const activeRate = percentage(
+    stats.activeEquipmentCount,
+    stats.equipmentCount,
   );
-  const predictedAssetCoverage = new Set(
-    latestPredictions.map((prediction) => prediction.equipment.assetTag)
-  ).size;
-  const activeRate = percentage(stats.activeEquipmentCount, stats.equipmentCount);
+  const predictionRunCount = stats.predictionRunCount;
+  const predictedAssetCoverage = stats.predictedAssetCoverage;
   const predictionCoverage = percentage(
     predictedAssetCoverage,
-    stats.equipmentCount
+    stats.equipmentCount,
   );
   const interventionLoad = stats.activeAlertCount + stats.maintenanceDueCount;
-  const modelScore = latestPredictions.length
-    ? Math.max(0, Math.round(100 - averageFailureProbability))
-    : 0;
+  const aiScore = calculateAiReadinessScore({
+    equipmentCount: stats.equipmentCount,
+    hasRecentReadings: latestReadings.length > 0,
+    predictedAssetCoverage,
+    predictionRunCount,
+  });
   const healthTrend = predictionTrend
     .slice()
     .reverse()
-    .map((prediction) => Number(prediction.healthScore));
+    .map(prediction => Number(prediction.healthScore));
   const failureTrend = predictionTrend
     .slice()
     .reverse()
-    .map((prediction) => Number(prediction.failureProbability) * 100);
+    .map(prediction => Number(prediction.failureProbability) * 100);
   const healthPoints = buildLinePoints(healthTrend);
   const failurePoints = buildLinePoints(failureTrend);
   const signalBars = latestReadings
     .slice()
     .reverse()
     .slice(-7)
-    .map((reading) => ({
+    .map(reading => ({
       id: reading.id,
       label: reading.equipment.assetTag.replace("AEG-", ""),
       vibration: readParameter(reading.parameters, "vibrationMmS"),
       pressure: readParameter(reading.parameters, "pressureBar"),
       flow: readParameter(reading.parameters, "flowRateBpd"),
     }));
-  const maxVibration = Math.max(
-    1,
-    ...signalBars.map((reading) => reading.vibration)
-  );
-  const maxPressure = Math.max(1, ...signalBars.map((reading) => reading.pressure));
-  const maxFlow = Math.max(1, ...signalBars.map((reading) => reading.flow));
-  const averageVibration = average(signalBars.map((reading) => reading.vibration));
-  const averagePressure = average(signalBars.map((reading) => reading.pressure));
-  const averageFlow = average(signalBars.map((reading) => reading.flow));
-  const assetRows: OverviewAssetRow[] = latestPredictions.map((prediction) => ({
+  const averagePressure = average(signalBars.map(reading => reading.pressure));
+  const averageFlow = average(signalBars.map(reading => reading.flow));
+  const assetRows: OverviewAssetRow[] = latestPredictions.map(prediction => ({
     asset: prediction.equipment.assetTag,
     category: formatEquipmentCategory(prediction.equipment.category),
     failure: Math.round(Number(prediction.failureProbability) * 100),
@@ -161,7 +156,7 @@ export default async function OverviewPage({
       liveKey: "ai-coverage",
       icon: Cpu,
       tone: "bg-[#eefbfc] text-[#146c74]",
-      delta: `${latestPredictions.length} runs`,
+      delta: `${predictionRunCount} runs`,
       accent: "bg-[#5ec3cf]",
       progress: predictionCoverage,
     },
@@ -172,9 +167,9 @@ export default async function OverviewPage({
       liveKey: "health",
       icon: Pulse,
       tone: "bg-[#fff6dc] text-[#8a5a00]",
-      delta: `${modelScore}% stable`,
+      delta: `${predictionRunCount} runs`,
       accent: "bg-[#f2bd3f]",
-      progress: modelScore,
+      progress: latestPredictions.length ? Math.round(averageHealth) : 0,
     },
     {
       label: "Risk",
@@ -188,35 +183,27 @@ export default async function OverviewPage({
       progress: interventionLoad,
     },
   ];
-  const commandBars = [
+  const signalCards = [
     {
-      label: "Avg Flow",
-      shortLabel: "Flow",
+      color: "#2f9da7",
+      label: "Flow",
+      liveKey: "sensor-flow",
+      unit: "bpd",
       value: Math.round(averageFlow),
-      max: Math.max(1, Math.round(maxFlow)),
-      color: "bg-[#2f9da7]",
-      liveKey: "sensor-bar-flow",
+      values: signalBars.map(reading => reading.flow),
     },
     {
-      label: "Avg Pressure",
-      shortLabel: "Press",
+      color: "#ef7b63",
+      label: "Pressure",
+      liveKey: "sensor-pressure",
+      unit: "bar",
       value: Math.round(averagePressure),
-      max: Math.max(1, Math.round(maxPressure)),
-      color: "bg-[#5ec3cf]",
-      liveKey: "sensor-bar-pressure",
-    },
-    {
-      label: "Avg Vibration",
-      shortLabel: "Vib",
-      value: Math.round(averageVibration * 10),
-      max: Math.max(1, Math.round(maxVibration * 10)),
-      color: "bg-[#f2bd3f]",
-      liveKey: "sensor-bar-vibration",
+      values: signalBars.map(reading => reading.pressure),
     },
   ];
   const totalCategoryCount = stats.categoryCounts.reduce(
     (sum, item) => sum + item.count,
-    0
+    0,
   );
   const visibleCategoryCounts = stats.categoryCounts.slice(0, 6);
   const hiddenCategoryCount = stats.categoryCounts
@@ -236,19 +223,19 @@ export default async function OverviewPage({
     ? [...topAssetMixRows, { category: "Others", count: otherAssetMixCount }]
     : topAssetMixRows;
   const orderedAssetMixLegendRows = [
-    ...assetMixLegendRows.filter((row) => row.category !== "Others"),
-    ...assetMixLegendRows.filter((row) => row.category === "Others"),
+    ...assetMixLegendRows.filter(row => row.category !== "Others"),
+    ...assetMixLegendRows.filter(row => row.category === "Others"),
   ];
   const otherAssetMixCategories = new Set(
-    assetMixRows.slice(3).map((item) => item.category)
+    assetMixRows.slice(3).map(item => item.category),
   );
   const assetMixDisplayRows = orderedAssetMixLegendRows.map((row, index) => {
     const isOthers = row.category === "Others";
     const assets = assetMixEquipment
-      .filter((equipment) =>
+      .filter(equipment =>
         isOthers
           ? otherAssetMixCategories.has(equipment.category)
-          : equipment.category === row.category
+          : equipment.category === row.category,
       )
       .slice(0, 4);
     const remainingCount = Math.max(0, row.count - assets.length);
@@ -283,14 +270,14 @@ export default async function OverviewPage({
         </section>
 
         <section className="grid items-stretch gap-4 lg:grid-cols-[1.12fr_0.78fr_0.82fr]">
-          <div className="grid h-full gap-4 lg:grid-rows-[auto_1fr]">
-            <div className="grid items-start gap-3 sm:grid-cols-2">
-              {kpis.map((kpi) => {
+          <div className="grid h-full gap-4 lg:grid-rows-[1fr_auto]">
+            <div className="grid h-full items-stretch gap-3 sm:grid-cols-2">
+              {kpis.map(kpi => {
                 const Icon = kpi.icon;
 
                 return (
                   <Card
-                    className="h-fit rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+                    className="h-full rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
                     data-motion="metric"
                     key={kpi.label}
                   >
@@ -341,10 +328,10 @@ export default async function OverviewPage({
             </div>
 
             <Card
-              className="h-full rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+              className="h-fit rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
               data-motion="panel"
             >
-              <CardContent className="flex h-full flex-col justify-between px-4 py-3">
+              <CardContent className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-zinc-500">
@@ -354,7 +341,7 @@ export default async function OverviewPage({
                       className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950"
                       data-overview-live="ai-score-value"
                     >
-                      {modelScore}%
+                      {aiScore}%
                     </p>
                   </div>
                   <div className="grid size-8 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
@@ -363,19 +350,19 @@ export default async function OverviewPage({
                 </div>
                 <div>
                   <div className="mt-3 flex items-center justify-between gap-2 text-xs">
-                    <span className="text-zinc-500">Model confidence</span>
+                    <span className="text-zinc-500">Prediction readiness</span>
                     <span
                       className="shrink-0 whitespace-nowrap rounded-full bg-zinc-100 px-2 py-1 font-semibold text-zinc-700"
                       data-overview-live="ai-score-delta"
                     >
-                      {latestPredictions.length} runs
+                      {predictionCoverage}% coverage
                     </span>
                   </div>
                   <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
                     <div
                       className="h-full rounded-full bg-[#2f9da7]"
                       data-overview-live="ai-score-bar"
-                      style={{ width: `${modelScore}%` }}
+                      style={{ width: `${aiScore}%` }}
                     />
                   </div>
                 </div>
@@ -404,7 +391,7 @@ export default async function OverviewPage({
                     total={totalCategoryCount}
                   />
                   <div className="mt-5 grid gap-3">
-                    {assetMixDisplayRows.map((category) => (
+                    {assetMixDisplayRows.map(category => (
                       <DistributionRow
                         color={category.color}
                         key={category.category}
@@ -421,59 +408,50 @@ export default async function OverviewPage({
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 lg:grid-rows-[auto_1fr]">
+          <div className="grid h-full gap-4">
             <Card
-              className="rounded-[1.35rem] border-zinc-200 bg-[#fff8e6] shadow-sm"
+              className="flex h-full flex-col rounded-[1.35rem] border-zinc-200 bg-[#fff8e6] shadow-sm"
               data-motion="panel"
             >
               <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
                 <div>
                   <CardTitle>Sensor Stack</CardTitle>
-                  <p className="text-xs text-zinc-500">Vibration, pressure, flow</p>
+                  <p className="text-xs text-zinc-500">Flow & Pressure</p>
                 </div>
-                <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
+                <ChartLineUp
+                  aria-hidden="true"
+                  className="size-5 text-zinc-500"
+                />
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="grid grid-cols-2 gap-2">
-                  <SignalStat
-                    label="Avg flow"
-                    liveKey="sensor-flow"
-                    value={`${Math.round(averageFlow).toLocaleString()} bpd`}
-                  />
-                  <SignalStat
-                    label="Avg pressure"
-                    liveKey="sensor-pressure"
-                    value={`${Math.round(averagePressure)} bar`}
-                  />
-                </div>
-                <SignalLoadBars bars={commandBars} />
+                <SignalTrendCards signals={signalCards} />
               </CardContent>
             </Card>
 
-            <div className="grid lg:h-full">
-              <Card
-                className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-                data-motion="panel"
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle>Interventions</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-2 p-4 pt-0">
-                  <FocusItem
-                    icon={Bell}
-                    label="Alerts"
-                    liveKey="intervention-alerts"
-                    value={stats.activeAlertCount}
-                  />
-                  <FocusItem
-                    icon={Wrench}
-                    label="Maintenance"
-                    liveKey="intervention-maintenance"
-                    value={stats.maintenanceDueCount}
-                  />
-                </CardContent>
-              </Card>
-            </div>
+            <Card
+              className="h-fit rounded-[1.2rem] border-zinc-200 bg-white shadow-sm"
+              data-motion="panel"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle>Interventions</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 p-4 pt-0">
+                <FocusItem
+                  href={can(user.role, "manageAlerts") ? "/alerts" : undefined}
+                  icon={Bell}
+                  label="Alerts"
+                  liveKey="intervention-alerts"
+                  value={stats.activeAlertCount}
+                />
+                <FocusItem
+                  href={can(user.role, "viewMaintenance") ? "/maintenance" : undefined}
+                  icon={Wrench}
+                  label="Maintenance"
+                  liveKey="intervention-maintenance"
+                  value={stats.maintenanceDueCount}
+                />
+              </CardContent>
+            </Card>
           </div>
         </section>
 
@@ -528,7 +506,7 @@ export default async function OverviewPage({
               <CardTitle>Maintenance Plans</CardTitle>
             </CardHeader>
             <CardContent className="gap-4 p-4 pt-0">
-              {latestMaintenance.slice(0, 5).map((record) => (
+              {latestMaintenance.slice(0, 5).map(record => (
                 <PlanRow
                   key={record.id}
                   label={record.equipment.assetTag}
@@ -537,7 +515,9 @@ export default async function OverviewPage({
                   width={record.nextDueDate ? 74 : 48}
                 />
               ))}
-              {!latestMaintenance.length && <EmptyState label="No maintenance" />}
+              {!latestMaintenance.length && (
+                <EmptyState label="No maintenance" />
+              )}
             </CardContent>
           </Card>
 
@@ -549,7 +529,7 @@ export default async function OverviewPage({
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent className="gap-2 p-4 pt-0">
-              {recentActivity.slice(0, 5).map((activity) => (
+              {recentActivity.slice(0, 5).map(activity => (
                 <div
                   className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
                   key={activity.id}
@@ -582,29 +562,50 @@ export default async function OverviewPage({
 }
 
 function FocusItem({
+  href,
   icon: Icon,
   label,
   liveKey,
   value,
 }: {
+  href?: string;
   icon: typeof Bell;
   label: string;
   liveKey: string;
   value: number;
 }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <div className="flex items-center gap-3">
-        <div className="grid size-9 place-items-center rounded-full bg-white text-zinc-950 shadow-sm">
+  const content = (
+    <>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-white text-zinc-950 shadow-sm">
           <Icon aria-hidden="true" className="size-4" />
         </div>
-        <span className="text-sm font-medium text-zinc-600">{label}</span>
+        <span className="truncate text-sm font-medium text-zinc-600">
+          {label}
+        </span>
       </div>
-      <span className="text-2xl font-semibold" data-overview-live={liveKey}>
+      <span
+        className="shrink-0 text-xl font-semibold tracking-normal text-zinc-950"
+        data-overview-live={liveKey}
+      >
         {value}
       </span>
-    </div>
+    </>
   );
+  const className = [
+    "flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors",
+    href ? "cursor-pointer hover:border-zinc-300 hover:bg-white" : "cursor-default opacity-75",
+  ].join(" ");
+
+  if (href) {
+    return (
+      <Link aria-label={`Open ${label}`} className={className} href={href}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }
 
 function LineTrend({
@@ -649,7 +650,7 @@ function LineTrend({
             <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {[0, 1, 2, 3, 4].map((line) => (
+        {[0, 1, 2, 3, 4].map(line => (
           <line
             key={line}
             stroke="#e4e4e7"
@@ -691,7 +692,7 @@ function LineTrend({
         />
         <g data-overview-live="telemetry-dots">
           {hasData &&
-            healthPoints.coordinates.map((point) => (
+            healthPoints.coordinates.map(point => (
               <circle
                 className="aegis-chart-dot"
                 cx={point.x}
@@ -713,30 +714,71 @@ function LineTrend({
   );
 }
 
-function SignalStat({
-  label,
-  liveKey,
-  value,
+function SignalTrendCards({
+  signals,
 }: {
-  label: string;
-  liveKey: string;
-  value: number | string;
+  signals: Array<{
+    color: string;
+    label: string;
+    liveKey: string;
+    unit: string;
+    value: number;
+    values: number[];
+  }>;
 }) {
   return (
-    <div className="rounded-xl bg-white/75 px-3 py-2 shadow-sm ring-1 ring-zinc-950/5">
-      <p className="text-[10px] font-semibold uppercase text-zinc-500">
-        {label}
-      </p>
-      <p
-        className="mt-1 truncate text-sm font-semibold text-zinc-950"
-        data-overview-live={liveKey}
-      >
-        {value}
-      </p>
+    <div className="grid h-full gap-3">
+      {signals.map(signal => {
+        const points = buildSparklinePoints(signal.values);
+
+        return (
+          <div
+            className="flex min-h-0 min-w-0 flex-col justify-between rounded-xl bg-white/80 p-3 shadow-sm ring-1 ring-zinc-950/5"
+            key={signal.label}
+          >
+            <div>
+              <div>
+                <p className="truncate text-[10px] font-semibold uppercase text-zinc-500">
+                  Avg {signal.label}
+                </p>
+                <p
+                  className="mt-1 truncate text-base font-semibold text-zinc-950"
+                  data-overview-live={signal.liveKey}
+                >
+                  {formatSignalValue(signal.value, signal.unit)}
+                </p>
+              </div>
+            </div>
+            <svg
+              aria-hidden="true"
+              className="mt-3 h-8 w-full overflow-visible"
+              preserveAspectRatio="none"
+              viewBox="0 0 180 42"
+            >
+              <path
+                d="M 0,36 L 180,36"
+                fill="none"
+                stroke="#e4e4e7"
+                strokeWidth="1"
+              />
+              <path
+                d={points.path}
+                fill="none"
+                stroke={signal.color}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="4"
+                style={{
+                  opacity: signal.values.some(value => value > 0) ? 1 : 0.35,
+                }}
+              />
+            </svg>
+          </div>
+        );
+      })}
     </div>
   );
 }
-
 function AssetMixRings({
   rows,
   total,
@@ -778,60 +820,60 @@ function AssetMixRings({
               );
             })
             .reverse()}
-        {rows.map((row, index) => {
-          const share = percentage(row.count, total);
-          const radius = 92 - (rows.length - 1 - index) * 14;
-          const circumference = 2 * Math.PI * radius;
-          const dasharray = `${(share / 100) * circumference} ${circumference}`;
+          {rows.map((row, index) => {
+            const share = percentage(row.count, total);
+            const radius = 92 - (rows.length - 1 - index) * 14;
+            const circumference = 2 * Math.PI * radius;
+            const dasharray = `${(share / 100) * circumference} ${circumference}`;
 
-          return (
-            <Tooltip key={row.category}>
-              <circle
-                aria-hidden="true"
-                className="transition-opacity duration-200"
-                cx="110"
-                cy="110"
-                fill="none"
-                r={radius}
-                stroke={row.color}
-                strokeDasharray={dasharray}
-                strokeLinecap="round"
-                strokeWidth="12"
-                style={{
-                  filter:
-                    index === 0
-                      ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
-                      : undefined,
-                }}
-              />
-              <TooltipTrigger
-                render={
-                  <circle
-                    aria-label={`${row.label} asset mix details`}
-                    className="cursor-pointer outline-none transition-opacity duration-200 hover:opacity-75 focus-visible:opacity-75"
-                    cx="110"
-                    cy="110"
-                    fill="none"
-                    r={radius}
-                    role="button"
-                    stroke="transparent"
-                    strokeDasharray={dasharray}
-                    strokeLinecap="round"
-                    strokeWidth="24"
-                    tabIndex={0}
-                  />
-                }
-              />
-              <TooltipContent
-                align="center"
-                className="grid max-w-64 gap-2 rounded-lg bg-zinc-950 p-3 text-left text-white"
-                side="top"
-              >
-                <AssetMixTooltip row={row} total={total} />
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+            return (
+              <Tooltip key={row.category}>
+                <circle
+                  aria-hidden="true"
+                  className="transition-opacity duration-200"
+                  cx="110"
+                  cy="110"
+                  fill="none"
+                  r={radius}
+                  stroke={row.color}
+                  strokeDasharray={dasharray}
+                  strokeLinecap="round"
+                  strokeWidth="12"
+                  style={{
+                    filter:
+                      index === 0
+                        ? "drop-shadow(0 8px 16px rgb(24 24 27 / 0.12))"
+                        : undefined,
+                  }}
+                />
+                <TooltipTrigger
+                  render={
+                    <circle
+                      aria-label={`${row.label} asset mix details`}
+                      className="cursor-pointer outline-none transition-opacity duration-200 hover:opacity-75 focus-visible:opacity-75"
+                      cx="110"
+                      cy="110"
+                      fill="none"
+                      r={radius}
+                      role="button"
+                      stroke="transparent"
+                      strokeDasharray={dasharray}
+                      strokeLinecap="round"
+                      strokeWidth="24"
+                      tabIndex={0}
+                    />
+                  }
+                />
+                <TooltipContent
+                  align="center"
+                  className="grid max-w-64 gap-2 rounded-lg bg-zinc-950 p-3 text-left text-white"
+                  side="top"
+                >
+                  <AssetMixTooltip row={row} total={total} />
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
         </svg>
         <div className="relative grid size-20 place-items-center rounded-full bg-white shadow-[inset_0_2px_14px_rgba(24,24,27,0.08)]">
           <div className="text-center">
@@ -868,8 +910,11 @@ function AssetMixTooltip({
       </p>
       {!!row.assets.length && (
         <div className="mt-2 grid gap-1">
-          {row.assets.map((asset) => (
-            <p className="truncate text-[11px] text-white/85" key={asset.assetTag}>
+          {row.assets.map(asset => (
+            <p
+              className="truncate text-[11px] text-white/85"
+              key={asset.assetTag}
+            >
               {asset.assetTag} - {asset.name}
             </p>
           ))}
@@ -880,43 +925,6 @@ function AssetMixTooltip({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function SignalLoadBars({
-  bars,
-}: {
-  bars: Array<{
-    color: string;
-    label: string;
-    liveKey: string;
-    max: number;
-    shortLabel: string;
-    value: number;
-  }>;
-}) {
-  return (
-    <div className="mt-4 flex h-36 items-end gap-3 rounded-[1rem] bg-white/70 px-4 pb-3 pt-4 shadow-inner ring-1 ring-zinc-950/5">
-      {bars.map((bar) => (
-        <div
-          className="flex min-w-0 flex-1 flex-col items-center gap-2"
-          key={bar.label}
-        >
-          <div className="flex h-24 w-full items-end justify-center">
-            <span
-              className={`aegis-graph-bar block w-full max-w-10 rounded-full ${bar.color}`}
-              data-overview-live={bar.liveKey}
-              style={{
-                height: `${Math.max(10, percentage(bar.value, bar.max))}%`,
-              }}
-            />
-          </div>
-          <span className="max-w-full truncate text-[10px] font-semibold uppercase text-zinc-500">
-            {bar.shortLabel}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -941,7 +949,9 @@ function DistributionRow({
           style={{ backgroundColor: color }}
         />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-zinc-950">{label}</p>
+          <p className="truncate text-sm font-semibold text-zinc-950">
+            {label}
+          </p>
           <p className="text-xs text-zinc-500">{meta}</p>
         </div>
       </div>
@@ -1003,7 +1013,7 @@ function parseRange(value: string | string[] | undefined): OverviewRange {
 }
 
 function average(values: number[]) {
-  const validValues = values.filter((value) => Number.isFinite(value));
+  const validValues = values.filter(value => Number.isFinite(value));
 
   if (!validValues.length) {
     return 0;
@@ -1014,16 +1024,12 @@ function average(values: number[]) {
   );
 }
 
-function percentage(value: number, total: number) {
-  if (!total) {
-    return 0;
-  }
-
-  return Math.round((value / total) * 100);
-}
-
 function readParameter(parameters: unknown, key: string) {
-  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
+  if (
+    !parameters ||
+    typeof parameters !== "object" ||
+    Array.isArray(parameters)
+  ) {
     return 0;
   }
 
@@ -1032,6 +1038,39 @@ function readParameter(parameters: unknown, key: string) {
   return typeof value === "number" ? value : 0;
 }
 
+function formatSignalValue(value: number, unit: string) {
+  const formatted = Number.isInteger(value)
+    ? value.toLocaleString()
+    : value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+
+  return `${formatted} ${unit}`;
+}
+
+
+function buildSparklinePoints(values: number[]) {
+  const width = 180;
+  const height = 32;
+  const top = 4;
+  const fallback = values.length ? values : [0];
+  const max = Math.max(1, ...fallback);
+  const coordinates = fallback.map((value, index) => {
+    const x =
+      fallback.length === 1
+        ? width / 2
+        : (index / (fallback.length - 1)) * width;
+    const y = top + height - (Math.min(value, max) / max) * height;
+
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+    };
+  });
+
+  return {
+    coordinates,
+    path: buildSmoothPath(coordinates),
+  };
+}
 function buildLinePoints(values: number[]) {
   const width = 680;
   const height = 230;
@@ -1040,7 +1079,9 @@ function buildLinePoints(values: number[]) {
   const max = Math.max(100, ...fallback);
   const coordinates = fallback.map((value, index) => {
     const x =
-      fallback.length === 1 ? width / 2 : (index / (fallback.length - 1)) * width;
+      fallback.length === 1
+        ? width / 2
+        : (index / (fallback.length - 1)) * width;
     const y = top + height - (Math.min(value, max) / max) * height;
 
     return {
@@ -1082,6 +1123,12 @@ function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
     return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
   }, "");
 }
+
+
+
+
+
+
 
 
 

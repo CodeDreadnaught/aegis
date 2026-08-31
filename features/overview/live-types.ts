@@ -6,13 +6,12 @@ export type OverviewLiveSnapshot = {
   averageFlow: number;
   averageHealth: number;
   averagePressure: number;
-  averageVibration: number;
   equipmentCount: number;
   healthArea: string;
   healthCoordinates: Array<{ x: number; y: number }>;
   healthPath: string;
   maintenanceDueCount: number;
-  modelScore: number;
+  aiScore: number;
   predictionCount: number;
   predictionCoverage: number;
   predictionSampleCount: number;
@@ -20,6 +19,5 @@ export type OverviewLiveSnapshot = {
   riskPath: string;
   sensorFlowPercent: number;
   sensorPressurePercent: number;
-  sensorVibrationPercent: number;
   syncedAt: string;
 };

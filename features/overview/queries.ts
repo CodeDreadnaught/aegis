@@ -16,6 +16,8 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     equipmentStatusCounts,
     categoryCounts,
     maintenanceStatusCounts,
+    predictionRunCount,
+    predictionAssetGroups,
     latestPredictions,
     predictionTrend,
     latestReadings,
@@ -44,6 +46,11 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     prisma.maintenanceRecord.groupBy({
       by: ["status"],
       _count: { _all: true },
+    }),
+    prisma.prediction.count({ where: { createdAt: { gte: since } } }),
+    prisma.prediction.groupBy({
+      by: ["equipmentId"],
+      where: { createdAt: { gte: since } },
     }),
     prisma.prediction.findMany({
       where: { createdAt: { gte: since } },
@@ -181,6 +188,8 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         category: category.category,
         count: category._count._all,
       })),
+      predictionRunCount,
+      predictedAssetCoverage: predictionAssetGroups.length,
       maintenanceStatusCounts: Object.fromEntries(
         maintenanceStatusCounts.map((status) => [
           status.status,
@@ -218,3 +227,5 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
       .slice(0, 6),
   };
 }
+
+

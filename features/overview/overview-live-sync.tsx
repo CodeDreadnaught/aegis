@@ -124,26 +124,25 @@ function applySnapshot(snapshot: OverviewLiveSnapshot) {
     "health-value",
     snapshot.predictionCount ? `${snapshot.averageHealth}%` : "N/A"
   );
-  setText("health-delta", `${snapshot.modelScore}% stable`);
+  setText("health-delta", `${snapshot.predictionCount} runs`);
   setText("risk-value", snapshot.activeAlertCount + snapshot.maintenanceDueCount);
   setText("risk-detail", `${snapshot.activeAlertCount} alerts`);
   setText("risk-delta", `${snapshot.maintenanceDueCount} jobs`);
-  setText("ai-score-value", `${snapshot.modelScore}%`);
-  setText("ai-score-delta", `${snapshot.predictionCount} runs`);
+  setText("ai-score-value", `${snapshot.aiScore}%`);
+  setText("ai-score-delta", `${snapshot.predictionCoverage}% coverage`);
   setText("sensor-flow", `${snapshot.averageFlow.toLocaleString()} bpd`);
   setText("sensor-pressure", `${snapshot.averagePressure} bar`);
-  setText("intervention-alerts", snapshot.activeAlertCount);
+setText("intervention-alerts", snapshot.activeAlertCount);
   setText("intervention-maintenance", snapshot.maintenanceDueCount);
   setText("telemetry-samples", `${snapshot.predictionSampleCount} samples`);
 
   setWidth("ai-coverage-bar", snapshot.predictionCoverage);
-  setWidth("health-bar", snapshot.modelScore);
+  setWidth("health-bar", snapshot.predictionCount ? snapshot.averageHealth : 0);
   setWidth("risk-bar", snapshot.activeAlertCount + snapshot.maintenanceDueCount);
-  setWidth("ai-score-bar", snapshot.modelScore);
+  setWidth("ai-score-bar", snapshot.aiScore);
   setSensorBar("sensor-bar-flow", snapshot.sensorFlowPercent);
   setSensorBar("sensor-bar-pressure", snapshot.sensorPressurePercent);
-  setSensorBar("sensor-bar-vibration", snapshot.sensorVibrationPercent);
-  setPath("telemetry-health-area", snapshot.healthArea, snapshot.predictionSampleCount);
+setPath("telemetry-health-area", snapshot.healthArea, snapshot.predictionSampleCount);
   setPath("telemetry-health-path", snapshot.healthPath, snapshot.predictionSampleCount);
   setPath("telemetry-risk-path", snapshot.riskPath, snapshot.predictionSampleCount);
 }
@@ -188,6 +187,10 @@ function setPath(name: string, value: string, sampleCount: number) {
   element.setAttribute("d", value);
   element.style.opacity = sampleCount ? "1" : "0";
 }
+
+
+
+
 
 
 
