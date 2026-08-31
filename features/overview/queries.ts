@@ -1,8 +1,24 @@
 import "server-only";
 
+import type { EquipmentCategory, RiskLevel } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/client";
 
 export type OverviewRange = 1 | 7 | 30;
+
+type LatestPredictionRow = {
+  id: string;
+  equipmentId: string;
+  failureProbability: Prisma.Decimal;
+  healthScore: Prisma.Decimal;
+  riskLevel: RiskLevel;
+  modelVersion: string;
+  createdAt: Date;
+  equipmentAssetTag: string;
+  equipmentName: string;
+  equipmentCategory: EquipmentCategory;
+  equipmentLocation: string;
+};
 
 export async function getOverviewWorkspace(range: OverviewRange = 7) {
   const since = new Date();
@@ -132,60 +148,42 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     }),
   ]);
 
-  const latestPredictionGroups = await prisma.prediction.groupBy({
-    by: ["equipmentId"],
-    where: { createdAt: { gte: since } },
-    _max: { createdAt: true },
-  });
-  const latestPredictionFilters = latestPredictionGroups.flatMap((group) =>
-    group._max.createdAt
-      ? [{ equipmentId: group.equipmentId, createdAt: group._max.createdAt }]
-      : [],
-  );
-  const latestPredictionCandidates = latestPredictionFilters.length
-    ? await prisma.prediction.findMany({
-        where: { OR: latestPredictionFilters },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          failureProbability: true,
-          riskLevel: true,
-          healthScore: true,
-          equipmentId: true,
-          modelVersion: true,
-          createdAt: true,
-          recommendations: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: {
-              message: true,
-              priority: true,
-            },
-          },
-          equipment: {
-            select: {
-              id: true,
-              assetTag: true,
-              name: true,
-              category: true,
-              location: true,
-            },
-          },
-        },
-      })
-    : [];
-  const latestPredictionByAsset = new Map<
-    string,
-    (typeof latestPredictionCandidates)[number]
-  >();
-
-  for (const prediction of latestPredictionCandidates) {
-    if (!latestPredictionByAsset.has(prediction.equipmentId)) {
-      latestPredictionByAsset.set(prediction.equipmentId, prediction);
-    }
-  }
-
-  const latestPredictions = Array.from(latestPredictionByAsset.values());
+  const latestPredictionRows = await prisma.$queryRaw<LatestPredictionRow[]>`
+    SELECT DISTINCT ON (p."equipmentId")
+      p.id,
+      p."equipmentId",
+      p."failureProbability",
+      p."healthScore",
+      p."riskLevel",
+      p."modelVersion",
+      p."createdAt",
+      e."assetTag" AS "equipmentAssetTag",
+      e.name AS "equipmentName",
+      e.category AS "equipmentCategory",
+      e.location AS "equipmentLocation"
+    FROM "Prediction" p
+    INNER JOIN "Equipment" e ON e.id = p."equipmentId"
+    WHERE p."createdAt" >= ${since}
+    ORDER BY p."equipmentId", p."createdAt" DESC, p.id DESC
+  `;
+  const latestPredictions = latestPredictionRows
+    .map((prediction) => ({
+      id: prediction.id,
+      failureProbability: prediction.failureProbability,
+      riskLevel: prediction.riskLevel,
+      healthScore: prediction.healthScore,
+      equipmentId: prediction.equipmentId,
+      modelVersion: prediction.modelVersion,
+      createdAt: prediction.createdAt,
+      equipment: {
+        id: prediction.equipmentId,
+        assetTag: prediction.equipmentAssetTag,
+        name: prediction.equipmentName,
+        category: prediction.equipmentCategory,
+        location: prediction.equipmentLocation,
+      },
+    }))
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
 
   const riskCounts = latestPredictions.reduce(
     (summary, prediction) => {

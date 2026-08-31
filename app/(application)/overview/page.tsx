@@ -644,10 +644,24 @@ function LineTrend({
           </span>
         </div>
       </div>
-      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3">
-        <div className="grid h-64 grid-rows-5 py-1 text-right text-xs font-medium text-zinc-500">
-          {[100, 75, 50, 25, 0].map(label => (
-            <span className="leading-none" key={label}>{label}%</span>
+      <div className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-4">
+        <div className="relative h-64 text-right text-xs font-medium text-zinc-500">
+          {[100, 75, 50, 25, 0].map((label, index) => (
+            <span
+              className="absolute right-0 leading-none"
+              key={label}
+              style={{
+                top: index * 25 + "%",
+                transform:
+                  index === 0
+                    ? "translateY(0)"
+                    : index === 4
+                      ? "translateY(-100%)"
+                      : "translateY(-50%)",
+              }}
+            >
+              {label}%
+            </span>
           ))}
         </div>
         <svg
@@ -669,10 +683,10 @@ function LineTrend({
               stroke="#e4e4e7"
               strokeDasharray="5 8"
               strokeWidth="1"
-              x1="0"
-              x2="640"
-              y1={line * 56 + 8}
-              y2={line * 56 + 8}
+              x1="18"
+              x2="622"
+              y1={line * 54 + 12}
+              y2={line * 54 + 12}
             />
           ))}
           <path
@@ -720,7 +734,7 @@ function LineTrend({
           </g>
         </svg>
       </div>
-      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-xs font-medium text-zinc-500">
+      <div className="mt-2 flex items-center justify-between pl-[4.25rem] text-xs font-medium text-zinc-500">
         <span>Oldest prediction</span>
         <span>Latest prediction</span>
       </div>
@@ -1086,16 +1100,17 @@ function buildSparklinePoints(values: number[]) {
   };
 }
 function buildLinePoints(values: number[]) {
-  const width = 640;
-  const height = 224;
-  const top = 8;
+  const left = 18;
+  const width = 604;
+  const height = 216;
+  const top = 12;
   const fallback = values.length ? values : [0];
   const max = Math.max(100, ...fallback);
   const coordinates = fallback.map((value, index) => {
     const x =
       fallback.length === 1
-        ? width / 2
-        : (index / (fallback.length - 1)) * width;
+        ? left + width / 2
+        : left + (index / (fallback.length - 1)) * width;
     const y = top + height - (Math.min(value, max) / max) * height;
 
     return {
@@ -1105,7 +1120,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${width},${height + top} L 0,${height + top} Z`
+    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
     : "";
 
   return {
