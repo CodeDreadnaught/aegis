@@ -104,7 +104,6 @@ export async function getOverviewLiveSnapshot(
     predictionRunCount,
   });
   const signalBars = latestReadings.map((reading) => ({
-    vibration: readParameter(reading.parameters, "vibrationMmS"),
     pressure: readParameter(reading.parameters, "pressureBar"),
     flow: readParameter(reading.parameters, "flowRateBpd"),
   }));
@@ -183,14 +182,17 @@ function readParameter(parameters: unknown, key: string) {
 
 
 function buildLinePoints(values: number[]) {
-  const width = 680;
+  const left = 34;
+  const width = 646;
   const height = 230;
   const top = 12;
   const fallback = values.length ? values : [0];
   const max = Math.max(100, ...fallback);
   const coordinates = fallback.map((value, index) => {
     const x =
-      fallback.length === 1 ? width / 2 : (index / (fallback.length - 1)) * width;
+      fallback.length === 1
+        ? left + width / 2
+        : left + (index / (fallback.length - 1)) * width;
     const y = top + height - (Math.min(value, max) / max) * height;
 
     return {
@@ -200,7 +202,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${width},${height + top} L 0,${height + top} Z`
+    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
     : "";
 
   return {
@@ -232,10 +234,3 @@ function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
     return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
   }, "");
 }
-
-
-
-
-
-
-

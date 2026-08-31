@@ -118,22 +118,29 @@ export default async function OverviewPage({
     .map(reading => ({
       id: reading.id,
       label: reading.equipment.assetTag.replace("AEG-", ""),
-      vibration: readParameter(reading.parameters, "vibrationMmS"),
       pressure: readParameter(reading.parameters, "pressureBar"),
       flow: readParameter(reading.parameters, "flowRateBpd"),
     }));
   const averagePressure = average(signalBars.map(reading => reading.pressure));
   const averageFlow = average(signalBars.map(reading => reading.flow));
-  const assetRows: OverviewAssetRow[] = latestPredictions.map(prediction => ({
+  const latestPredictionByAsset = new Map<string, (typeof latestPredictions)[number]>();
+
+  for (const prediction of latestPredictions) {
+    if (!latestPredictionByAsset.has(prediction.equipmentId)) {
+      latestPredictionByAsset.set(prediction.equipmentId, prediction);
+    }
+  }
+
+  const assetRows: OverviewAssetRow[] = Array.from(
+    latestPredictionByAsset.values(),
+  ).map(prediction => ({
     asset: prediction.equipment.assetTag,
+    assetId: prediction.equipment.id,
     category: formatEquipmentCategory(prediction.equipment.category),
     failure: Math.round(Number(prediction.failureProbability) * 100),
     health: Number(prediction.healthScore),
     location: prediction.equipment.location,
     name: prediction.equipment.name,
-    recommendation:
-      prediction.recommendations[0]?.message ??
-      "Continue monitoring and planned maintenance.",
     risk: prediction.riskLevel,
     updated: compactDateFormatter.format(prediction.createdAt),
   }));
@@ -621,7 +628,7 @@ function LineTrend({
     <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-4 shadow-inner">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-zinc-500">Predictive trend</p>
+          <p className="text-xs font-medium text-zinc-500">Predictive trend - percent over time</p>
           <p className="text-2xl font-semibold tracking-normal text-zinc-950">
             Health trajectory
           </p>
@@ -651,16 +658,26 @@ function LineTrend({
           </linearGradient>
         </defs>
         {[0, 1, 2, 3, 4].map(line => (
-          <line
-            key={line}
-            stroke="#e4e4e7"
-            strokeDasharray="5 8"
-            strokeWidth="1"
-            x1="0"
-            x2="680"
-            y1={line * 60 + 10}
-            y2={line * 60 + 10}
-          />
+          <g key={line}>
+            <line
+              stroke="#e4e4e7"
+              strokeDasharray="5 8"
+              strokeWidth="1"
+              x1="34"
+              x2="680"
+              y1={line * 60 + 10}
+              y2={line * 60 + 10}
+            />
+            <text
+              fill="#71717a"
+              fontSize="10"
+              textAnchor="end"
+              x="24"
+              y={line * 60 + 14}
+            >
+              {100 - line * 25}%
+            </text>
+          </g>
         ))}
         <path
           d={healthPoints.area}
@@ -1072,7 +1089,8 @@ function buildSparklinePoints(values: number[]) {
   };
 }
 function buildLinePoints(values: number[]) {
-  const width = 680;
+  const left = 34;
+  const width = 646;
   const height = 230;
   const top = 12;
   const fallback = values.length ? values : [0];
@@ -1080,8 +1098,8 @@ function buildLinePoints(values: number[]) {
   const coordinates = fallback.map((value, index) => {
     const x =
       fallback.length === 1
-        ? width / 2
-        : (index / (fallback.length - 1)) * width;
+        ? left + width / 2
+        : left + (index / (fallback.length - 1)) * width;
     const y = top + height - (Math.min(value, max) / max) * height;
 
     return {
@@ -1091,7 +1109,7 @@ function buildLinePoints(values: number[]) {
   });
   const path = buildSmoothPath(coordinates);
   const area = coordinates.length
-    ? `${path} L ${width},${height + top} L 0,${height + top} Z`
+    ? `${path} L ${left + width},${height + top} L ${left},${height + top} Z`
     : "";
 
   return {
@@ -1123,13 +1141,3 @@ function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
     return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
   }, "");
 }
-
-
-
-
-
-
-
-
-
-

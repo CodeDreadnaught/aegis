@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo, useState } from "react";
 import { CaretLeft, CaretRight, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
 
@@ -18,12 +20,12 @@ import { cn } from "@/lib/utils";
 
 export type OverviewAssetRow = {
   asset: string;
+  assetId: string;
   category: string;
   failure: number;
   health: number;
   location: string;
   name: string;
-  recommendation: string;
   risk: string;
   updated: string;
 };
@@ -48,8 +50,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
         row.asset.toLowerCase().includes(normalizedQuery) ||
         row.name.toLowerCase().includes(normalizedQuery) ||
         row.category.toLowerCase().includes(normalizedQuery) ||
-        row.location.toLowerCase().includes(normalizedQuery) ||
-        row.recommendation.toLowerCase().includes(normalizedQuery);
+        row.location.toLowerCase().includes(normalizedQuery);
       const matchesRisk = risk === "ALL" || row.risk === risk;
 
       return matchesQuery && matchesRisk;
@@ -104,7 +105,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
               <TableHead>Health</TableHead>
               <TableHead>Failure</TableHead>
               <TableHead>Risk</TableHead>
-              <TableHead>Action</TableHead>
+              <TableHead className="text-right">Action</TableHead>
               <TableHead>Updated</TableHead>
             </TableRow>
           </TableHeader>
@@ -146,10 +147,13 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                 <TableCell>
                   <RiskBadge risk={row.risk} />
                 </TableCell>
-                <TableCell className="max-w-[18rem]">
-                  <p className="line-clamp-2 text-xs text-zinc-500">
-                    {row.recommendation}
-                  </p>
+                <TableCell className="text-right">
+                  <Link
+                    className="inline-flex h-8 items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-950 hover:text-white"
+                    href={`/equipment/${row.assetId}`}
+                  >
+                    View
+                  </Link>
                 </TableCell>
                 <TableCell className="text-zinc-500">{row.updated}</TableCell>
               </TableRow>
@@ -216,6 +220,3 @@ function RiskBadge({ risk }: { risk: string }) {
     </span>
   );
 }
-
-
-

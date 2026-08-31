@@ -1,4 +1,4 @@
-import { Bell, MagnifyingGlass, Power, UserCircle } from "@phosphor-icons/react/ssr";
+import { Bell, Power, UserCircle } from "@phosphor-icons/react/ssr";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { MobileNavigation } from "@/components/app-shell/mobile-navigation";
@@ -60,13 +60,13 @@ export function AppShell({ children, user }: AppShellProps) {
 
       <div className="lg:pl-24">
         <header className="sticky top-0 z-30 px-3 pt-3 lg:px-5">
-          <div className="mx-auto grid max-w-[1480px] grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[1.35rem] border border-zinc-200 bg-white px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.06)]">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="relative mx-auto grid max-w-[1480px] grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[1.35rem] border border-zinc-200 bg-white px-3 py-3 shadow-[0_16px_60px_rgba(24,24,27,0.06)]">
+            <div className="flex min-w-0 items-center gap-3 lg:justify-start">
               <div className="lg:hidden">
                 <MobileNavigation role={user.role} />
               </div>
-              <BrandLogo className="size-9 rounded-full bg-transparent shadow-none" />
-              <div className="hidden min-w-0 sm:block">
+              <BrandLogo className="absolute left-1/2 size-9 -translate-x-1/2 rounded-full bg-transparent shadow-none lg:static lg:translate-x-0" />
+              <div className="hidden min-w-0 lg:block">
                 <p className="text-sm font-bold text-emerald-600">AEGIS</p>
               </div>
             </div>
@@ -76,14 +76,6 @@ export function AppShell({ children, user }: AppShellProps) {
             </div>
 
             <div className="ml-auto flex items-center justify-end gap-2">
-              <Button
-                className="size-10 rounded-full border-0 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
-                size="icon"
-                variant="ghost"
-              >
-                <MagnifyingGlass aria-hidden="true" className="size-4" />
-                <span className="sr-only">Search</span>
-              </Button>
               <Button
                 className="size-10 rounded-full border-0 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
                 size="icon"
@@ -117,9 +109,3 @@ export function AppShell({ children, user }: AppShellProps) {
     </PremiumMotion>
   );
 }
-
-
-
-
-
-

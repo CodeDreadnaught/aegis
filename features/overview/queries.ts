@@ -55,12 +55,13 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     prisma.prediction.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 100,
       select: {
         id: true,
         failureProbability: true,
         riskLevel: true,
         healthScore: true,
+        equipmentId: true,
         modelVersion: true,
         createdAt: true,
         recommendations: {
@@ -73,6 +74,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         },
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
             category: true,
@@ -104,6 +106,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         parameters: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
             category: true,
@@ -115,7 +118,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     prisma.maintenanceRecord.findMany({
       where: { performedAt: { gte: since } },
       orderBy: { performedAt: "desc" },
-      take: 8,
+      take: 5,
       select: {
         id: true,
         type: true,
@@ -124,6 +127,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         nextDueDate: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
             location: true,
@@ -134,7 +138,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
     prisma.alert.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 5,
       select: {
         id: true,
         message: true,
@@ -143,6 +147,7 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
         createdAt: true,
         equipment: {
           select: {
+            id: true,
             assetTag: true,
             name: true,
           },
@@ -224,8 +229,6 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
       })),
     ]
       .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime())
-      .slice(0, 6),
+      .slice(0, 5),
   };
 }
-
-

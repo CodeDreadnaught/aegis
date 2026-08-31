@@ -69,7 +69,7 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
                 "inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-semibold text-zinc-500 transition-all duration-200 hover:text-zinc-950 disabled:pointer-events-none disabled:opacity-70",
                 isActive &&
                   "bg-zinc-950 text-white shadow-[0_10px_26px_rgba(24,24,27,0.18)] hover:text-white",
-                isLoading && "bg-zinc-950 text-white hover:text-white"
+                isLoading && "bg-[#f2bd3f] text-zinc-950 shadow-[0_10px_26px_rgba(242,189,63,0.28)] hover:text-zinc-950"
               )}
               disabled={isPending}
               key={range.value}
@@ -109,4 +109,3 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
     </div>
   );
 }
-
