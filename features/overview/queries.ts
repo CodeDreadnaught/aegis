@@ -270,18 +270,21 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         id: `reading-${reading.id}`,
         type: "Operational reading",
         detail: `${reading.equipment.assetTag} - ${reading.equipment.name}`,
+        href: "/operational-data",
         timestamp: reading.recordedAt,
       })),
       ...latestMaintenance.map((record) => ({
         id: `maintenance-${record.id}`,
         type: record.type,
         detail: `${record.equipment.assetTag} - ${record.equipment.name}`,
+        href: "/maintenance",
         timestamp: record.performedAt,
       })),
       ...latestAlerts.map((alert) => ({
         id: `alert-${alert.id}`,
         type: `${alert.severity} alert`,
         detail: alert.message,
+        href: "/alerts",
         timestamp: alert.createdAt,
       })),
     ]

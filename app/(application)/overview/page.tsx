@@ -232,6 +232,10 @@ export default async function OverviewPage({
   const assetMixLegendRows = otherAssetMixCount
     ? [...topAssetMixRows, { category: "Others", count: otherAssetMixCount }]
     : topAssetMixRows;
+  const permittedRecentActivity = recentActivity.slice(0, 5).map(activity => ({
+    ...activity,
+    href: getPermittedActivityHref(activity.href, user.role),
+  }));
   const orderedAssetMixLegendRows = [
     ...assetMixLegendRows.filter(row => row.category !== "Others"),
     ...assetMixLegendRows.filter(row => row.category === "Others"),
@@ -544,31 +548,17 @@ export default async function OverviewPage({
             <CardHeader className="pb-2">
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
-            <CardContent className="gap-2 p-4 pt-0">
-              {recentActivity.slice(0, 5).map(activity => (
-                <div
-                  className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+            <CardContent className="grid gap-2 p-4 pt-0">
+              {permittedRecentActivity.map(activity => (
+                <RecentActivityItem
+                  detail={activity.detail}
+                  href={activity.href}
                   key={activity.id}
-                >
-                  <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
-                    <TrendUp aria-hidden="true" className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-zinc-950">
-                        {activity.type}
-                      </p>
-                      <span className="shrink-0 text-xs text-zinc-500">
-                        {timeFormatter.format(activity.timestamp)}
-                      </span>
-                    </div>
-                    <p className="truncate text-xs text-zinc-500">
-                      {activity.detail}
-                    </p>
-                  </div>
-                </div>
+                  timestamp={activity.timestamp}
+                  type={activity.type}
+                />
               ))}
-              {!recentActivity.length && <EmptyState label="No activity" />}
+              {!permittedRecentActivity.length && <EmptyState label="No activity" />}
             </CardContent>
           </Card>
         </section>
@@ -577,6 +567,66 @@ export default async function OverviewPage({
   );
 }
 
+function RecentActivityItem({
+  detail,
+  href,
+  timestamp,
+  type,
+}: {
+  detail: string;
+  href?: string;
+  timestamp: Date;
+  type: string;
+}) {
+  const content = (
+    <>
+      <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#eefbfc] text-[#146c74]">
+        <TrendUp aria-hidden="true" className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 text-sm font-semibold text-zinc-950">{type}</p>
+          <span className="shrink-0 text-xs text-zinc-500">
+            {timeFormatter.format(timestamp)}
+          </span>
+        </div>
+        <p className="mt-0.5 text-xs leading-5 text-zinc-500 break-words">{detail}</p>
+      </div>
+    </>
+  );
+  const className = [
+    "flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-colors",
+    href
+      ? "cursor-pointer hover:border-zinc-300 hover:bg-white"
+      : "cursor-default opacity-75",
+  ].join(" ");
+
+  if (href) {
+    return (
+      <Link aria-label={`Open ${type}`} className={className} href={href}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
+function getPermittedActivityHref(href: string | undefined, role: Parameters<typeof can>[0]) {
+  if (href === "/alerts") {
+    return can(role, "manageAlerts") ? href : undefined;
+  }
+
+  if (href === "/maintenance") {
+    return can(role, "viewMaintenance") ? href : undefined;
+  }
+
+  if (href === "/operational-data") {
+    return can(role, "recordOperationalData") ? href : undefined;
+  }
+
+  return undefined;
+}
 function FocusItem({
   href,
   icon: Icon,
