@@ -288,14 +288,14 @@ export default async function EquipmentPage({
           className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
-          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-1">
             <div>
               <CardTitle>Fleet Mix</CardTitle>
               <p className="text-sm text-zinc-500">Lifecycle status</p>
             </div>
             <ChartBar aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
-          <CardContent className="grid gap-2 p-4 pt-0">
+          <CardContent className="grid gap-1.5 p-4 pt-0">
             {statusCounts.map(item => (
               <StatusSummary
                 key={item.label}
@@ -311,7 +311,7 @@ export default async function EquipmentPage({
           className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
-          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-1">
             <div>
               <CardTitle>Category Mix</CardTitle>
               <p className="text-sm text-zinc-500">Equipment categories</p>
@@ -323,7 +323,7 @@ export default async function EquipmentPage({
               {equipment.length} assets
             </Badge>
           </CardHeader>
-          <CardContent className="grid gap-3 p-4 pt-0">
+          <CardContent className="grid gap-2 p-4 pt-0">
             {fleetMixRows.map((item, index) => (
               <DistributionRow
                 accent={mixColors[index % mixColors.length]}
@@ -598,20 +598,20 @@ function MetricCard({
       className="h-full rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="px-4 py-3">
+      <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
+            <p className="mt-0.5 text-xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className={`grid size-8 place-items-center rounded-full ${tone}`}>
-            <Icon aria-hidden="true" className="size-4" />
+          <div className={`grid size-7 place-items-center rounded-full ${tone}`}>
+            <Icon aria-hidden="true" className="size-3.5" />
           </div>
         </div>
-        <p className="mt-3 text-xs font-medium text-zinc-500">{detail}</p>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
           <div
             className={`h-full rounded-full ${accent}`}
             style={{ width: `${Math.min(progress, 100)}%` }}
@@ -634,14 +634,14 @@ function StatusSummary({
   const width = percentage(value, total);
 
   return (
-    <div className="rounded-[1rem] border border-zinc-200 bg-zinc-50 p-3">
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-zinc-950">{label}</span>
-        <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-zinc-600 shadow-sm">
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-zinc-600 shadow-sm">
           {value}
         </span>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
         <div
           className="h-full rounded-full bg-zinc-950"
           style={{ width: `${width}%` }}
@@ -670,7 +670,7 @@ function DistributionRow({
         <span className="font-semibold text-zinc-950">{label}</span>
         <span className="text-xs font-semibold text-zinc-500">{value}</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-white">
+      <div className="h-1.5 overflow-hidden rounded-full bg-white">
         <div
           className="h-full rounded-full"
           style={{ backgroundColor: accent, width: `${width}%` }}
