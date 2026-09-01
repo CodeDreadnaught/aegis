@@ -29,17 +29,23 @@ export function OverviewControls({ activeRange }: OverviewControlsProps) {
 
 
   useEffect(() => {
-    const currentParams = new URLSearchParams(searchParams.toString());
+    const prefetchRanges = () => {
+      const currentParams = new URLSearchParams(searchParams.toString());
 
-    for (const range of ranges) {
-      if (range.value === activeRange) {
-        continue;
+      for (const range of ranges) {
+        if (range.value === activeRange) {
+          continue;
+        }
+
+        const params = new URLSearchParams(currentParams.toString());
+        params.set("range", range.value);
+        router.prefetch(pathname + "?" + params.toString());
       }
+    };
 
-      const params = new URLSearchParams(currentParams.toString());
-      params.set("range", range.value);
-      router.prefetch(pathname + "?" + params.toString());
-    }
+    const timeoutId = window.setTimeout(prefetchRanges, 150);
+
+    return () => window.clearTimeout(timeoutId);
   }, [activeRange, pathname, router, searchParams]);
 
   useEffect(() => {

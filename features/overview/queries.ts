@@ -20,7 +20,39 @@ type LatestPredictionRow = {
   equipmentLocation: string;
 };
 
+type OverviewWorkspace = Awaited<ReturnType<typeof getOverviewWorkspaceFresh>>;
+
+const overviewWorkspaceCache = new Map<
+  OverviewRange,
+  { expiresAt: number; value: Promise<OverviewWorkspace> }
+>();
+
 export async function getOverviewWorkspace(range: OverviewRange = 7) {
+  const now = Date.now();
+  const cached = overviewWorkspaceCache.get(range);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const value = getOverviewWorkspaceFresh(range).catch((error) => {
+    overviewWorkspaceCache.delete(range);
+    throw error;
+  });
+
+  overviewWorkspaceCache.set(range, {
+    expiresAt: now + getOverviewCacheTtl(range),
+    value,
+  });
+
+  return value;
+}
+
+function getOverviewCacheTtl(range: OverviewRange) {
+  return range === 1 ? 5000 : 30000;
+}
+
+async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
   const since = new Date();
   since.setDate(since.getDate() - range);
 

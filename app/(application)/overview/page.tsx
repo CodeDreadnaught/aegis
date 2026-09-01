@@ -521,7 +521,7 @@ export default async function OverviewPage({
             <CardHeader className="pb-2">
               <CardTitle>Maintenance Plans</CardTitle>
             </CardHeader>
-            <CardContent className="gap-4 p-4 pt-0">
+            <CardContent className="grid gap-3 p-4 pt-0">
               {latestMaintenance.slice(0, 5).map(record => (
                 <PlanRow
                   dueDate={record.nextDueDate}
@@ -658,10 +658,10 @@ function LineTrend({
         </div>
       </div>
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
-        <div className="relative h-48 text-right text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
+        <div className="relative h-48 text-left text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
           {[100, 75, 50, 25, 0].map((label, index) => (
             <span
-              className="absolute right-0 leading-none"
+              className="absolute left-0 leading-none"
               key={label}
               style={{
                 top: index * 25 + "%",
