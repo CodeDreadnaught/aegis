@@ -271,7 +271,7 @@ export function EquipmentForm({
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
-              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full !rounded-[9999px] bg-[#009966] px-5 text-white hover:bg-[#007a55] hover:text-white focus-visible:ring-[#009966]/25 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pending}
               type="submit"
             >

@@ -149,7 +149,7 @@ export default async function EquipmentPage({
             <Link
               className={buttonVariants({
                 className:
-                  "h-11 !rounded-full bg-[#009966] px-5 text-white hover:bg-[#007a55]",
+                  "h-11 !rounded-[9999px] bg-[#009966] px-5 text-white hover:bg-[#007a55] hover:text-white focus-visible:ring-[#009966]/25",
               })}
               href="/equipment/new"
             >
@@ -210,7 +210,7 @@ export default async function EquipmentPage({
               className={buttonVariants({
                 variant: "outline",
                 className:
-                  "h-11 !rounded-full border-zinc-950 bg-zinc-950 px-6 text-white shadow-sm hover:border-[#009966] hover:bg-[#009966] hover:text-white",
+                  "h-11 !rounded-[9999px] border-zinc-950 bg-zinc-950 px-6 text-white shadow-sm hover:border-[#007a55] hover:bg-[#007a55] hover:text-white focus-visible:border-[#007a55] focus-visible:ring-[#009966]/25",
               })}
               type="submit"
             >
@@ -221,7 +221,7 @@ export default async function EquipmentPage({
                 <Link
                   className={buttonVariants({
                     className:
-                      "h-11 w-full !rounded-full bg-[#009966] px-5 text-white hover:bg-[#007a55]",
+                      "h-11 w-full !rounded-[9999px] bg-[#009966] px-5 text-white hover:bg-[#007a55] hover:text-white focus-visible:ring-[#009966]/25",
                   })}
                   href="/equipment/new"
                 >
