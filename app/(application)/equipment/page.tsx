@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ChartBar,
-  Factory,
+  Cpu,
+  Gauge,
   HardHat,
   MagnifyingGlass,
   MapPin,
@@ -117,9 +118,9 @@ export default async function EquipmentPage({
       value: equipment.filter(asset => asset.category === item).length,
     }))
     .filter(item => item.value > 0);
-  const visibleCategoryCounts = categoryCounts.slice(0, 3);
+  const visibleCategoryCounts = categoryCounts.slice(0, 4);
   const hiddenCategoryCount = categoryCounts
-    .slice(3)
+    .slice(4)
     .reduce((sum, item) => sum + item.value, 0);
   const fleetMixRows = hiddenCategoryCount
     ? [...visibleCategoryCounts, { label: "Other", value: hiddenCategoryCount }]
@@ -249,7 +250,7 @@ export default async function EquipmentPage({
           <MetricCard
             accent="bg-[#f2bd3f]"
             detail={`${activeCount} active assets`}
-            icon={Pulse}
+            icon={Gauge}
             label="Readiness"
             progress={equipment.length ? Math.round(averageHealth) : 0}
             tone="bg-[#fff6dc] text-[#8a5a00]"
@@ -258,7 +259,7 @@ export default async function EquipmentPage({
           <MetricCard
             accent="bg-[#2f9da7]"
             detail={`${readingCoverage}% with readings`}
-            icon={Factory}
+            icon={Pulse}
             label="Monitored"
             progress={readingCoverage}
             tone="bg-[#e8fbf6] text-[#146c74]"
@@ -267,7 +268,7 @@ export default async function EquipmentPage({
           <MetricCard
             accent="bg-[#5ec3cf]"
             detail={`${predictionCoverage}% AI coverage`}
-            icon={ChartBar}
+            icon={Cpu}
             label="Predicted"
             progress={predictionCoverage}
             tone="bg-[#eefbfc] text-[#146c74]"
@@ -587,7 +588,7 @@ function MetricCard({
 }: {
   accent: string;
   detail: string;
-  icon: typeof Factory;
+  icon: typeof ChartBar;
   label: string;
   progress: number;
   tone: string;
