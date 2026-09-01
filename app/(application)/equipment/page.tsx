@@ -148,7 +148,7 @@ export default async function EquipmentPage({
             <Link
               className={buttonVariants({
                 className:
-                  "h-11 rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+                  "h-11 rounded-full bg-[#009966] px-5 text-white hover:bg-[#007a55]",
               })}
               href="/equipment/new"
             >
@@ -163,10 +163,10 @@ export default async function EquipmentPage({
         className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
         data-motion="panel"
       >
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <form
             action="/equipment"
-            className="grid gap-3 lg:grid-cols-[minmax(18rem,1fr)_14rem_14rem_auto_auto]"
+            className="grid gap-2 lg:grid-cols-[minmax(18rem,1fr)_14rem_14rem_auto_auto]"
           >
             <label className="sr-only" htmlFor="q">
               Search equipment
@@ -174,7 +174,7 @@ export default async function EquipmentPage({
             <div className="relative">
               <MagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
               <Input
-                className="h-12 rounded-full border-zinc-200 bg-zinc-50 pl-11 text-sm shadow-inner shadow-zinc-950/5"
+                className="h-11 rounded-full border-zinc-200 bg-zinc-50 pl-11 text-sm shadow-inner shadow-zinc-950/5"
                 defaultValue={query}
                 id="q"
                 name="q"
@@ -182,7 +182,7 @@ export default async function EquipmentPage({
               />
             </div>
             <select
-              className="h-12 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
+              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
               defaultValue={status ?? ""}
               name="status"
             >
@@ -194,7 +194,7 @@ export default async function EquipmentPage({
               ))}
             </select>
             <select
-              className="h-12 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
+              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
               defaultValue={category ?? ""}
               name="category"
             >
@@ -209,7 +209,7 @@ export default async function EquipmentPage({
               className={buttonVariants({
                 variant: "outline",
                 className:
-                  "h-12 rounded-full border-zinc-950 bg-zinc-950 px-6 text-white shadow-sm hover:bg-zinc-800",
+                  "h-11 rounded-full border-zinc-950 bg-zinc-950 px-6 text-white shadow-sm hover:border-[#009966] hover:bg-[#009966] hover:text-white",
               })}
               type="submit"
             >
@@ -220,7 +220,7 @@ export default async function EquipmentPage({
                 <Link
                   className={buttonVariants({
                     className:
-                      "h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800",
+                      "h-11 w-full rounded-full bg-[#009966] px-5 text-white hover:bg-[#007a55]",
                   })}
                   href="/equipment/new"
                 >
@@ -233,7 +233,7 @@ export default async function EquipmentPage({
               <Link
                 className={buttonVariants({
                   variant: "ghost",
-                  className: "h-12 rounded-full px-5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
+                  className: "h-11 rounded-full px-5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
                 })}
                 href="/equipment"
               >
@@ -244,7 +244,7 @@ export default async function EquipmentPage({
         </CardContent>
       </Card>
 
-      <section className="grid items-stretch gap-4 xl:grid-cols-[1.12fr_0.88fr]">
+      <section className="grid items-stretch gap-4 xl:grid-cols-[1.08fr_0.56fr_0.56fr]">
         <div className="grid h-full gap-3 sm:grid-cols-2">
           <MetricCard
             accent="bg-[#f2bd3f]"
@@ -291,88 +291,52 @@ export default async function EquipmentPage({
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
             <div>
               <CardTitle>Fleet Mix</CardTitle>
-              <p className="text-sm text-zinc-500">Lifecycle and category spread</p>
+              <p className="text-sm text-zinc-500">Lifecycle status</p>
             </div>
             <ChartBar aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
-          <CardContent className="grid gap-4 p-4 pt-0">
-            <div className="grid gap-2 sm:grid-cols-2">
-              {statusCounts.map(item => (
-                <StatusSummary
-                  key={item.label}
-                  label={item.label}
-                  total={equipment.length}
-                  value={item.value}
-                />
-              ))}
+          <CardContent className="grid gap-2 p-4 pt-0">
+            {statusCounts.map(item => (
+              <StatusSummary
+                key={item.label}
+                label={item.label}
+                total={equipment.length}
+                value={item.value}
+              />
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card
+          className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Category Mix</CardTitle>
+              <p className="text-sm text-zinc-500">Equipment categories</p>
             </div>
-            <div className="grid gap-3 rounded-[1rem] border border-zinc-200 bg-zinc-50 p-3">
-              <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase text-zinc-500">
-                <span>Category mix</span>
-                <span>{equipment.length} assets</span>
-              </div>
-              {fleetMixRows.map((item, index) => (
-                <DistributionRow
-                  accent={mixColors[index % mixColors.length]}
-                  key={item.label}
-                  label={item.label}
-                  total={equipment.length}
-                  value={item.value}
-                />
-              ))}
-              {!fleetMixRows.length && <EmptyState label="No assets" />}
-            </div>
+            <Badge
+              className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+              variant="outline"
+            >
+              {equipment.length} assets
+            </Badge>
+          </CardHeader>
+          <CardContent className="grid gap-3 p-4 pt-0">
+            {fleetMixRows.map((item, index) => (
+              <DistributionRow
+                accent={mixColors[index % mixColors.length]}
+                key={item.label}
+                label={item.label}
+                total={equipment.length}
+                value={item.value}
+              />
+            ))}
+            {!fleetMixRows.length && <EmptyState label="No assets" />}
           </CardContent>
         </Card>
       </section>
-
-      <Card
-        className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-        data-motion="panel"
-      >
-        <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-          <div>
-            <CardTitle>Risk Queue</CardTitle>
-            <p className="text-sm text-zinc-500">
-              Highest failure probability
-            </p>
-          </div>
-          <Badge
-            className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-            variant="outline"
-          >
-            {highRiskCount} high risk
-          </Badge>
-        </CardHeader>
-        <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2 xl:grid-cols-4">
-          {criticalAssets.map(item => (
-            <Link
-              className="group rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
-              href={`/equipment/${item.id}`}
-              key={item.id}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-zinc-950">
-                    {item.assetTag}
-                  </p>
-                  <p className="truncate text-xs text-zinc-500">
-                    {item.location}
-                  </p>
-                </div>
-                <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-red-600">
-                  {Math.round(
-                    Number(item.predictions[0]?.failureProbability ?? 0) *
-                      100,
-                  )}
-                  %
-                </span>
-              </div>
-            </Link>
-          ))}
-          {!criticalAssets.length && <EmptyState label="No predictions" />}
-        </CardContent>
-      </Card>
 
       <Card
         className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
@@ -561,7 +525,54 @@ export default async function EquipmentPage({
           )}
         </CardContent>
       </Card>
-    </div>
+
+      <Card
+        className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+        data-motion="panel"
+      >
+        <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+          <div>
+            <CardTitle>Risk Queue</CardTitle>
+            <p className="text-sm text-zinc-500">
+              Highest failure probability
+            </p>
+          </div>
+          <Badge
+            className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+            variant="outline"
+          >
+            {highRiskCount} high risk
+          </Badge>
+        </CardHeader>
+        <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2 xl:grid-cols-4">
+          {criticalAssets.map(item => (
+            <Link
+              className="group rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
+              href={`/equipment/${item.id}`}
+              key={item.id}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-zinc-950">
+                    {item.assetTag}
+                  </p>
+                  <p className="truncate text-xs text-zinc-500">
+                    {item.location}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-red-600">
+                  {Math.round(
+                    Number(item.predictions[0]?.failureProbability ?? 0) *
+                      100,
+                  )}
+                  %
+                </span>
+              </div>
+            </Link>
+          ))}
+          {!criticalAssets.length && <EmptyState label="No predictions" />}
+        </CardContent>
+      </Card>    </div>
   );
 }
 
