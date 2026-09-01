@@ -33,14 +33,14 @@ export function PaginationControls({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t border-zinc-100 px-4 py-3 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col items-center gap-3 border-t border-zinc-100 px-4 py-3 text-center text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:text-left",
         className
       )}
     >
       <p>
         Showing {start.toLocaleString()}-{end.toLocaleString()} of {total.toLocaleString()}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <Link
           aria-disabled={currentPage === 1}
           className={buttonVariants({

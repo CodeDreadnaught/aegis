@@ -164,11 +164,11 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
         </Table>
       </div>
       {filteredRows.length > tablePageSize && (
-        <div className="flex flex-col gap-3 border-t border-zinc-100 px-4 py-3 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-center gap-3 border-t border-zinc-100 px-4 py-3 text-center text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p>
             Showing {((paginatedRows.currentPage - 1) * tablePageSize + 1).toLocaleString()}-{Math.min(filteredRows.length, paginatedRows.currentPage * tablePageSize).toLocaleString()} of {filteredRows.length.toLocaleString()}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               className="rounded-full border-zinc-200 bg-white text-zinc-700"
               disabled={paginatedRows.currentPage === 1}
