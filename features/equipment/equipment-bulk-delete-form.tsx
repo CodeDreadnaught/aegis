@@ -121,16 +121,18 @@ export function EquipmentBulkDeleteForm({
               />
               Select all visible
             </label>
-            <Button
-              className="rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-              disabled={pending || selectedCount === 0}
-              size="sm"
-              type="submit"
-              variant="outline"
-            >
-              <Trash />
-              Delete selected{selectedCount ? ` (${selectedCount})` : ""}
-            </Button>
+            {selectedCount > 0 ? (
+              <Button
+                className="rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                disabled={pending}
+                size="sm"
+                type="submit"
+                variant="outline"
+              >
+                <Trash />
+                Delete selected ({selectedCount})
+              </Button>
+            ) : null}
           </div>
         ) : null}
         {children}

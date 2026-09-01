@@ -37,4 +37,26 @@ describe("AEGIS risk domain", () => {
     expect(recommendation).toContain("Prioritise inspection");
     expect(recommendation).not.toContain("shut down");
   });
+  it("describes different abnormal drivers with different operational insight", () => {
+    const torqueRecommendation = buildRecommendation({
+      riskLevel: "High",
+      failureProbability: 0.86,
+      healthScore: 14,
+      abnormalParameters: ["Torque"],
+    });
+    const speedRecommendation = buildRecommendation({
+      riskLevel: "High",
+      failureProbability: 0.86,
+      healthScore: 14,
+      abnormalParameters: ["Rotational speed"],
+    });
+
+    expect(torqueRecommendation).toContain("Risk: High");
+    expect(torqueRecommendation).toContain("Relevant parameters requiring review: Torque");
+    expect(torqueRecommendation).toContain("Recommendation:");
+    expect(torqueRecommendation).toContain("excess mechanical resistance");
+    expect(speedRecommendation).toContain("Relevant parameters requiring review: Rotational speed");
+    expect(speedRecommendation).toContain("poor speed control");
+    expect(speedRecommendation).not.toBe(torqueRecommendation);
+  });
 });
