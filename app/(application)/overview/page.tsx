@@ -78,6 +78,7 @@ export default async function OverviewPage({
     recentActivity,
     stats,
     assetMixEquipment,
+    assetPerformanceEquipment,
   } = await getOverviewWorkspace(range);
 
   const averageHealth = average(
@@ -123,30 +124,42 @@ export default async function OverviewPage({
     }));
   const averagePressure = average(signalBars.map(reading => reading.pressure));
   const averageFlow = average(signalBars.map(reading => reading.flow));
-  const latestPredictionByAsset = new Map<
-    string,
-    (typeof latestPredictions)[number]
-  >();
+  const assetRows: OverviewAssetRow[] = assetPerformanceEquipment
+    .map(asset => {
+      const latestPrediction = asset.predictions[0];
 
-  for (const prediction of latestPredictions) {
-    if (!latestPredictionByAsset.has(prediction.equipmentId)) {
-      latestPredictionByAsset.set(prediction.equipmentId, prediction);
-    }
-  }
+      return {
+        asset: asset.assetTag,
+        assetId: asset.id,
+        category: formatEquipmentCategory(asset.category),
+        failure: latestPrediction
+          ? Math.round(Number(latestPrediction.failureProbability) * 100)
+          : null,
+        health: latestPrediction ? Number(latestPrediction.healthScore) : null,
+        location: asset.location,
+        name: asset.name,
+        risk: latestPrediction?.riskLevel ?? "PENDING",
+        updated: latestPrediction
+          ? compactDateFormatter.format(latestPrediction.createdAt)
+          : "Pending",
+      };
+    })
+    .sort((left, right) => {
+      const leftHasPrediction = left.failure !== null;
+      const rightHasPrediction = right.failure !== null;
 
-  const assetRows: OverviewAssetRow[] = Array.from(
-    latestPredictionByAsset.values(),
-  ).map(prediction => ({
-    asset: prediction.equipment.assetTag,
-    assetId: prediction.equipment.id,
-    category: formatEquipmentCategory(prediction.equipment.category),
-    failure: Math.round(Number(prediction.failureProbability) * 100),
-    health: Number(prediction.healthScore),
-    location: prediction.equipment.location,
-    name: prediction.equipment.name,
-    risk: prediction.riskLevel,
-    updated: compactDateFormatter.format(prediction.createdAt),
-  }));
+      if (leftHasPrediction !== rightHasPrediction) {
+        return leftHasPrediction ? -1 : 1;
+      }
+
+      const riskDifference = riskSortRank(right.risk) - riskSortRank(left.risk);
+
+      if (riskDifference !== 0) {
+        return riskDifference;
+      }
+
+      return (right.failure ?? -1) - (left.failure ?? -1) || left.asset.localeCompare(right.asset);
+    });
   const kpis = [
     {
       label: "Fleet",
@@ -517,7 +530,7 @@ export default async function OverviewPage({
           </Card>
         </section>
 
-        <section className="grid items-start gap-4 lg:grid-cols-2">
+        <section className="grid gap-4">
           <Card
             className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
@@ -590,7 +603,7 @@ function RecentActivityItem({
             {timeFormatter.format(timestamp)}
           </span>
         </div>
-        <p className="mt-0.5 text-xs leading-5 text-zinc-500 break-words">{detail}</p>
+        <ActivityDetail detail={detail} />
       </div>
     </>
   );
@@ -612,6 +625,44 @@ function RecentActivityItem({
   return <div className={className}>{content}</div>;
 }
 
+function ActivityDetail({ detail }: { detail: string }) {
+  const sections = parseActivityDetail(detail);
+
+  if (!sections.length) {
+    return <p className="mt-1 text-xs leading-5 text-zinc-500 break-words">{detail}</p>;
+  }
+
+  return (
+    <div className="mt-2 grid gap-1.5 text-xs leading-5 text-zinc-500">
+      {sections.map(section => (
+        <p className="break-words" key={section.label}>
+          <span className="font-semibold text-zinc-700">{section.label}: </span>
+          {section.value}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function parseActivityDetail(detail: string) {
+  const match = detail.match(
+    /^Risk: (.*?)\. Reason: (.*?) Relevant parameters requiring review: (.*?)\. Recommendation: (.*?)\.?$/,
+  );
+
+  if (!match) {
+    return [];
+  }
+
+  return [
+    { label: "Risk", value: match[1] },
+    { label: "Reason", value: match[2] },
+    {
+      label: "Relevant parameters requiring review",
+      value: match[3],
+    },
+    { label: "Recommendation", value: match[4] },
+  ].filter(section => section.value.trim().length > 0);
+}
 function getPermittedActivityHref(href: string | undefined, role: Parameters<typeof can>[0]) {
   if (href === "/alerts") {
     return can(role, "manageAlerts") ? href : undefined;
@@ -1139,6 +1190,21 @@ function formatSignalValue(value: number, unit: string) {
   return `${formatted} ${unit}`;
 }
 
+function riskSortRank(risk: string) {
+  if (risk === "HIGH") {
+    return 3;
+  }
+
+  if (risk === "MEDIUM") {
+    return 2;
+  }
+
+  if (risk === "LOW") {
+    return 1;
+  }
+
+  return 0;
+}
 function buildSparklinePoints(values: number[]) {
   const width = 180;
   const height = 32;

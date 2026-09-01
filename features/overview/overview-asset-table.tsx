@@ -22,8 +22,8 @@ export type OverviewAssetRow = {
   asset: string;
   assetId: string;
   category: string;
-  failure: number;
-  health: number;
+  failure: number | null;
+  health: number | null;
   location: string;
   name: string;
   risk: string;
@@ -126,24 +126,36 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                 <TableCell className="text-zinc-500">{row.category}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
-                      <span
-                        className="block h-full rounded-full bg-zinc-950"
-                        style={{ width: `${row.health}%` }}
-                      />
-                    </span>
-                    <span className="text-sm font-medium">{row.health}%</span>
+                    {row.health === null ? (
+                      <span className="text-sm text-zinc-400">Pending</span>
+                    ) : (
+                      <>
+                        <span className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
+                          <span
+                            className="block h-full rounded-full bg-zinc-950"
+                            style={{ width: `${row.health}%` }}
+                          />
+                        </span>
+                        <span className="text-sm font-medium">{row.health}%</span>
+                      </>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-20 overflow-hidden rounded-full bg-zinc-100">
-                      <span
-                        className="block h-full rounded-full bg-red-500"
-                        style={{ width: `${row.failure}%` }}
-                      />
-                    </span>
-                    <span className="text-sm font-medium">{row.failure}%</span>
+                    {row.failure === null ? (
+                      <span className="text-sm text-zinc-400">Pending</span>
+                    ) : (
+                      <>
+                        <span className="h-2 w-20 overflow-hidden rounded-full bg-zinc-100">
+                          <span
+                            className="block h-full rounded-full bg-red-500"
+                            style={{ width: `${row.failure}%` }}
+                          />
+                        </span>
+                        <span className="text-sm font-medium">{row.failure}%</span>
+                      </>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -212,7 +224,9 @@ function RiskBadge({ risk }: { risk: string }) {
       ? "border-red-200 bg-red-50 text-red-700"
       : risk === "MEDIUM"
         ? "border-zinc-300 bg-zinc-100 text-zinc-800"
-        : "border-emerald-200 bg-emerald-50 text-emerald-700";
+        : risk === "LOW"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-zinc-200 bg-zinc-50 text-zinc-500";
 
   return (
     <span

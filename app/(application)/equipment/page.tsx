@@ -77,9 +77,6 @@ export default async function EquipmentPage({
   const paginatedEquipment = paginateItems(equipment, page);
   const now = new Date();
   const activeCount = equipment.filter(item => item.status === "ACTIVE").length;
-  const maintenanceCount = equipment.filter(
-    item => item.status === "MAINTENANCE",
-  ).length;
   const overdueMaintenanceCount = equipment.filter(item => {
     const nextDueDate = item.maintenanceRecords[0]?.nextDueDate;
 
@@ -105,9 +102,23 @@ export default async function EquipmentPage({
     equipment.filter(item => item.predictions[0]).length,
     equipment.length,
   );
-  const averageHealth = average(
-    equipment.map(item => Number(item.predictions[0]?.healthScore ?? 0)),
-  );
+  const maintenanceAttentionCount = overdueMaintenanceCount + dueSoonCount;
+  const readyAssetCount = equipment.filter(item => {
+    const latestPrediction = item.predictions[0];
+    const latestMaintenance = item.maintenanceRecords[0];
+    const nextDueDate = latestMaintenance?.nextDueDate;
+    const isMaintenanceDue = nextDueDate
+      ? nextDueDate.getTime() <= now.getTime() + 1000 * 60 * 60 * 24 * 30
+      : false;
+
+    return (
+      item.status === "ACTIVE" &&
+      item._count.operationalReadings > 0 &&
+      latestPrediction?.riskLevel !== "HIGH" &&
+      !isMaintenanceDue
+    );
+  }).length;
+  const readinessRate = percentage(readyAssetCount, equipment.length);
   const statusCounts = equipmentStatuses.map(item => ({
     label: formatEquipmentCategory(item),
     value: equipment.filter(asset => asset.status === item).length,
@@ -207,11 +218,7 @@ export default async function EquipmentPage({
               ))}
             </select>
             <button
-              className={buttonVariants({
-                variant: "outline",
-                className:
-                  "h-11 !rounded-[9999px] border-zinc-950 bg-zinc-950 px-6 text-white shadow-sm hover:border-[#007a55] hover:bg-[#007a55] hover:text-white focus-visible:border-[#007a55] focus-visible:ring-[#009966]/25",
-              })}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-950 bg-zinc-950 px-6 text-sm font-medium text-white shadow-sm outline-none transition-colors hover:border-[#007a55] hover:bg-[#007a55] hover:text-white focus-visible:border-[#007a55] focus-visible:ring-3 focus-visible:ring-[#009966]/25"
               type="submit"
             >
               Apply
@@ -249,12 +256,12 @@ export default async function EquipmentPage({
         <div className="grid h-full gap-3 sm:grid-cols-2">
           <MetricCard
             accent="bg-[#f2bd3f]"
-            detail={`${activeCount} active assets`}
+            detail={`${readyAssetCount} ready / ${activeCount} active`}
             icon={Gauge}
             label="Readiness"
-            progress={equipment.length ? Math.round(averageHealth) : 0}
+            progress={readinessRate}
             tone="bg-[#fff6dc] text-[#8a5a00]"
-            value={equipment.length ? `${Math.round(averageHealth)}%` : "N/A"}
+            value={`${readinessRate}%`}
           />
           <MetricCard
             accent="bg-[#2f9da7]"
@@ -279,9 +286,9 @@ export default async function EquipmentPage({
             detail={`${overdueMaintenanceCount} overdue / ${dueSoonCount} due soon`}
             icon={Wrench}
             label="Maintenance"
-            progress={percentage(maintenanceCount, equipment.length)}
+            progress={percentage(maintenanceAttentionCount, equipment.length)}
             tone="bg-[#fff0ed] text-[#b13d2e]"
-            value={maintenanceCount}
+            value={maintenanceAttentionCount}
           />
         </div>
 
@@ -741,19 +748,6 @@ function parseCategory(
     : undefined;
 }
 
-function average(values: number[]) {
-  const validValues = values.filter(
-    value => Number.isFinite(value) && value > 0,
-  );
-
-  if (!validValues.length) {
-    return 0;
-  }
-
-  return (
-    validValues.reduce((sum, value) => sum + value, 0) / validValues.length
-  );
-}
 
 function percentage(value: number, total: number) {
   if (!total) {

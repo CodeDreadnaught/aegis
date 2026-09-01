@@ -51,7 +51,7 @@ const chartWidth = 680;
 const chartHeight = 240;
 
 export const metadata: Metadata = {
-  title: " Equipment Profile",
+  title: "Equipment Profile",
 };
 
 export default async function EquipmentDetailsPage({
@@ -105,15 +105,16 @@ export default async function EquipmentDetailsPage({
       <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div data-motion="reveal">
           <BackButton className="mb-4" />
-          <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-medium text-[#2f9da7]">Equipment</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+            {equipment.name}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <StatusBadge status={equipment.status} />
             {latestPrediction && (
               <RiskBadge risk={latestPrediction.riskLevel} />
             )}
           </div>
-          <h1 className="mt-3 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
-            {equipment.name}
-          </h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-zinc-500">
             <span>{equipment.assetTag}</span>
             <span className="hidden h-1 w-1 rounded-full bg-zinc-300 sm:block" />
@@ -131,7 +132,7 @@ export default async function EquipmentDetailsPage({
               <Link
                 className={buttonVariants({
                   variant: "outline",
-                  className: "h-11 rounded-full border-zinc-200 bg-white px-5",
+                  className: "h-11 !rounded-[9999px] border-zinc-200 bg-white px-5 text-zinc-950 hover:border-zinc-950 hover:bg-zinc-950 hover:text-white",
                 })}
                 href={`/equipment/view-more/${equipment.id}/edit`}
               >
@@ -156,10 +157,10 @@ export default async function EquipmentDetailsPage({
               >
                 <button
                   className={buttonVariants({
-                    variant: isDecommissioned ? "outline" : "destructive",
+                    variant: "outline",
                     className: isDecommissioned
-                      ? "h-11 w-full rounded-full border-zinc-200 bg-white px-5 text-zinc-950 hover:bg-zinc-950 hover:text-white sm:w-fit"
-                      : "h-11 w-full rounded-full px-5 sm:w-fit",
+                      ? "h-11 w-full !rounded-[9999px] border-[#009966]/25 bg-[#e8fbf6] px-5 text-[#007a55] hover:border-[#007a55] hover:bg-[#009966] hover:text-white sm:w-fit"
+                      : "h-11 w-full !rounded-[9999px] border-[#f2bd3f]/35 bg-[#fff6dc] px-5 text-[#8a5a00] hover:border-[#8a5a00] hover:bg-[#8a5a00] hover:text-white sm:w-fit",
                   })}
                   type="submit"
                 >
@@ -179,7 +180,7 @@ export default async function EquipmentDetailsPage({
                 <button
                   className={buttonVariants({
                     variant: "destructive",
-                    className: "h-11 w-full rounded-full px-5 sm:w-fit",
+                    className: "h-11 w-full !rounded-[9999px] border border-red-600 bg-red-600 px-5 text-white hover:border-red-700 hover:bg-red-700 hover:text-white sm:w-fit",
                   })}
                   type="submit"
                 >
@@ -192,64 +193,77 @@ export default async function EquipmentDetailsPage({
         ) : null}
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <DetailMetricCard
-          detail={
-            latestPrediction ? latestPrediction.riskLevel : "No AI run yet"
-          }
-          icon={Pulse}
-          label="AI Health"
-          value={latestPrediction ? `${health}%` : "Pending"}
-        />
-        <DetailMetricCard
-          detail={latestPrediction ? "Failure probability" : "Run analytics"}
-          icon={WarningCircle}
-          label="Risk"
-          value={latestPrediction ? `${failure}%` : "Pending"}
-        />
-        <DetailMetricCard
-          detail="Operational readings"
-          icon={ChartLineUp}
-          label="Telemetry"
-          value={equipment._count.operationalReadings}
-        />
-        <DetailMetricCard
-          detail="Prediction runs"
-          icon={TrendUp}
-          label="AI Runs"
-          value={equipment._count.predictions}
-        />
-      </section>
+      <section className="grid items-stretch gap-4 xl:grid-cols-[0.95fr_0.72fr_0.9fr]">
+        <div className="grid h-full gap-3 sm:grid-cols-2 xl:grid-cols-2">
+          <DetailMetricCard
+            accent="bg-[#f2bd3f]"
+            detail={latestPrediction ? `${latestPrediction.riskLevel} model risk` : "No AI run yet"}
+            icon={Pulse}
+            label="AI Health"
+            progress={latestPrediction ? health : 0}
+            tone="bg-[#fff6dc] text-[#8a5a00]"
+            value={latestPrediction ? `${health}%` : "Pending"}
+          />
+          <DetailMetricCard
+            accent="bg-[#ef7b63]"
+            detail={latestPrediction ? "Failure probability" : "Run analytics"}
+            icon={WarningCircle}
+            label="Risk"
+            progress={latestPrediction ? failure : 0}
+            tone="bg-[#fff0ed] text-[#b13d2e]"
+            value={latestPrediction ? `${failure}%` : "Pending"}
+          />
+          <DetailMetricCard
+            accent="bg-[#2f9da7]"
+            detail="Operational readings"
+            icon={ChartLineUp}
+            label="Telemetry"
+            progress={equipment._count.operationalReadings ? 100 : 0}
+            tone="bg-[#e8fbf6] text-[#146c74]"
+            value={equipment._count.operationalReadings}
+          />
+          <DetailMetricCard
+            accent="bg-[#5ec3cf]"
+            detail="Prediction runs"
+            icon={TrendUp}
+            label="AI Runs"
+            progress={Math.min(equipment._count.predictions * 10, 100)}
+            tone="bg-[#eefbfc] text-[#146c74]"
+            value={equipment._count.predictions}
+          />
+        </div>
 
-      <section className="grid items-start gap-4 xl:grid-cols-2">
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm xl:col-span-2"
+          className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
-          <CardHeader className="pb-1">
+          <CardHeader className="pb-2">
             <CardTitle>Asset Identity</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2.5 md:grid-cols-3">
+          <CardContent className="grid gap-2.5">
             <IdentityTile
               icon={Gauge}
               label="Manufacturer"
+              tone="bg-[#fff6dc] text-[#8a5a00]"
               value={equipment.manufacturer ?? "Not recorded"}
             />
             <IdentityTile
               icon={Pulse}
               label="Model"
+              tone="bg-[#eefbfc] text-[#146c74]"
               value={equipment.model ?? "Not recorded"}
             />
             <IdentityTile
               icon={MapPin}
               label="Installed"
+              tone="bg-[#e8fbf6] text-[#146c74]"
               value={formatDate(equipment.installationDate)}
             />
           </CardContent>
         </Card>
 
         <Card
-          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
           <CardHeader className="pb-1">
@@ -273,9 +287,11 @@ export default async function EquipmentDetailsPage({
             />
           </CardContent>
         </Card>
+      </section>
 
+      <section className="grid items-start gap-4 xl:grid-cols-2">
         <Card
-          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
           <CardHeader className="pb-1">
@@ -307,7 +323,7 @@ export default async function EquipmentDetailsPage({
 
       <section className="grid items-start gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <Card
-          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -332,7 +348,7 @@ export default async function EquipmentDetailsPage({
         </Card>
 
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
@@ -359,7 +375,7 @@ export default async function EquipmentDetailsPage({
 
       <section className="grid items-start gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <Card
-          className="h-fit rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="pb-2">
@@ -397,7 +413,7 @@ export default async function EquipmentDetailsPage({
         </Card>
 
         <Card
-          className="rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="pb-2">
@@ -471,34 +487,46 @@ export default async function EquipmentDetailsPage({
 }
 
 function DetailMetricCard({
+  accent,
   detail,
   icon: Icon,
   label,
+  progress,
+  tone,
   value,
 }: {
+  accent: string;
   detail: string;
   icon: typeof Pulse;
   label: string;
+  progress: number;
+  tone: string;
   value: number | string;
 }) {
   return (
     <Card
-      className="rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      className="h-full rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
       <CardContent className="px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
+            <p className="mt-0.5 text-xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
-            <Icon aria-hidden="true" className="size-4" />
+          <div className={`grid size-7 place-items-center rounded-full ${tone}`}>
+            <Icon aria-hidden="true" className="size-3.5" />
           </div>
         </div>
         <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className={`h-full rounded-full ${accent}`}
+            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -516,35 +544,37 @@ function SignalRow({
   const hasValue = Number.isFinite(value);
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-[0_12px_34px_rgba(24,24,27,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_44px_rgba(24,24,27,0.08)]">
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-zinc-950">{label}</p>
-          <p className="mt-1 text-xs font-medium text-zinc-500">
+          <p className="mt-0.5 text-xs font-medium text-zinc-500">
             Live telemetry
           </p>
         </div>
-        <span className="grid size-9 place-items-center rounded-full bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200">
+        <span className="grid size-8 place-items-center rounded-full bg-[#e8fbf6] text-[#146c74]">
           <Pulse aria-hidden="true" className="size-4" />
         </span>
       </div>
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <p className="text-3xl font-semibold leading-none text-zinc-950">
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <p className="text-2xl font-semibold leading-none text-zinc-950">
           {formatNumber(value)}
           {hasValue ? (
-            <span className="ml-2 align-baseline text-sm font-semibold text-zinc-500">
+            <span className="ml-1.5 align-baseline text-sm font-semibold text-zinc-500">
               {unit}
             </span>
           ) : null}
         </p>
-        <span className="flex h-8 items-end gap-1" aria-hidden="true">
+        <span className="flex h-7 items-end gap-1" aria-hidden="true">
           {[36, 68, 48, 82, 56].map((height, index) => (
             <span
-              className="w-1 rounded-full bg-zinc-950/70"
-              key={height}
+              className="w-1 rounded-full bg-[#2f9da7] animate-pulse"
+              key={`${height}-${index}`}
               style={{
+                animationDelay: `${index * 120}ms`,
+                animationDuration: "950ms",
                 height: `${hasValue ? height : 18 + index * 3}%`,
-                opacity: hasValue ? 0.35 + index * 0.11 : 0.16,
+                opacity: hasValue ? 0.4 + index * 0.1 : 0.16,
               }}
             />
           ))}
@@ -557,23 +587,25 @@ function SignalRow({
 function IdentityTile({
   icon: Icon,
   label,
+  tone,
   value,
 }: {
   icon: typeof Wrench;
   label: string;
+  tone: string;
   value: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-zinc-200 bg-white p-4 shadow-[0_12px_34px_rgba(24,24,27,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_44px_rgba(24,24,27,0.08)]">
+    <div className="min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm">
       <div className="flex items-center gap-2.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200">
+        <span className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
           <Icon aria-hidden="true" className="size-4" />
         </span>
         <span className="truncate text-sm font-semibold text-zinc-500">
           {label}
         </span>
       </div>
-      <p className="mt-4 truncate text-lg font-semibold text-zinc-950">
+      <p className="mt-3 truncate text-base font-semibold text-zinc-950">
         {value}
       </p>
     </div>
