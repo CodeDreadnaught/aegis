@@ -152,7 +152,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                 <TableCell className="text-right">
                   <Link
                     className="inline-flex h-8 items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-950 hover:text-white"
-                    href={`/equipment/${row.assetId}`}
+                    href={`/equipment/view-more/${row.assetId}`}
                   >
                     View
                   </Link>

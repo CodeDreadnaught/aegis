@@ -255,7 +255,7 @@ describe("equipment actions", () => {
       readingIds: ["reading_1"],
     });
     expect(redirect).toHaveBeenCalledWith(
-      "/equipment/equipment_1?toast=equipment-created"
+      "/equipment/view-more/equipment_1?toast=equipment-created"
     );
   });
 

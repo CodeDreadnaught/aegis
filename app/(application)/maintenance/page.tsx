@@ -189,7 +189,7 @@ export default async function MaintenancePage({
                           <TableCell className="text-center">
                             <Link
                               className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                              href={`/equipment/${record.equipment.id}`}
+                              href={`/equipment/view-more/${record.equipment.id}`}
                             >
                               View more
                             </Link>
@@ -255,7 +255,7 @@ export default async function MaintenancePage({
               {upcomingRecords.map(record => (
                 <Link
                   className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                  href={`/equipment/${record.equipment.id}`}
+                  href={`/equipment/view-more/${record.equipment.id}`}
                   key={record.id}
                 >
                   <div className="flex items-start justify-between gap-3">

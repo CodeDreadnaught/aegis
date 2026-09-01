@@ -192,7 +192,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   <TableCell className="text-center">
                     <Link
                       className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                      href={`/equipment/${equipment.id}`}
+                      href={`/equipment/view-more/${equipment.id}`}
                     >
                       View more
                     </Link>

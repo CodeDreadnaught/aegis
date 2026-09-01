@@ -5,7 +5,7 @@ import type { EquipmentCategory } from "@/generated/prisma/enums";
 import { useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Plus, Pulse, SpinnerGap, Trash } from "@phosphor-icons/react";
+import { Plus, SpinnerGap, Trash } from "@phosphor-icons/react";
 
 import {
   equipmentCategories,
@@ -443,18 +443,13 @@ function InitialReadingFields({
 
   return (
     <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <span className="grid size-8 place-items-center rounded-full bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
-          <Pulse aria-hidden="true" className="size-4" />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-zinc-950">
-            Initial operating reading
-          </p>
-          <p className="text-xs font-medium text-zinc-500">
-            Used immediately for predictive analysis.
-          </p>
-        </div>
+      <div className="mb-4">
+        <p className="text-sm font-semibold text-zinc-950">
+          Initial operating reading
+        </p>
+        <p className="text-xs font-medium text-zinc-500">
+          Used immediately for predictive analysis.
+        </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">

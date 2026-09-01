@@ -7,7 +7,7 @@ import { EquipmentForm } from "@/features/equipment/equipment-form";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: " Register Equipment",
+  title: "Register Equipment",
 };
 
 export default async function NewEquipmentPage() {

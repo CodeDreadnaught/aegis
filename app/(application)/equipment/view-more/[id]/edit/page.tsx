@@ -35,7 +35,7 @@ export default async function EditEquipmentPage({
       />
       <EquipmentForm
         action={updateEquipmentAction.bind(null, equipment.id)}
-        cancelHref={`/equipment/${equipment.id}`}
+        cancelHref={`/equipment/view-more/${equipment.id}`}
         equipment={equipment}
         submitLabel="Save changes"
       />

@@ -87,7 +87,7 @@ export async function createMaintenanceRecordAction(formData: FormData) {
   revalidatePath("/maintenance");
 
   for (const equipmentId of new Set(records.map((record) => record.equipmentId))) {
-    revalidatePath(`/equipment/${equipmentId}`);
+    revalidatePath(`/equipment/view-more/${equipmentId}`);
   }
 
   return {

@@ -133,7 +133,7 @@ export default async function EquipmentDetailsPage({
                   variant: "outline",
                   className: "h-11 rounded-full border-zinc-200 bg-white px-5",
                 })}
-                href={`/equipment/${equipment.id}/edit`}
+                href={`/equipment/view-more/${equipment.id}/edit`}
               >
                 <PencilSimple />
                 Edit

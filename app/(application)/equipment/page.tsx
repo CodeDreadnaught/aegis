@@ -151,7 +151,7 @@ export default async function EquipmentPage({
                 className:
                   "h-11 !rounded-[9999px] bg-[#009966] px-5 text-white hover:bg-[#007a55] hover:text-white focus-visible:ring-[#009966]/25",
               })}
-              href="/equipment/new"
+              href="/equipment/register"
             >
               <Plus />
               Register
@@ -223,7 +223,7 @@ export default async function EquipmentPage({
                     className:
                       "h-11 w-full !rounded-[9999px] bg-[#009966] px-5 text-white hover:bg-[#007a55] hover:text-white focus-visible:ring-[#009966]/25",
                   })}
-                  href="/equipment/new"
+                  href="/equipment/register"
                 >
                   <Plus />
                   Register
@@ -497,7 +497,7 @@ export default async function EquipmentPage({
                           <TableCell className="text-center">
                             <Link
                               className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                              href={`/equipment/${item.id}`}
+                              href={`/equipment/view-more/${item.id}`}
                             >
                               View more
                             </Link>
@@ -549,7 +549,7 @@ export default async function EquipmentPage({
           {criticalAssets.map(item => (
             <Link
               className="group rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
-              href={`/equipment/${item.id}`}
+              href={`/equipment/view-more/${item.id}`}
               key={item.id}
             >
               <div className="flex items-center justify-between gap-3">

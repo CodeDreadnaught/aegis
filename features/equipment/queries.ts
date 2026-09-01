@@ -31,7 +31,6 @@ export async function getEquipmentList(
         : {}),
     },
     orderBy: [{ status: "asc" }, { assetTag: "asc" }],
-    take: 50,
     select: {
       id: true,
       assetTag: true,

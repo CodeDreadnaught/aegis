@@ -180,7 +180,7 @@ export async function createEquipmentAction(formData: FormData) {
   revalidatePath("/reports");
 
   if (equipment.length === 1) {
-    redirect(`/equipment/${equipmentIdByAssetTag.get(inputs[0].equipment.assetTag)}?toast=equipment-created`);
+    redirect(`/equipment/view-more/${equipmentIdByAssetTag.get(inputs[0].equipment.assetTag)}?toast=equipment-created`);
   }
 
   redirect("/equipment?toast=equipment-bulk-created");
@@ -243,8 +243,8 @@ export async function updateEquipmentAction(id: string, formData: FormData) {
   });
 
   revalidatePath("/equipment");
-  revalidatePath(`/equipment/${id}`);
-  redirect(`/equipment/${id}?toast=equipment-updated`);
+  revalidatePath(`/equipment/view-more/${id}`);
+  redirect(`/equipment/view-more/${id}?toast=equipment-updated`);
 }
 
 export async function decommissionEquipmentAction(id: string) {
@@ -256,7 +256,7 @@ export async function decommissionEquipmentAction(id: string) {
   });
 
   revalidatePath("/equipment");
-  revalidatePath(`/equipment/${id}`);
+  revalidatePath(`/equipment/view-more/${id}`);
 }
 
 export async function deleteEquipmentAction(id: string) {
@@ -283,7 +283,7 @@ export async function recommissionEquipmentAction(id: string) {
   });
 
   revalidatePath("/equipment");
-  revalidatePath(`/equipment/${id}`);
+  revalidatePath(`/equipment/view-more/${id}`);
 }
 
 export async function deleteEquipmentBulkAction(formData: FormData) {

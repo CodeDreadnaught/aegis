@@ -224,7 +224,7 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
                           <TableCell className="text-center">
                             <Link
                               className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                              href={`/equipment/${alert.equipment.id}`}
+                              href={`/equipment/view-more/${alert.equipment.id}`}
                             >
                               View more
                             </Link>

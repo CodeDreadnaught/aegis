@@ -395,7 +395,7 @@ function revalidateOperationalReadingPaths(equipmentIds: string[]) {
   revalidatePath("/alerts");
   revalidatePath("/reports");
   for (const equipmentId of new Set(equipmentIds)) {
-    revalidatePath(`/equipment/${equipmentId}`);
+    revalidatePath(`/equipment/view-more/${equipmentId}`);
   }
 }
 
