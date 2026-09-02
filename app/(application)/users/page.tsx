@@ -52,9 +52,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   );
 
   return (
-    <div className="grid gap-4">
-      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div data-motion="reveal">
+    <div className="grid w-full max-w-full min-w-0 gap-4">
+      <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0" data-motion="reveal">
           <p className="text-sm font-medium text-zinc-500">Users</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
             Access Control
@@ -89,13 +89,13 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         />
       </section>
 
-      <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <Card
-          className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Authorised Accounts</CardTitle>
               <p className="text-sm text-zinc-500">
                 Roles, status and activity
@@ -103,9 +103,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             </div>
             <UserGear aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="px-4 pb-4">
-              <Table className="w-full table-fixed">
+          <CardContent className="min-w-0 p-0">
+            <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
+              <Table className="min-w-[960px]">
                 <TableHeader>
                   <TableRow className="border-zinc-200 bg-zinc-50">
                     <TableHead className="w-[30%]">User</TableHead>
@@ -186,7 +186,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Create Account</CardTitle>
               <p className="text-sm text-zinc-500">Operator access</p>
             </div>
@@ -219,20 +219,27 @@ function MetricCard({
 }) {
   return (
     <Card
-      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white py-0 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="px-3 py-2.5">
+      <CardContent className="flex min-h-36 flex-col px-4 py-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-zinc-950">{value}</p>
+            <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
+              {value}
+            </p>
           </div>
-          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8fbf6] text-[#146c74]">
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+        <p className="mt-auto pt-3 text-sm font-medium text-zinc-500">
+          {detail}
+        </p>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div className="h-full rounded-full bg-[#2f9da7]" />
+        </div>
       </CardContent>
     </Card>
   );

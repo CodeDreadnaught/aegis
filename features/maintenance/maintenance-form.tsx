@@ -97,21 +97,19 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
 
   return (
     <Card
-      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
       data-motion="panel"
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Wrench className="size-5 text-zinc-500" />
-          Record maintenance
-        </CardTitle>
+        <CardTitle>Record Maintenance</CardTitle>
+        <p className="text-sm text-zinc-500">Manual or import</p>
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <form className="grid gap-4" onSubmit={handleSubmit} ref={formRef}>
           <div className="grid gap-2">
             <Label htmlFor="entryMode">Entry method</Label>
             <select
-              className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-xs outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pending}
               id="entryMode"
               name="entryMode"
@@ -151,7 +149,7 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
 
               {manualRows.map((row, index) => (
                 <div
-                  className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
+                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-4"
                   key={row.id}
                 >
                   {manualRows.length > 1 ? (
@@ -185,7 +183,7 @@ export function MaintenanceForm({ action, equipment }: MaintenanceFormProps) {
           )}
 
           <Button
-            className="h-11 w-full rounded-full bg-zinc-950 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-full border-[#009966] !bg-[#009966] px-5 !text-white shadow-sm hover:!bg-[#007a55] hover:!text-white focus-visible:ring-[#009966]/25 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!equipment.length || pending}
             type="submit"
           >
@@ -262,7 +260,7 @@ function MaintenanceFields({
       <div className="grid gap-2 md:col-span-2">
         <Label htmlFor={`equipmentId-${suffix}`}>Equipment</Label>
         <select
-          className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-xs outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending || !equipment.length}
           id={`equipmentId-${suffix}`}
           name="equipmentId"
@@ -280,7 +278,7 @@ function MaintenanceFields({
       <div className="grid gap-2">
         <Label htmlFor={`type-${suffix}`}>Type</Label>
         <select
-          className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-xs outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending}
           id={`type-${suffix}`}
           name="type"
@@ -299,7 +297,7 @@ function MaintenanceFields({
       <div className="grid gap-2">
         <Label htmlFor={`status-${suffix}`}>Status</Label>
         <select
-          className="h-11 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-xs outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
           defaultValue="COMPLETED"
           disabled={pending}
           id={`status-${suffix}`}
@@ -316,7 +314,7 @@ function MaintenanceFields({
       <div className="grid gap-2">
         <Label htmlFor={`performedAt-${suffix}`}>Performed</Label>
         <Input
-          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 shadow-inner shadow-zinc-950/5"
           defaultValue={today}
           disabled={pending}
           id={`performedAt-${suffix}`}
@@ -329,7 +327,7 @@ function MaintenanceFields({
       <div className="grid gap-2">
         <Label htmlFor={`nextDueDate-${suffix}`}>Next due</Label>
         <Input
-          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 shadow-inner shadow-zinc-950/5"
           disabled={pending}
           id={`nextDueDate-${suffix}`}
           name="nextDueDate"
@@ -340,7 +338,7 @@ function MaintenanceFields({
       <div className="grid gap-2 md:col-span-2">
         <Label htmlFor={`description-${suffix}`}>Notes</Label>
         <Textarea
-          className="min-h-24 rounded-lg border-zinc-200 bg-zinc-50 px-4 py-3"
+          className="min-h-24 rounded-lg border-zinc-200 bg-zinc-50 px-4 py-3 shadow-inner shadow-zinc-950/5"
           disabled={pending}
           id={`description-${suffix}`}
           name="description"

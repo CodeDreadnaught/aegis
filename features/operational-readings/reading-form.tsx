@@ -141,7 +141,10 @@ export function ReadingForm({
       className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
       data-motion="panel"
     >
-      <CardHeader className="pb-2">`r`n        <CardTitle>Record Reading</CardTitle>`r`n        <p className="text-sm text-zinc-500">Manual or import</p>`r`n      </CardHeader>
+      <CardHeader className="pb-2">
+        <CardTitle>Record Reading</CardTitle>
+        <p className="text-sm text-zinc-500">Manual or import</p>
+      </CardHeader>
       <CardContent>
         <form
           className="grid min-w-0 gap-4 md:grid-cols-2"
@@ -239,7 +242,7 @@ export function ReadingForm({
           )}
           <div className="md:col-span-2">
             <Button
-              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white shadow-sm hover:bg-[#007a55] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-full bg-[#009966] px-5 text-white shadow-sm hover:bg-[#007a55] hover:text-white focus-visible:ring-[#009966]/25 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!equipment.length || pending}
               type="submit"
             >

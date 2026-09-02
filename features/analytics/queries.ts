@@ -47,7 +47,7 @@ export async function getAnalyticsWorkspace(page = 1) {
     prisma.operationalReading.count(),
     prisma.prediction.findMany({
       orderBy: { createdAt: "desc" },
-      take: 25,
+      take: 30,
       select: {
         id: true,
         failureProbability: true,

@@ -94,25 +94,33 @@ export default async function AnalyticsPage({
   ).length;
   const kpis = [
     {
-      detail: `${pendingJobCount} jobs pending`,
+      accent: "bg-[#2f9da7]",
+      detail: pendingJobCount ? `${pendingJobCount} jobs pending` : "Queue clear",
+      tone: "bg-[#e8fbf6] text-[#146c74]",
       icon: Brain,
       label: "Inference",
       value: readingCount,
     },
     {
-      detail: `${readiness}% queue coverage`,
+      accent: "bg-[#5ec3cf]",
+      detail: "Queue coverage",
+      tone: "bg-[#eefbfc] text-[#146c74]",
       icon: Cpu,
       label: "Readiness",
       value: `${readiness}%`,
     },
     {
+      accent: "bg-[#f2bd3f]",
       detail: predictions.length ? "Average health" : "No predictions",
+      tone: "bg-[#fff6dc] text-[#8a5a00]",
       icon: Pulse,
       label: "Health",
       value: predictions.length ? `${Math.round(averageHealth)}%` : "N/A",
     },
     {
-      detail: `${latestHighRisk} high risk`,
+      accent: "bg-[#ef4444]",
+      detail: latestHighRisk ? "High risk" : "No high risk",
+      tone: "bg-[#fff0ed] text-[#b13d2e]",
       icon: ShieldWarning,
       label: "Risk",
       value: `${Math.round(averageFailure)}%`,
@@ -121,9 +129,9 @@ export default async function AnalyticsPage({
 
   return (
     <PremiumMotion profile="overview">
-      <div className="grid gap-4">
-        <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div data-motion="reveal">
+      <div className="grid w-full max-w-full min-w-0 gap-4">
+        <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0" data-motion="reveal">
             <p className="text-sm font-medium text-zinc-500">
               Predictive Analytics
             </p>
@@ -151,337 +159,13 @@ export default async function AnalyticsPage({
         </section>
 
         <section>
+
           <Card
-            className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Inference Queue</CardTitle>
-                <p className="text-sm text-zinc-500">
-                  Operational readings ready for model execution
-                </p>
-              </div>
-              <Badge
-                className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                variant="outline"
-              >
-                {readingCount} readings
-              </Badge>
-            </CardHeader>
-            <CardContent className="p-0">
-              {readings.length ? (
-                <>
-                  <div className="px-4 pb-4">
-                    <Table className="w-full table-fixed">
-                      <TableHeader>
-                        <TableRow className="border-zinc-200 bg-zinc-50">
-                          <TableHead className="w-[24%]">Equipment</TableHead>
-                          <TableHead className="hidden text-center md:table-cell">
-                            Recorded
-                          </TableHead>
-                          <TableHead className="hidden w-[13%] text-center lg:table-cell">
-                            Source
-                          </TableHead>
-                          <TableHead className="hidden w-[17%] text-center xl:table-cell">
-                            Signal
-                          </TableHead>
-                          <TableHead className="w-[12%] text-center">
-                            Latest
-                          </TableHead>
-                          <TableHead className="hidden w-[11%] text-center lg:table-cell">
-                            Job
-                          </TableHead>
-                          <TableHead className="w-[9%] text-center">
-                            Run
-                          </TableHead>
-                          <TableHead className="w-[10%] text-center">
-                            Action
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {readings.map(reading => {
-                          const latestPrediction = reading.predictions[0];
-
-                          return (
-                            <TableRow
-                              className="border-zinc-100 transition-colors hover:bg-zinc-50"
-                              key={reading.id}
-                            >
-                              <TableCell>
-                                <div className="min-w-0">
-                                  <p className="font-semibold text-zinc-950">
-                                    {reading.equipment.assetTag}
-                                  </p>
-                                  <p className="truncate text-xs text-zinc-500">
-                                    {reading.equipment.name}
-                                  </p>
-                                  <p className="truncate text-xs text-zinc-400">
-                                    {reading.equipment.location}
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell className="hidden text-center md:table-cell">
-                                <p className="font-medium text-zinc-950">
-                                  {compactDateFormatter.format(
-                                    reading.recordedAt,
-                                  )}
-                                </p>
-                                <p className="text-xs text-zinc-500">
-                                  {timeFormatter.format(reading.recordedAt)}
-                                </p>
-                              </TableCell>
-                              <TableCell className="hidden text-center lg:table-cell">
-                                <Badge
-                                  className="max-w-full rounded-full border-zinc-200 bg-white text-zinc-700"
-                                  variant="outline"
-                                >
-                                  <span className="truncate">
-                                    {formatSourceType(reading.sourceType)}
-                                  </span>
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="hidden text-center xl:table-cell">
-                                <SignalStack parameters={reading.parameters} />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {latestPrediction ? (
-                                  <div className="inline-grid justify-items-center gap-1">
-                                    <RiskBadge
-                                      riskLevel={latestPrediction.riskLevel}
-                                    />
-                                    <span className="text-xs font-medium text-zinc-500">
-                                      {latestPrediction.healthScore.toString()}%
-                                      health
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-sm text-zinc-400">
-                                    Not run
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell className="hidden text-center lg:table-cell">
-                                <PredictionJobBadge
-                                  attempts={
-                                    reading.predictionJob?.attempts ?? 0
-                                  }
-                                  status={
-                                    latestPrediction
-                                      ? "COMPLETED"
-                                      : reading.predictionJob?.status
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <ActionToastForm
-                                  action={runPredictionAction.bind(
-                                    null,
-                                    reading.id,
-                                  )}
-                                  errorTitle="Prediction was not run"
-                                  successDescription="The model output and recommendation were saved."
-                                  successTitle="Prediction complete"
-                                >
-                                  <button
-                                    className={buttonVariants({
-                                      variant: "outline",
-                                      size: "sm",
-                                      className:
-                                        "rounded-full border-zinc-200 bg-white px-3 text-zinc-950 hover:bg-zinc-950 hover:text-white",
-                                    })}
-                                    type="submit"
-                                  >
-                                    <Brain />
-                                    Run
-                                  </button>
-                                </ActionToastForm>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Link
-                                  className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
-                                  href={`/equipment/view-more/${reading.equipment.id}`}
-                                >
-                                  View more
-                                </Link>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <PaginationControls
-                    page={page}
-                    searchParams={params}
-                    total={readingCount}
-                  />
-                </>
-              ) : (
-                <EmptyState icon={Brain} label="No readings available" />
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        <section className="grid items-start gap-4 md:grid-cols-2">
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Model Confidence</CardTitle>
-                <p className="text-sm text-zinc-500">
-                  Failure probability inverse
-                </p>
-              </div>
-              <Gauge aria-hidden="true" className="size-5 text-zinc-500" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="rounded-lg bg-emerald-50 p-4">
-                <div className="flex items-end justify-between gap-3">
-                  <p className="text-5xl font-semibold leading-none text-zinc-950">
-                    {modelConfidence}%
-                  </p>
-                  <Badge
-                    className="rounded-full border-emerald-200 bg-white text-emerald-700"
-                    variant="outline"
-                  >
-                    {predictions.length} runs
-                  </Badge>
-                </div>
-                <span className="mt-5 block h-2 overflow-hidden rounded-full bg-white">
-                  <span
-                    className="block h-full rounded-full bg-zinc-950"
-                    style={{ width: `${modelConfidence}%` }}
-                  />
-                </span>
-                <p className="mt-3 text-xs leading-5 text-emerald-900/70">
-                  Higher confidence means recent predictions carry lower average
-                  failure probability across the scored readings.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Risk Mix</CardTitle>
-                <p className="text-sm text-zinc-500">Stored predictions</p>
-              </div>
-              <ChartLineUp
-                aria-hidden="true"
-                className="size-5 text-zinc-500"
-              />
-            </CardHeader>
-            <CardContent className="grid gap-2 p-4 pt-0">
-              <DistributionRow
-                label="Low"
-                tone="bg-emerald-500"
-                total={predictions.length}
-                value={riskCounts.low}
-              />
-              <DistributionRow
-                label="Medium"
-                tone="bg-zinc-950"
-                total={predictions.length}
-                value={riskCounts.medium}
-              />
-              <DistributionRow
-                label="High"
-                tone="bg-red-500"
-                total={predictions.length}
-                value={riskCounts.high}
-              />
-            </CardContent>
-          </Card>
-
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
-                <CardTitle>Failure Trend</CardTitle>
-                <p className="text-sm text-zinc-500">
-                  Recent probability output
-                </p>
-              </div>
-              <Badge
-                className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                variant="outline"
-              >
-                {trendPredictions.length} samples
-              </Badge>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              {trendPredictions.length ? (
-                <>
-                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                    <svg
-                      className="h-48 w-full overflow-visible"
-                      role="img"
-                      viewBox="0 0 640 220"
-                    >
-                      <title>Failure probability trend</title>
-                      {[40, 90, 140, 190].map(y => (
-                        <line
-                          key={y}
-                          stroke="#e4e4e7"
-                          strokeDasharray="6 8"
-                          x1="0"
-                          x2="640"
-                          y1={y}
-                          y2={y}
-                        />
-                      ))}
-                      <polyline
-                        fill="none"
-                        points={trendPoints}
-                        stroke="#09090b"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="4"
-                      />
-                      {trendPoints.split(" ").map(point => {
-                        const [x, y] = point.split(",");
-
-                        return (
-                          <circle
-                            cx={x}
-                            cy={y}
-                            fill="#09090b"
-                            key={point}
-                            r="5"
-                          />
-                        );
-                      })}
-                    </svg>
-                  </div>
-                  <PaginationControls
-                    page={page}
-                    searchParams={params}
-                    total={readingCount}
-                  />
-                </>
-              ) : (
-                <EmptyState label="No prediction trend yet" />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div>
+              <div className="min-w-0">
                 <CardTitle>Stored Predictions</CardTitle>
                 <p className="text-sm text-zinc-500">Latest model outputs</p>
               </div>
@@ -492,7 +176,7 @@ export default async function AnalyticsPage({
                 {predictions.length} outputs
               </Badge>
             </CardHeader>
-            <CardContent className="grid gap-2 p-4 pt-0">
+            <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-3">
               {predictions.slice(0, 8).map(prediction => (
                 <Link
                   className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
@@ -555,22 +239,27 @@ function MetricCard({
 }) {
   return (
     <Card
-      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white py-0 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="px-3 py-2.5">
+      <CardContent className="flex min-h-36 flex-col px-4 py-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-500">{label}</p>
             <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+        <p className="mt-auto pt-3 text-sm font-medium text-zinc-500">
+          {detail}
+        </p>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div className={`h-full rounded-full ${accent}`} />
+        </div>
       </CardContent>
     </Card>
   );
@@ -738,14 +427,11 @@ function buildLinePoints(values: number[]) {
     return "";
   }
 
-  const max = Math.max(100, ...values);
-  const min = Math.min(0, ...values);
-  const range = max - min || 1;
-
   return values
     .map((value, index) => {
-      const x = values.length === 1 ? 320 : (index / (values.length - 1)) * 640;
-      const y = 190 - ((value - min) / range) * 150;
+      const boundedValue = Math.min(Math.max(value, 0), 100);
+      const x = values.length === 1 ? 320 : 48 + (index / (values.length - 1)) * 544;
+      const y = 190 - (boundedValue / 100) * 160;
 
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })

@@ -5,55 +5,72 @@ import { prisma } from "@/server/db/client";
 
 export async function getMaintenanceWorkspace(page = 1) {
   const skip = (Math.max(1, page) - 1) * tablePageSize;
-  const [equipment, records, totalRecords, statusGroups] = await Promise.all([
-    prisma.equipment.findMany({
-      where: {
-        status: {
-          not: "DECOMMISSIONED",
-        },
-      },
-      orderBy: { assetTag: "asc" },
-      select: {
-        id: true,
-        assetTag: true,
-        name: true,
-        category: true,
-      },
-    }),
-    prisma.maintenanceRecord.findMany({
-      orderBy: [{ nextDueDate: "asc" }, { performedAt: "desc" }],
-      skip,
-      take: tablePageSize,
-      select: {
-        id: true,
-        type: true,
-        description: true,
-        performedAt: true,
-        nextDueDate: true,
-        status: true,
-        equipment: {
-          select: {
-            id: true,
-            assetTag: true,
-            category: true,
-            name: true,
+  const [equipment, records, totalRecords, statusGroups, scheduleRecords] =
+    await Promise.all([
+      prisma.equipment.findMany({
+        where: {
+          status: {
+            not: "DECOMMISSIONED",
           },
         },
-        recordedBy: {
-          select: {
-            name: true,
+        orderBy: { assetTag: "asc" },
+        select: {
+          id: true,
+          assetTag: true,
+          name: true,
+          category: true,
+        },
+      }),
+      prisma.maintenanceRecord.findMany({
+        orderBy: [{ nextDueDate: "asc" }, { performedAt: "desc" }],
+        skip,
+        take: tablePageSize,
+        select: {
+          id: true,
+          type: true,
+          description: true,
+          performedAt: true,
+          nextDueDate: true,
+          status: true,
+          equipment: {
+            select: {
+              id: true,
+              assetTag: true,
+              category: true,
+              name: true,
+            },
+          },
+          recordedBy: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-    }),
-    prisma.maintenanceRecord.count(),
-    prisma.maintenanceRecord.groupBy({
-      by: ["status"],
-      _count: {
-        _all: true,
-      },
-    }),
-  ]);
+      }),
+      prisma.maintenanceRecord.count(),
+      prisma.maintenanceRecord.groupBy({
+        by: ["status"],
+        _count: {
+          _all: true,
+        },
+      }),
+      prisma.maintenanceRecord.findMany({
+        orderBy: [{ nextDueDate: "asc" }, { performedAt: "desc" }],
+        select: {
+          id: true,
+          type: true,
+          nextDueDate: true,
+          status: true,
+          equipment: {
+            select: {
+              id: true,
+              assetTag: true,
+              name: true,
+            },
+          },
+        },
+      }),
+    ]);
 
   const totals = {
     total: totalRecords,
@@ -70,6 +87,7 @@ export async function getMaintenanceWorkspace(page = 1) {
   return {
     equipment,
     records,
+    scheduleRecords,
     totals,
   };
 }

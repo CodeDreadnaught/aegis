@@ -5,7 +5,7 @@ import { prisma } from "@/server/db/client";
 
 export async function getOperationalDataWorkspace(page = 1) {
   const skip = (Math.max(1, page) - 1) * tablePageSize;
-  const [equipment, readings, readingCount] = await Promise.all([
+  const [equipment, readings, readingCount, metricReadings] = await Promise.all([
     prisma.equipment.findMany({
       where: {
         status: {
@@ -44,10 +44,18 @@ export async function getOperationalDataWorkspace(page = 1) {
       },
     }),
     prisma.operationalReading.count(),
+    prisma.operationalReading.findMany({
+      orderBy: { recordedAt: "desc" },
+      take: 50,
+      select: {
+        parameters: true,
+      },
+    }),
   ]);
 
   return {
     equipment,
+    metricReadings,
     readingCount,
     readings,
   };

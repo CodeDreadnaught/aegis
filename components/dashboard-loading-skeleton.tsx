@@ -11,7 +11,7 @@ export function DashboardLoadingSkeleton({
   variant = "table",
 }: DashboardLoadingSkeletonProps) {
   return (
-    <div className="grid gap-4" aria-label="Loading page">
+    <div className="grid w-full max-w-full min-w-0 gap-4" aria-label="Loading page">
       <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid gap-3">
           <Skeleton className="h-5 w-28 rounded-full" />
@@ -36,9 +36,9 @@ export function DashboardLoadingSkeleton({
 function DashboardBody() {
   return (
     <>
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Panel key={index} className="min-h-40">
+          <Panel key={index} className="min-h-36">
             <Skeleton className="h-5 w-24 rounded-full" />
             <Skeleton className="h-10 w-20 rounded-lg" />
             <Skeleton className="mt-auto h-3 w-full rounded-full" />
@@ -62,9 +62,9 @@ function DashboardBody() {
 function DetailBody() {
   return (
     <>
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Panel key={index} className="min-h-28" />
+          <Panel key={index} className="min-h-36" />
         ))}
       </section>
       <section className="grid gap-4 xl:grid-cols-2">
@@ -137,7 +137,7 @@ function Panel({
   return (
     <div
       className={cn(
-        "grid gap-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm",
+        "grid max-w-full min-w-0 gap-4 rounded-[1.35rem] border border-zinc-200 bg-white p-4 shadow-sm",
         className
       )}
     >

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Database, Factory, Gauge, Pulse } from "@phosphor-icons/react/ssr";
 
 import { PaginationControls } from "@/components/table-pagination";
@@ -40,7 +41,7 @@ const metricCards = [
     accent: "bg-[#5ec3cf]",
     icon: Database,
     key: "readings",
-    label: "Readings",
+    label: "Records",
     tone: "bg-[#eefbfc] text-[#146c74]",
   },
   {
@@ -69,40 +70,42 @@ export default async function OperationalDataPage({
   await requirePermission("recordOperationalData");
   const params = await searchParams;
   const page = parsePageParam(params?.page);
-  const { equipment, readingCount, readings } =
+  const { equipment, metricReadings, readingCount, readings } =
     await getOperationalDataWorkspace(page);
   const averageVibration = average(
-    readings.map(
+    metricReadings.map(
       reading => asReadingParameters(reading.parameters).vibrationMmS,
     ),
   );
   const averagePressure = average(
-    readings.map(reading => asReadingParameters(reading.parameters).pressureBar),
+    metricReadings.map(reading =>
+      asReadingParameters(reading.parameters).pressureBar,
+    ),
   );
   const maxVibration = Math.max(
     1,
-    ...readings.map(
+    ...metricReadings.map(
       reading => asReadingParameters(reading.parameters).vibrationMmS ?? 0,
     ),
   );
   const metricValues = {
     assets: {
-      detail: "Capture ready",
+      detail: "Active assets",
       progress: equipment.length ? 100 : 0,
       value: equipment.length,
     },
     readings: {
-      detail: "Recent records",
+      detail: "Stored records",
       progress: readingCount ? 100 : 0,
-      value: readings.length,
+      value: readingCount,
     },
     vibration: {
-      detail: "Average vibration",
+      detail: "Recent average",
       progress: percentage(averageVibration, maxVibration),
       value: averageVibration ? averageVibration.toFixed(2) : "N/A",
     },
     pressure: {
-      detail: "Average pressure",
+      detail: "Recent average",
       progress: percentage(averagePressure, 250),
       value: averagePressure ? Math.round(averagePressure) : "N/A",
     },
@@ -161,7 +164,7 @@ export default async function OperationalDataPage({
             {readings.length ? (
               <>
                 <div className="max-w-full min-w-0 px-4 pb-4">
-                  <Table className="min-w-[920px]">
+                  <Table className="min-w-[1040px]">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
                         <TableHead>Equipment</TableHead>
@@ -170,6 +173,7 @@ export default async function OperationalDataPage({
                         <TableHead>Signals</TableHead>
                         <TableHead>Source</TableHead>
                         <TableHead>Recorded</TableHead>
+                        <TableHead>Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -273,6 +277,14 @@ export default async function OperationalDataPage({
                                 {reading.createdBy?.name ?? "System"}
                               </p>
                             </TableCell>
+                            <TableCell>
+                              <Link
+                                className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
+                                href={`/equipment/view-more/${reading.equipmentId}`}
+                              >
+                                View more
+                              </Link>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -339,25 +351,25 @@ function MetricCard({
 }) {
   return (
     <Card
-      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white py-0 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="flex min-h-32 flex-col px-4 py-3.5">
+      <CardContent className="flex min-h-36 flex-col px-4 py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
+            <p className="mt-0.5 break-words text-xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
-            <Icon aria-hidden="true" className="size-4" />
+          <div className={`grid size-7 shrink-0 place-items-center rounded-full ${tone}`}>
+            <Icon aria-hidden="true" className="size-3.5" />
           </div>
         </div>
-        <p className="mt-auto pt-3 text-sm font-medium text-zinc-500">
+        <p className="mt-auto pt-2.5 text-sm font-medium text-zinc-500">
           {detail}
         </p>
-        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
           <div
             className={`h-full rounded-full ${accent}`}
             style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}

@@ -27,7 +27,7 @@ import { paginateItems, parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: " Reports",
+  title: "Reports",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -109,9 +109,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   ).length;
 
   return (
-    <div className="grid gap-4">
-      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div data-motion="reveal">
+    <div className="grid w-full max-w-full min-w-0 gap-4">
+      <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0" data-motion="reveal">
           <p className="text-sm font-medium text-zinc-500">Reports</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
             Export Center
@@ -146,14 +146,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         />
       </section>
 
-      <section className="grid items-start gap-4 xl:grid-cols-2">
+      <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-2">
         <ReportPanel
           downloadHref={csvDataHref(equipmentCsv)}
           filename="aegis-equipment-report.csv"
           rowCount={reports.equipment.length}
           title="Equipment CSV"
         >
-          <Table className="w-full table-fixed">
+          <Table className="min-w-[960px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
                 <TableHead className="w-[36%]">Asset</TableHead>
@@ -215,7 +215,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           rowCount={reports.maintenance.length}
           title="Maintenance CSV"
         >
-          <Table className="w-full table-fixed">
+          <Table className="min-w-[960px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
                 <TableHead className="w-[32%]">Equipment</TableHead>
@@ -280,7 +280,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           rowCount={reports.predictions.length}
           title="Prediction CSV"
         >
-          <Table className="w-full table-fixed">
+          <Table className="min-w-[960px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
                 <TableHead className="w-[36%]">Equipment</TableHead>
@@ -337,7 +337,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           rowCount={reports.alerts.length}
           title="Alert CSV"
         >
-          <Table className="w-full table-fixed">
+          <Table className="min-w-[960px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
                 <TableHead className="w-[30%]">Equipment</TableHead>
@@ -412,20 +412,27 @@ function MetricCard({
 }) {
   return (
     <Card
-      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white py-0 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="px-3 py-2.5">
+      <CardContent className="flex min-h-36 flex-col px-4 py-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-zinc-950">{value}</p>
+            <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
+              {value}
+            </p>
           </div>
-          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8fbf6] text-[#146c74]">
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+        <p className="mt-auto pt-3 text-sm font-medium text-zinc-500">
+          {detail}
+        </p>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div className="h-full rounded-full bg-[#2f9da7]" />
+        </div>
       </CardContent>
     </Card>
   );
@@ -446,11 +453,11 @@ function ReportPanel({
 }) {
   return (
     <Card
-      className="rounded-lg border-zinc-200 bg-white shadow-sm"
+      className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
       data-motion="panel"
     >
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-        <div>
+        <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
           <p className="text-sm text-zinc-500">{rowCount} rows</p>
         </div>
@@ -468,8 +475,8 @@ function ReportPanel({
           <DownloadSimple aria-hidden="true" className="size-4" />
         </a>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="px-4 pb-4">{children}</div>
+      <CardContent className="min-w-0 p-0">
+        <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">{children}</div>
       </CardContent>
     </Card>
   );
