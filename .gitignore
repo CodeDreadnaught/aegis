@@ -28,6 +28,9 @@
 __pycache__/
 *.pyc
 
+# seed data (never track)
+/prisma/seed.ts
+
 # misc
 .DS_Store
 *.pem
