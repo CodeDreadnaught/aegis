@@ -95,7 +95,9 @@ export default async function AnalyticsPage({
   const kpis = [
     {
       accent: "bg-[#2f9da7]",
-      detail: pendingJobCount ? `${pendingJobCount} jobs pending` : "Queue clear",
+      detail: pendingJobCount
+        ? `${pendingJobCount} jobs pending`
+        : "Queue clear",
       tone: "bg-[#e8fbf6] text-[#146c74]",
       icon: Brain,
       label: "Inference",
@@ -159,7 +161,6 @@ export default async function AnalyticsPage({
         </section>
 
         <section>
-
           <Card
             className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
@@ -250,7 +251,9 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
+          <div
+            className={`grid size-8 shrink-0 place-items-center rounded-full ${"tone"}`}
+          >
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
@@ -258,7 +261,7 @@ function MetricCard({
           {detail}
         </p>
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-          <div className={`h-full rounded-full ${accent}`} />
+          <div className={`h-full rounded-full ${"accent"}`} />
         </div>
       </CardContent>
     </Card>
@@ -430,7 +433,8 @@ function buildLinePoints(values: number[]) {
   return values
     .map((value, index) => {
       const boundedValue = Math.min(Math.max(value, 0), 100);
-      const x = values.length === 1 ? 320 : 48 + (index / (values.length - 1)) * 544;
+      const x =
+        values.length === 1 ? 320 : 48 + (index / (values.length - 1)) * 544;
       const y = 190 - (boundedValue / 100) * 160;
 
       return `${x.toFixed(2)},${y.toFixed(2)}`;

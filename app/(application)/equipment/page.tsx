@@ -170,7 +170,6 @@ export default async function EquipmentPage({
           </div>
         ) : null}
       </section>
-
       <Card
         className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
         data-motion="panel"
@@ -241,7 +240,8 @@ export default async function EquipmentPage({
               <Link
                 className={buttonVariants({
                   variant: "ghost",
-                  className: "h-11 rounded-full px-5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
+                  className:
+                    "h-11 rounded-full px-5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950",
                 })}
                 href="/equipment"
               >
@@ -251,7 +251,6 @@ export default async function EquipmentPage({
           </form>
         </CardContent>
       </Card>
-
       <section className="grid items-stretch gap-4 xl:grid-cols-[1.08fr_0.56fr_0.56fr]">
         <div className="grid h-full gap-3 sm:grid-cols-2">
           <MetricCard
@@ -345,7 +344,6 @@ export default async function EquipmentPage({
           </CardContent>
         </Card>
       </section>
-
       <Card
         className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
         data-motion="panel"
@@ -533,7 +531,6 @@ export default async function EquipmentPage({
           )}
         </CardContent>
       </Card>
-
       <Card
         className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
         data-motion="panel"
@@ -541,16 +538,8 @@ export default async function EquipmentPage({
         <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
           <div>
             <CardTitle>Risk Queue</CardTitle>
-            <p className="text-sm text-zinc-500">
-              Highest failure probability
-            </p>
+            <p className="text-sm text-zinc-500">Highest failure probability</p>
           </div>
-          <Badge
-            className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-            variant="outline"
-          >
-            {highRiskCount} high risk
-          </Badge>
         </CardHeader>
         <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2 xl:grid-cols-4">
           {criticalAssets.map(item => (
@@ -570,8 +559,7 @@ export default async function EquipmentPage({
                 </div>
                 <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-red-600">
                   {Math.round(
-                    Number(item.predictions[0]?.failureProbability ?? 0) *
-                      100,
+                    Number(item.predictions[0]?.failureProbability ?? 0) * 100,
                   )}
                   %
                 </span>
@@ -580,7 +568,8 @@ export default async function EquipmentPage({
           ))}
           {!criticalAssets.length && <EmptyState label="No predictions" />}
         </CardContent>
-      </Card>    </div>
+      </Card>{" "}
+    </div>
   );
 }
 
@@ -614,7 +603,9 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className={`grid size-7 place-items-center rounded-full ${tone}`}>
+          <div
+            className={`grid size-7 place-items-center rounded-full ${tone}`}
+          >
             <Icon aria-hidden="true" className="size-3.5" />
           </div>
         </div>
@@ -747,7 +738,6 @@ function parseCategory(
     ? (value as EquipmentCategory)
     : undefined;
 }
-
 
 function percentage(value: number, total: number) {
   if (!total) {

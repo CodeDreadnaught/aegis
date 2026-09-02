@@ -31,14 +31,14 @@ const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
 
 const metricCards = [
   {
-    accent: "bg-[#2f9da7]",
+    accent: "bg-[#5ec3cf]",
     icon: Factory,
     key: "assets",
     label: "Assets",
     tone: "bg-[#e8fbf6] text-[#146c74]",
   },
   {
-    accent: "bg-[#5ec3cf]",
+    accent: "bg-[#2f9da7]",
     icon: Database,
     key: "readings",
     label: "Records",
@@ -78,8 +78,8 @@ export default async function OperationalDataPage({
     ),
   );
   const averagePressure = average(
-    metricReadings.map(reading =>
-      asReadingParameters(reading.parameters).pressureBar,
+    metricReadings.map(
+      reading => asReadingParameters(reading.parameters).pressureBar,
     ),
   );
   const maxVibration = Math.max(
@@ -362,7 +362,9 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className={`grid size-7 shrink-0 place-items-center rounded-full ${tone}`}>
+          <div
+            className={`grid size-7 shrink-0 place-items-center rounded-full ${tone}`}
+          >
             <Icon aria-hidden="true" className="size-3.5" />
           </div>
         </div>

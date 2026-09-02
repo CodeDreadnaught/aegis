@@ -158,7 +158,10 @@ export default async function OverviewPage({
         return riskDifference;
       }
 
-      return (right.failure ?? -1) - (left.failure ?? -1) || left.asset.localeCompare(right.asset);
+      return (
+        (right.failure ?? -1) - (left.failure ?? -1) ||
+        left.asset.localeCompare(right.asset)
+      );
     });
   const kpis = [
     {
@@ -512,13 +515,6 @@ export default async function OverviewPage({
                   Health score and failure risk
                 </p>
               </div>
-              <Badge
-                className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                data-overview-live="telemetry-samples"
-                variant="outline"
-              >
-                {predictionTrend.length} samples
-              </Badge>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <LineTrend
@@ -571,7 +567,9 @@ export default async function OverviewPage({
                   type={activity.type}
                 />
               ))}
-              {!permittedRecentActivity.length && <EmptyState label="No activity" />}
+              {!permittedRecentActivity.length && (
+                <EmptyState label="No activity" />
+              )}
             </CardContent>
           </Card>
         </section>
@@ -629,7 +627,11 @@ function ActivityDetail({ detail }: { detail: string }) {
   const sections = parseActivityDetail(detail);
 
   if (!sections.length) {
-    return <p className="mt-1 text-xs leading-5 text-zinc-500 break-words">{detail}</p>;
+    return (
+      <p className="mt-1 text-xs leading-5 text-zinc-500 break-words">
+        {detail}
+      </p>
+    );
   }
 
   return (
@@ -663,7 +665,10 @@ function parseActivityDetail(detail: string) {
     { label: "Recommendation", value: match[4] },
   ].filter(section => section.value.trim().length > 0);
 }
-function getPermittedActivityHref(href: string | undefined, role: Parameters<typeof can>[0]) {
+function getPermittedActivityHref(
+  href: string | undefined,
+  role: Parameters<typeof can>[0],
+) {
   if (href === "/alerts") {
     return can(role, "manageAlerts") ? href : undefined;
   }
