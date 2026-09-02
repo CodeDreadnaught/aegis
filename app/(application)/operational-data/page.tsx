@@ -20,13 +20,44 @@ import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: " Operational Data",
+  title: "Operational Data",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",
 });
+
+const metricCards = [
+  {
+    accent: "bg-[#2f9da7]",
+    icon: Factory,
+    key: "assets",
+    label: "Assets",
+    tone: "bg-[#e8fbf6] text-[#146c74]",
+  },
+  {
+    accent: "bg-[#5ec3cf]",
+    icon: Database,
+    key: "readings",
+    label: "Readings",
+    tone: "bg-[#eefbfc] text-[#146c74]",
+  },
+  {
+    accent: "bg-[#f2bd3f]",
+    icon: Pulse,
+    key: "vibration",
+    label: "Vibration",
+    tone: "bg-[#fff6dc] text-[#8a5a00]",
+  },
+  {
+    accent: "bg-[#ef7b63]",
+    icon: Gauge,
+    key: "pressure",
+    label: "Pressure",
+    tone: "bg-[#fff0ed] text-[#b13d2e]",
+  },
+] as const;
 
 type OperationalDataPageProps = {
   searchParams?: Promise<{ page?: string | string[] }>;
@@ -40,23 +71,13 @@ export default async function OperationalDataPage({
   const page = parsePageParam(params?.page);
   const { equipment, readingCount, readings } =
     await getOperationalDataWorkspace(page);
-  const activeSources = new Set(readings.map(reading => reading.sourceType))
-    .size;
-  const signalReadings = readings.map(reading => ({
-    assetTag: reading.equipment.assetTag,
-    equipmentId: reading.equipmentId,
-    name: reading.equipment.name,
-    parameters: asReadingParameters(reading.parameters),
-  }));
   const averageVibration = average(
     readings.map(
       reading => asReadingParameters(reading.parameters).vibrationMmS,
     ),
   );
   const averagePressure = average(
-    readings.map(
-      reading => asReadingParameters(reading.parameters).pressureBar,
-    ),
+    readings.map(reading => asReadingParameters(reading.parameters).pressureBar),
   );
   const maxVibration = Math.max(
     1,
@@ -64,83 +85,91 @@ export default async function OperationalDataPage({
       reading => asReadingParameters(reading.parameters).vibrationMmS ?? 0,
     ),
   );
+  const metricValues = {
+    assets: {
+      detail: "Capture ready",
+      progress: equipment.length ? 100 : 0,
+      value: equipment.length,
+    },
+    readings: {
+      detail: "Recent records",
+      progress: readingCount ? 100 : 0,
+      value: readings.length,
+    },
+    vibration: {
+      detail: "Average vibration",
+      progress: percentage(averageVibration, maxVibration),
+      value: averageVibration ? averageVibration.toFixed(2) : "N/A",
+    },
+    pressure: {
+      detail: "Average pressure",
+      progress: percentage(averagePressure, 250),
+      value: averagePressure ? Math.round(averagePressure) : "N/A",
+    },
+  };
 
   return (
-    <div className="grid min-w-0 gap-4">
-      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div data-motion="reveal">
-          <p className="text-sm font-medium text-zinc-500">
+    <div className="grid w-full max-w-full min-w-0 gap-4">
+      <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0" data-motion="reveal">
+          <p className="text-sm font-medium text-[#2f9da7]">
             Operational telemetry
           </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+          <h1 className="mt-1 break-words text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
             Data Capture
           </h1>
         </div>
       </section>
 
-      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        <MetricCard
-          detail="Available for capture"
-          icon={Factory}
-          label="Assets"
-          value={equipment.length}
-        />
-        <MetricCard
-          detail={`${activeSources} sources`}
-          icon={Database}
-          label="Readings"
-          value={readings.length}
-        />
-        <MetricCard
-          detail="mm/s average"
-          icon={Pulse}
-          label="Vibration"
-          value={averageVibration ? averageVibration.toFixed(2) : "N/A"}
-        />
-        <MetricCard
-          detail="bar average"
-          icon={Gauge}
-          label="Pressure"
-          value={averagePressure ? Math.round(averagePressure) : "N/A"}
-        />
+      <section className="grid w-full max-w-full min-w-0 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metricCards.map(card => {
+          const metric = metricValues[card.key];
+
+          return (
+            <MetricCard
+              accent={card.accent}
+              detail={metric.detail}
+              icon={card.icon}
+              key={card.key}
+              label={card.label}
+              progress={metric.progress}
+              tone={card.tone}
+              value={metric.value}
+            />
+          );
+        })}
       </section>
 
-      <section className="min-w-0">
+      <section className="w-full max-w-full min-w-0">
         <Card
-          className="min-w-0 max-w-full rounded-lg border-zinc-200 bg-white shadow-sm"
+          className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Recent Readings</CardTitle>
-              <p className="text-sm text-zinc-500">
-                Model inputs and plant context
-              </p>
+              <p className="text-sm text-zinc-500">Model inputs</p>
             </div>
             <Badge
-              className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+              className="shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
               variant="outline"
             >
               {readingCount} records
             </Badge>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="min-w-0 p-0">
             {readings.length ? (
               <>
-                <div className="min-w-0 max-w-full px-4 pb-4">
+                <div className="max-w-full min-w-0 px-4 pb-4">
                   <Table className="min-w-[920px]">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
                         <TableHead>Equipment</TableHead>
-                        <TableHead className="text-center">
-                          Model Inputs
-                        </TableHead>
-                        <TableHead className="text-center">
-                          Temperature (K)
-                        </TableHead>
-                        <TableHead className="text-center">Signals</TableHead>
-                        <TableHead className="text-center">Source</TableHead>
-                        <TableHead className="text-center">Recorded</TableHead>
+                        <TableHead>Model Inputs</TableHead>
+                        <TableHead>Temperature</TableHead>
+                        <TableHead>Signals</TableHead>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Recorded</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -164,8 +193,8 @@ export default async function OperationalDataPage({
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="text-center">
-                              <div className="inline-flex flex-wrap justify-center gap-1.5">
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1.5">
                                 <Badge
                                   className="rounded-full border-zinc-200 bg-white text-zinc-700"
                                   variant="outline"
@@ -186,7 +215,7 @@ export default async function OperationalDataPage({
                                 </Badge>
                               </div>
                             </TableCell>
-                            <TableCell className="text-center text-zinc-600">
+                            <TableCell className="text-zinc-600">
                               <div className="inline-grid min-w-24 gap-1 text-left">
                                 <p className="flex items-center justify-between gap-3 text-xs">
                                   <span className="text-zinc-500">Air</span>
@@ -206,8 +235,8 @@ export default async function OperationalDataPage({
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="text-center text-zinc-600">
-                              <div className="mx-auto grid max-w-[12rem] gap-2">
+                            <TableCell className="text-zinc-600">
+                              <div className="grid max-w-[12rem] gap-2">
                                 <div className="flex items-center justify-between gap-3 text-xs">
                                   <span>Vibration</span>
                                   <span className="font-semibold text-zinc-950">
@@ -216,7 +245,7 @@ export default async function OperationalDataPage({
                                 </div>
                                 <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
                                   <span
-                                    className="block h-full rounded-full bg-zinc-950"
+                                    className="block h-full rounded-full bg-[#2f9da7]"
                                     style={{
                                       width: `${percentage(
                                         parameters.vibrationMmS ?? 0,
@@ -231,10 +260,10 @@ export default async function OperationalDataPage({
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="text-center text-zinc-600">
+                            <TableCell className="text-zinc-600">
                               {formatSourceType(reading.sourceType)}
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell>
                               <p className="font-medium text-zinc-950">
                                 {compactDateFormatter.format(
                                   reading.recordedAt,
@@ -270,11 +299,12 @@ export default async function OperationalDataPage({
         </Card>
       </section>
 
-      <CaptureWorkspace
-        action={createOperationalReadingAction}
-        equipment={equipment}
-        signals={signalReadings}
-      />
+      <section className="w-full max-w-full min-w-0">
+        <CaptureWorkspace
+          action={createOperationalReadingAction}
+          equipment={equipment}
+        />
+      </section>
     </div>
   );
 }
@@ -291,34 +321,48 @@ type ReadingParameters = {
 };
 
 function MetricCard({
+  accent,
   detail,
   icon: Icon,
   label,
+  progress,
+  tone,
   value,
 }: {
+  accent: string;
   detail: string;
   icon: typeof Factory;
   label: string;
+  progress: number;
+  tone: string;
   value: number | string;
 }) {
   return (
     <Card
-      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="px-3 py-2.5">
+      <CardContent className="flex min-h-32 flex-col px-4 py-3.5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-500">{label}</p>
             <p className="mt-1 break-words text-2xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className="grid size-8 place-items-center rounded-full bg-zinc-950 text-white">
+          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
+        <p className="mt-auto pt-3 text-sm font-medium text-zinc-500">
+          {detail}
+        </p>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className={`h-full rounded-full ${accent}`}
+            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

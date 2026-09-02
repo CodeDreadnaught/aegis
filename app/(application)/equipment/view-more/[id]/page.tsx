@@ -78,20 +78,10 @@ export default async function EquipmentDetailsPage({
     isDecommissioned ? recommissionEquipmentAction : decommissionEquipmentAction
   ).bind(null, equipment.id);
   const deleteAction = deleteEquipmentAction.bind(null, equipment.id);
-  const readings = equipment.operationalReadings.slice().reverse();
   const predictions = equipment.predictions.slice().reverse();
   const health = Math.round(asNumber(latestPrediction?.healthScore));
   const failure = Math.round(
     asNumber(latestPrediction?.failureProbability) * 100,
-  );
-  const vibration = readings.map(reading =>
-    readParameter(reading.parameters, "vibrationMmS"),
-  );
-  const pressure = readings.map(reading =>
-    readParameter(reading.parameters, "pressureBar"),
-  );
-  const flow = readings.map(reading =>
-    readParameter(reading.parameters, "flowRateBpd"),
   );
   const healthTrend = predictions.map(prediction =>
     asNumber(prediction.healthScore),
@@ -101,12 +91,12 @@ export default async function EquipmentDetailsPage({
   );
 
   return (
-    <div className="grid gap-4">
-      <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div data-motion="reveal">
+    <div className="grid w-full max-w-full min-w-0 gap-4">
+      <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0" data-motion="reveal">
           <BackButton className="mb-4" />
           <p className="text-sm font-medium text-[#2f9da7]">Equipment</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+          <h1 className="mt-1 break-words text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
             {equipment.name}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -115,24 +105,24 @@ export default async function EquipmentDetailsPage({
               <RiskBadge risk={latestPrediction.riskLevel} />
             )}
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-zinc-500">
-            <span>{equipment.assetTag}</span>
+          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3 text-sm text-zinc-500">
+            <span className="min-w-0 break-words">{equipment.assetTag}</span>
             <span className="hidden h-1 w-1 rounded-full bg-zinc-300 sm:block" />
-            <span>{formatEquipmentCategory(equipment.category)}</span>
+            <span className="min-w-0 break-words">{formatEquipmentCategory(equipment.category)}</span>
             <span className="hidden h-1 w-1 rounded-full bg-zinc-300 sm:block" />
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex min-w-0 items-center gap-1 break-words">
               <MapPin aria-hidden="true" className="size-4" />
               {equipment.location}
             </span>
           </div>
         </div>
         {canUpdateEquipment || canDeleteEquipment ? (
-          <div className="flex flex-col gap-2 sm:flex-row" data-motion="reveal">
+          <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row [&_form]:w-full sm:[&_form]:w-auto" data-motion="reveal">
             {canUpdateEquipment ? (
               <Link
                 className={buttonVariants({
                   variant: "outline",
-                  className: "h-11 !rounded-[9999px] border-zinc-200 bg-white px-5 text-zinc-950 hover:border-zinc-950 hover:bg-zinc-950 hover:text-white",
+                  className: "h-11 w-full !rounded-[9999px] border-zinc-200 bg-white px-5 text-zinc-950 hover:border-zinc-950 hover:bg-zinc-950 hover:text-white sm:w-fit",
                 })}
                 href={`/equipment/view-more/${equipment.id}/edit`}
               >
@@ -160,7 +150,7 @@ export default async function EquipmentDetailsPage({
                     variant: "outline",
                     className: isDecommissioned
                       ? "h-11 w-full !rounded-[9999px] border-[#009966]/25 bg-[#e8fbf6] px-5 text-[#007a55] hover:border-[#007a55] hover:bg-[#009966] hover:text-white sm:w-fit"
-                      : "h-11 w-full !rounded-[9999px] border-[#f2bd3f]/35 bg-[#fff6dc] px-5 text-[#8a5a00] hover:border-[#8a5a00] hover:bg-[#8a5a00] hover:text-white sm:w-fit",
+                      : "h-11 w-full !rounded-[9999px] border-[#f2bd3f]/45 bg-[#fff6dc] px-5 text-[#8a5a00] hover:border-[#d99010] hover:bg-[#fff1c2] hover:text-[#7a4c00] sm:w-fit",
                   })}
                   type="submit"
                 >
@@ -179,8 +169,8 @@ export default async function EquipmentDetailsPage({
               >
                 <button
                   className={buttonVariants({
-                    variant: "destructive",
-                    className: "h-11 w-full !rounded-[9999px] border border-red-600 bg-red-600 px-5 text-white hover:border-red-700 hover:bg-red-700 hover:text-white sm:w-fit",
+                    variant: "outline",
+                    className: "h-11 w-full !rounded-[9999px] !border-[#dc2626] !bg-[#dc2626] px-5 !text-white shadow-sm hover:!border-[#b91c1c] hover:!bg-[#b91c1c] hover:!text-white disabled:!opacity-100 sm:w-fit",
                   })}
                   type="submit"
                 >
@@ -193,12 +183,12 @@ export default async function EquipmentDetailsPage({
         ) : null}
       </section>
 
-      <section className="grid items-stretch gap-4 xl:grid-cols-[0.95fr_0.72fr_0.9fr]">
-        <div className="grid h-full gap-3 sm:grid-cols-2 xl:grid-cols-2">
+      <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,1.12fr)]">
+        <div className="grid h-full min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-2">
           <DetailMetricCard
-            accent="bg-[#f2bd3f]"
-            detail={latestPrediction ? `${latestPrediction.riskLevel} model risk` : "No AI run yet"}
-            icon={Pulse}
+            accent="bg-[#2f9da7]"
+            detail={latestPrediction ? "Prediction health" : "No prediction"}
+            icon={Gauge}
             label="AI Health"
             progress={latestPrediction ? health : 0}
             tone="bg-[#fff6dc] text-[#8a5a00]"
@@ -206,7 +196,7 @@ export default async function EquipmentDetailsPage({
           />
           <DetailMetricCard
             accent="bg-[#ef7b63]"
-            detail={latestPrediction ? "Failure probability" : "Run analytics"}
+            detail={latestPrediction ? "Latest risk" : "No prediction"}
             icon={WarningCircle}
             label="Risk"
             progress={latestPrediction ? failure : 0}
@@ -214,18 +204,18 @@ export default async function EquipmentDetailsPage({
             value={latestPrediction ? `${failure}%` : "Pending"}
           />
           <DetailMetricCard
-            accent="bg-[#2f9da7]"
-            detail="Operational readings"
-            icon={ChartLineUp}
+            accent="bg-[#5ec3cf]"
+            detail="Sensor readings"
+            icon={Pulse}
             label="Telemetry"
             progress={equipment._count.operationalReadings ? 100 : 0}
             tone="bg-[#e8fbf6] text-[#146c74]"
             value={equipment._count.operationalReadings}
           />
           <DetailMetricCard
-            accent="bg-[#5ec3cf]"
+            accent="bg-[#f2bd3f]"
             detail="Prediction runs"
-            icon={TrendUp}
+            icon={ChartLineUp}
             label="AI Runs"
             progress={Math.min(equipment._count.predictions * 10, 100)}
             tone="bg-[#eefbfc] text-[#146c74]"
@@ -234,202 +224,90 @@ export default async function EquipmentDetailsPage({
         </div>
 
         <Card
-          className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          className="w-full max-w-full min-w-0 overflow-hidden rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="metric"
         >
-          <CardHeader className="pb-2">
-            <CardTitle>Asset Identity</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
-            <IdentityTile
-              icon={Gauge}
-              label="Manufacturer"
-              tone="bg-[#fff6dc] text-[#8a5a00]"
-              value={equipment.manufacturer ?? "Not recorded"}
-            />
-            <IdentityTile
-              icon={Pulse}
-              label="Model"
-              tone="bg-[#eefbfc] text-[#146c74]"
-              value={equipment.model ?? "Not recorded"}
-            />
-            <IdentityTile
-              icon={MapPin}
-              label="Installed"
-              tone="bg-[#e8fbf6] text-[#146c74]"
-              value={formatDate(equipment.installationDate)}
-            />
-          </CardContent>
-        </Card>
-
-        <Card
-          className="h-full rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-          data-motion="metric"
-        >
-          <CardHeader className="pb-1">
-            <CardTitle>Live Signal</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
-            <SignalRow
-              label="Vibration"
-              unit="mm/s"
-              value={readParameter(latestReading?.parameters, "vibrationMmS")}
-            />
-            <SignalRow
-              label="Pressure"
-              unit="bar"
-              value={readParameter(latestReading?.parameters, "pressureBar")}
-            />
-            <SignalRow
-              label="Flow"
-              unit="bpd"
-              value={readParameter(latestReading?.parameters, "flowRateBpd")}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid items-start gap-4 xl:grid-cols-2">
-        <Card
-          className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-          data-motion="metric"
-        >
-          <CardHeader className="pb-1">
-            <CardTitle>Maintenance</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
-            <InfoLine
-              icon={Wrench}
-              label="Latest"
-              value={latestMaintenance?.type ?? "No record"}
-            />
-            <InfoLine
-              icon={WarningCircle}
-              label="Status"
-              value={
-                latestMaintenance
-                  ? formatEquipmentCategory(latestMaintenance.status)
-                  : "Pending"
-              }
-            />
-            <InfoLine
-              icon={Gauge}
-              label="Next due"
-              value={formatDate(latestMaintenance?.nextDueDate)}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid items-start gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card
-          className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-          data-motion="panel"
-        >
-          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-            <div>
-              <CardTitle>Telemetry Trend</CardTitle>
-              <p className="text-sm text-zinc-500">
-                Vibration, pressure and flow
-              </p>
-            </div>
-            <ChartLineUp aria-hidden="true" className="size-5 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <MultiLineChart
-              emptyLabel="No readings available"
-              series={[
-                { color: "#18181b", label: "Vibration", values: vibration },
-                { color: "#10b981", label: "Pressure", values: pressure },
-                { color: "#94a3b8", label: "Flow", values: flow },
-              ]}
-            />
-          </CardContent>
-        </Card>
-
-        <Card
-          className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-          data-motion="panel"
-        >
-          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-            <div>
-              <CardTitle>Prediction Curve</CardTitle>
-              <p className="text-sm text-zinc-500">
-                Health and failure probability
-              </p>
-            </div>
-            <TrendUp aria-hidden="true" className="size-5 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <MultiLineChart
-              emptyLabel="No predictions available"
-              max={100}
-              series={[
-                { color: "#18181b", label: "Health", values: healthTrend },
-                { color: "#ef4444", label: "Failure", values: failureTrend },
-              ]}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid items-start gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card
-          className="h-fit rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-          data-motion="panel"
-        >
-          <CardHeader className="pb-2">
-            <CardTitle>Maintenance Timeline</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            {equipment.maintenanceRecords.map(record => (
-              <div
-                className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"
-                key={record.id}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-zinc-950">{record.type}</p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {formatDate(record.performedAt)}
-                    </p>
-                  </div>
-                  <Badge
-                    className="rounded-full border-zinc-200 bg-white text-zinc-700"
-                    variant="outline"
-                  >
-                    {formatEquipmentCategory(record.status)}
-                  </Badge>
+          <CardContent className="grid gap-4 p-4">
+            <div className="grid gap-3 rounded-xl border border-[#d8eeee] bg-[#f6fbfa] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Live Signal</CardTitle>
+                  <p className="mt-0.5 text-sm font-medium text-zinc-500">
+                    Latest operating readings
+                  </p>
                 </div>
-                <p className="mt-3 text-sm text-zinc-600">
-                  {record.description}
-                </p>
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#146c74] shadow-sm">
+                  <span className="size-2 rounded-full bg-[#009966] animate-pulse" />
+                  Live
+                </span>
               </div>
-            ))}
-            {!equipment.maintenanceRecords.length && (
-              <EmptyState label="No maintenance records" />
-            )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SignalRow
+                  accent="border-t-[#d99010]"
+                  label="Pressure"
+                  status="Normal"
+                  unit="bar"
+                  value={readParameter(latestReading?.parameters, "pressureBar")}
+                />
+                <SignalRow
+                  accent="border-t-[#2f9da7]"
+                  label="Flow"
+                  status="Normal"
+                  unit="bpd"
+                  value={readParameter(latestReading?.parameters, "flowRateBpd")}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 border-t border-zinc-100 pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Asset Identity</CardTitle>
+                  <p className="mt-0.5 text-sm font-medium text-zinc-500">
+                    Registered equipment metadata
+                  </p>
+                </div>
+                <span className="inline-flex shrink-0 items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700">
+                  {equipment.assetTag}
+                </span>
+              </div>
+              <div className="grid max-w-full min-w-0 overflow-hidden rounded-xl border border-zinc-200 bg-white sm:grid-cols-3">
+                <IdentityTile
+                  label="Manufacturer"
+                  value={equipment.manufacturer ?? "Not recorded"}
+                />
+                <IdentityTile
+                  label="Model"
+                  value={equipment.model ?? "Not recorded"}
+                />
+                <IdentityTile
+                  label="Installed"
+                  value={formatDate(equipment.installationDate)}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
-
+      </section>
+      <section className="w-full max-w-full min-w-0">
         <Card
-          className="rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="pb-2">
             <CardTitle>Recent Readings</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="min-w-0 p-0">
             {equipment.operationalReadings.length ? (
               <>
-                <div className="overflow-x-auto px-4 pb-4">
-                  <Table className="min-w-[720px]">
+                <div className="max-w-full min-w-0 px-4 pb-4">
+                  <Table className="min-w-[680px] sm:min-w-[720px]">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
-                        <TableHead className="text-center">Recorded</TableHead>
-                        <TableHead className="text-center">Vibration</TableHead>
-                        <TableHead className="text-center">Pressure</TableHead>
-                        <TableHead className="text-center">Flow</TableHead>
+                        <TableHead>Recorded</TableHead>
+                        <TableHead>Vibration</TableHead>
+                        <TableHead>Pressure</TableHead>
+                        <TableHead>Flow</TableHead>
                         <TableHead>Source</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -439,22 +317,22 @@ export default async function EquipmentDetailsPage({
                           className="border-zinc-100 hover:bg-zinc-50"
                           key={reading.id}
                         >
-                          <TableCell className="text-center font-medium text-zinc-950">
+                          <TableCell className="font-medium text-zinc-950">
                             {formatDate(reading.recordedAt)}
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell>
                             {formatNumber(
                               readParameter(reading.parameters, "vibrationMmS"),
                             )}{" "}
                             mm/s
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell>
                             {formatNumber(
                               readParameter(reading.parameters, "pressureBar"),
                             )}{" "}
                             bar
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell>
                             {formatNumber(
                               readParameter(reading.parameters, "flowRateBpd"),
                             )}{" "}
@@ -482,6 +360,103 @@ export default async function EquipmentDetailsPage({
           </CardContent>
         </Card>
       </section>
+
+      <section className="w-full max-w-full min-w-0">
+        <Card
+          className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <div>
+              <CardTitle>Prediction Curve</CardTitle>
+              <p className="text-sm text-zinc-500">
+                Health and failure probability
+              </p>
+            </div>
+            <TrendUp aria-hidden="true" className="size-5 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            <MultiLineChart
+              emptyLabel="No predictions available"
+              max={100}
+              series={[
+                { color: "#18181b", label: "Health", values: healthTrend },
+                { color: "#ef4444", label: "Failure", values: failureTrend },
+              ]}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <Card
+          className="h-fit w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          data-motion="metric"
+        >
+          <CardHeader className="pb-1">
+            <CardTitle>Maintenance</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2.5">
+            <InfoLine
+              icon={Wrench}
+              label="Latest"
+              value={latestMaintenance?.type ?? "No record"}
+            />
+            <InfoLine
+              icon={WarningCircle}
+              label="Status"
+              value={
+                latestMaintenance
+                  ? formatEquipmentCategory(latestMaintenance.status)
+                  : "Pending"
+              }
+            />
+            <InfoLine
+              icon={Gauge}
+              label="Next due"
+              value={formatDate(latestMaintenance?.nextDueDate)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card
+          className="h-fit w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          data-motion="panel"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle>Maintenance Timeline</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {equipment.maintenanceRecords.map(record => (
+              <div
+                className="min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 p-3"
+                key={record.id}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-zinc-950">{record.type}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {formatDate(record.performedAt)}
+                    </p>
+                  </div>
+                  <Badge
+                    className="shrink-0 rounded-full border-zinc-200 bg-white text-zinc-700"
+                    variant="outline"
+                  >
+                    {formatEquipmentCategory(record.status)}
+                  </Badge>
+                </div>
+                <p className="mt-3 break-words text-sm text-zinc-600">
+                  {record.description}
+                </p>
+              </div>
+            ))}
+            {!equipment.maintenanceRecords.length && (
+              <EmptyState label="No maintenance records" />
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
@@ -505,23 +480,23 @@ function DetailMetricCard({
 }) {
   return (
     <Card
-      className="h-full rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
+      className="h-full w-full max-w-full min-w-0 rounded-[1.2rem] border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(24,24,27,0.08)]"
       data-motion="metric"
     >
-      <CardContent className="px-3 py-2.5">
+      <CardContent className="flex min-h-32 flex-col px-4 py-3.5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-zinc-500">{label}</p>
-            <p className="mt-0.5 text-xl font-semibold tracking-normal text-zinc-950">
+            <p className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950">
               {value}
             </p>
           </div>
-          <div className={`grid size-7 place-items-center rounded-full ${tone}`}>
-            <Icon aria-hidden="true" className="size-3.5" />
+          <div className={`grid size-8 place-items-center rounded-full ${tone}`}>
+            <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
-        <p className="mt-2 text-xs font-medium text-zinc-500">{detail}</p>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+        <p className="mt-auto pt-3 text-sm font-medium text-zinc-500">{detail}</p>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
           <div
             className={`h-full rounded-full ${accent}`}
             style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
@@ -533,79 +508,55 @@ function DetailMetricCard({
 }
 
 function SignalRow({
+  accent,
   label,
+  status,
   unit,
   value,
 }: {
+  accent: string;
   label: string;
+  status: string;
   unit: string;
   value: number;
 }) {
   const hasValue = Number.isFinite(value);
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-zinc-950">{label}</p>
-          <p className="mt-0.5 text-xs font-medium text-zinc-500">
-            Live telemetry
-          </p>
-        </div>
-        <span className="grid size-8 place-items-center rounded-full bg-[#e8fbf6] text-[#146c74]">
-          <Pulse aria-hidden="true" className="size-4" />
+    <div className={`min-w-0 rounded-lg border border-t-2 border-zinc-200 bg-white px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50/60 hover:shadow-sm ${accent}`}>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <p className="truncate text-sm font-semibold text-zinc-950">{label}</p>
+        <span className="shrink-0 rounded-full border border-zinc-200 bg-white px-2.5 py-0.5 text-[0.68rem] font-semibold uppercase tracking-normal text-zinc-500">
+          {status}
         </span>
       </div>
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <p className="text-2xl font-semibold leading-none text-zinc-950">
+      <div className="mt-3 flex min-w-0 items-baseline gap-1.5">
+        <p className="max-w-full truncate text-2xl font-semibold leading-none tracking-normal text-zinc-950">
           {formatNumber(value)}
-          {hasValue ? (
-            <span className="ml-1.5 align-baseline text-sm font-semibold text-zinc-500">
-              {unit}
-            </span>
-          ) : null}
         </p>
-        <span className="flex h-7 items-end gap-1" aria-hidden="true">
-          {[36, 68, 48, 82, 56].map((height, index) => (
-            <span
-              className="w-1 rounded-full bg-[#2f9da7] animate-pulse"
-              key={`${height}-${index}`}
-              style={{
-                animationDelay: `${index * 120}ms`,
-                animationDuration: "950ms",
-                height: `${hasValue ? height : 18 + index * 3}%`,
-                opacity: hasValue ? 0.4 + index * 0.1 : 0.16,
-              }}
-            />
-          ))}
-        </span>
+        {hasValue ? (
+          <p className="text-sm font-semibold lowercase leading-none tracking-normal text-zinc-500">
+            {unit}
+          </p>
+        ) : null}
       </div>
     </div>
   );
 }
 
 function IdentityTile({
-  icon: Icon,
   label,
-  tone,
   value,
 }: {
-  icon: typeof Wrench;
   label: string;
-  tone: string;
   value: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm">
-      <div className="flex items-center gap-2.5">
-        <span className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
-          <Icon aria-hidden="true" className="size-4" />
-        </span>
-        <span className="truncate text-sm font-semibold text-zinc-500">
-          {label}
-        </span>
-      </div>
-      <p className="mt-3 truncate text-base font-semibold text-zinc-950">
+    <div className="min-w-0 border-zinc-200 bg-white px-4 py-3 transition-colors duration-300 hover:bg-zinc-50/60 sm:border-r sm:last:border-r-0">
+      <p className="text-xs font-semibold text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-2 break-words text-base font-semibold leading-snug text-zinc-950">
         {value}
       </p>
     </div>
@@ -622,12 +573,12 @@ function InfoLine({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-[0_12px_34px_rgba(24,24,27,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_44px_rgba(24,24,27,0.08)]">
+    <div className="flex w-full max-w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200">
-          <Icon aria-hidden="true" className="size-4" />
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-zinc-500 ring-1 ring-zinc-200">
+          <Icon aria-hidden="true" className="size-3.5" />
         </span>
-        <span className="truncate text-sm font-semibold text-zinc-500">
+        <span className="truncate text-xs font-semibold text-zinc-500">
           {label}
         </span>
       </div>
@@ -655,8 +606,8 @@ function MultiLineChart({
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="aspect-[16/7] overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+    <div className="grid w-full max-w-full min-w-0 gap-4">
+      <div className="h-64 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3 md:h-72">
         <svg
           aria-hidden="true"
           className="h-full w-full"
@@ -763,15 +714,18 @@ function buildPath(values: number[], max: number) {
     return "";
   }
 
+  const padding = 12;
+  const drawableHeight = chartHeight - padding * 2;
+
   if (validValues.length === 1) {
-    const y = chartHeight - (validValues[0] / max) * chartHeight;
+    const y = padding + (1 - validValues[0] / max) * drawableHeight;
     return `M 0 ${y} L ${chartWidth} ${y}`;
   }
 
   return validValues
     .map((value, index) => {
       const x = (index / (validValues.length - 1)) * chartWidth;
-      const y = chartHeight - (value / max) * chartHeight;
+      const y = padding + (1 - value / max) * drawableHeight;
 
       return `${index === 0 ? "M" : "L"} ${x} ${y}`;
     })

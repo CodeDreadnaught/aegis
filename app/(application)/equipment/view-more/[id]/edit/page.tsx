@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { BackButton } from "@/components/back-button";
 import { PageHeader } from "@/components/page-header";
 import { updateEquipmentAction } from "@/features/equipment/actions";
 import { EquipmentForm } from "@/features/equipment/equipment-form";
@@ -28,6 +29,7 @@ export default async function EditEquipmentPage({
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <PageHeader
         description="Update equipment metadata while preserving linked readings, maintenance records and prediction history."
         eyebrow={equipment.assetTag}

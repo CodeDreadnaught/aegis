@@ -138,25 +138,20 @@ export function ReadingForm({
 
   return (
     <Card
-      className="min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
+      className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
       data-motion="panel"
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Database className="size-5 text-zinc-500" />
-          Record reading
-        </CardTitle>
-      </CardHeader>
+      <CardHeader className="pb-2">`r`n        <CardTitle>Record Reading</CardTitle>`r`n        <p className="text-sm text-zinc-500">Manual or import</p>`r`n      </CardHeader>
       <CardContent>
         <form
-          className="grid min-w-0 gap-4 px-1 pb-1 md:grid-cols-2"
+          className="grid min-w-0 gap-4 md:grid-cols-2"
           onSubmit={handleSubmit}
           ref={formRef}
         >
           <div className="grid min-w-0 gap-2 md:col-span-2">
             <Label htmlFor="sourceType">Source</Label>
             <select
-              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+              className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
               id="sourceType"
               name="sourceType"
               onChange={(event) => {
@@ -190,7 +185,7 @@ export function ReadingForm({
               </div>
               {manualRows.map((row, index) => (
                 <div
-                  className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm"
+                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-4"
                   key={row.id}
                 >
                   {manualRows.length > 1 ? (
@@ -226,7 +221,7 @@ export function ReadingForm({
               <div className="grid min-w-0 gap-2">
                 <Label htmlFor="importMode">Import purpose</Label>
                 <select
-                  className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+                  className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
                   defaultValue="LIVE_IMPORT"
                   disabled={pending}
                   id="importMode"
@@ -244,7 +239,7 @@ export function ReadingForm({
           )}
           <div className="md:col-span-2">
             <Button
-              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-full bg-zinc-950 px-5 text-white shadow-sm hover:bg-[#007a55] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!equipment.length || pending}
               type="submit"
             >
@@ -291,7 +286,7 @@ function ManualReadingFields({
       <div className="grid min-w-0 gap-2 md:col-span-2">
         <Label htmlFor={`equipmentId-${rowId}`}>Equipment</Label>
         <select
-          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
           disabled={!equipment.length}
           id={`equipmentId-${rowId}`}
           name="equipmentId"
@@ -313,7 +308,7 @@ function ManualReadingFields({
       <div className="grid min-w-0 gap-2">
         <Label htmlFor={`recordedAt-${rowId}`}>Recorded at</Label>
         <Input
-          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 shadow-inner shadow-zinc-950/5"
           defaultValue={timestamp}
           id={`recordedAt-${rowId}`}
           name="recordedAt"
@@ -324,7 +319,7 @@ function ManualReadingFields({
       <div className="grid min-w-0 gap-2">
         <Label htmlFor={`type-${rowId}`}>Product type</Label>
         <select
-          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 outline-none transition-colors focus:border-zinc-950"
+          className="h-11 w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-600 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
           defaultValue="M"
           id={`type-${rowId}`}
           name="type"
@@ -440,7 +435,7 @@ function NumberField({
     <div className="grid min-w-0 gap-2">
       <Label htmlFor={inputId}>{label}</Label>
       <Input
-        className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
+        className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 shadow-inner shadow-zinc-950/5"
         id={inputId}
         min={min}
         name={name}
