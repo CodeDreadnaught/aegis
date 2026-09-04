@@ -1,0 +1,23 @@
+export type OverviewLiveSnapshot = {
+  activePredictionJobCount: number;
+  activeAlertCount: number;
+  activeEquipmentCount: number;
+  activeRate: number;
+  averageFlow: number;
+  averageHealth: number;
+  averagePressure: number;
+  equipmentCount: number;
+  healthArea: string;
+  healthCoordinates: Array<{ x: number; y: number }>;
+  healthPath: string;
+  maintenanceDueCount: number;
+  aiScore: number;
+  predictionCount: number;
+  predictionCoverage: number;
+  predictionSampleCount: number;
+  predictedAssetCoverage: number;
+  riskPath: string;
+  sensorFlowPercent: number;
+  sensorPressurePercent: number;
+  syncedAt: string;
+};

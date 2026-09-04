@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/.tmp
 
 # next.js
 /.next/
@@ -19,11 +22,21 @@
 
 # production
 /build
+/generated
+/ml/.venv
+/ml/data
+__pycache__/
+*.pyc
+
 
 # misc
 .DS_Store
 *.pem
+AGENTS.md
+CLAUDE.md
+app-skill.md
 /coding-specs
+/docs
 
 # debug
 npm-debug.log*
