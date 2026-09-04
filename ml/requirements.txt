@@ -1,0 +1,7 @@
+pandas>=2.2,<3
+numpy>=1.26,<3
+scikit-learn>=1.4,<2
+xgboost>=2.0,<4
+onnxmltools>=1.12,<2
+onnxruntime>=1.17,<2
+pytest>=8,<9

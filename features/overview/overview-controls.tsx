@@ -1,0 +1,132 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import { ArrowsClockwise } from "@phosphor-icons/react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const ranges = [
+  { label: "Live", value: "1" },
+  { label: "7D", value: "7" },
+  { label: "30D", value: "30" },
+] as const;
+
+type OverviewControlsProps = {
+  activeRange: string;
+};
+
+export function OverviewControls({ activeRange }: OverviewControlsProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [pendingRange, setPendingRange] = useState<string | null>(null);
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
+  const [lastSync, setLastSync] = useState("Live");
+
+
+
+  useEffect(() => {
+    const prefetchRanges = () => {
+      const currentParams = new URLSearchParams(searchParams.toString());
+
+      for (const range of ranges) {
+        if (range.value === activeRange) {
+          continue;
+        }
+
+        const params = new URLSearchParams(currentParams.toString());
+        params.set("range", range.value);
+        router.prefetch(pathname + "?" + params.toString());
+      }
+    };
+
+    const timeoutId = window.setTimeout(prefetchRanges, 150);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeRange, pathname, router, searchParams]);
+
+  useEffect(() => {
+    const onSynced = (event: Event) => {
+      const detail = (event as CustomEvent<{ syncedAt?: string }>).detail;
+
+      if (detail?.syncedAt) {
+        setLastSync(detail.syncedAt);
+      }
+    };
+
+    window.addEventListener("aegis:overview-synced", onSynced);
+
+    return () => window.removeEventListener("aegis:overview-synced", onSynced);
+  }, []);
+
+  const setRange = (range: string) => {
+    if (range === activeRange || isPending) {
+      return;
+    }
+
+    setPendingRange(range);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("range", range);
+
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white p-1 shadow-sm">
+        {ranges.map((range) => {
+          const isActive = activeRange === range.value;
+          const isLoading = isPending && pendingRange === range.value;
+
+          return (
+            <button
+              aria-busy={isLoading}
+              className={cn(
+                "inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-semibold text-zinc-500 transition-all duration-200 hover:text-zinc-950 disabled:pointer-events-none disabled:opacity-70",
+                isActive &&
+                  "bg-zinc-950 text-white shadow-[0_10px_26px_rgba(24,24,27,0.18)] hover:text-white",
+                isLoading && "bg-[#f2bd3f] text-zinc-950 shadow-[0_10px_26px_rgba(242,189,63,0.28)] hover:text-zinc-950"
+              )}
+              disabled={isPending}
+              key={range.value}
+              onClick={() => setRange(range.value)}
+              type="button"
+            >
+              {isLoading && (
+                <span className="size-1.5 animate-pulse rounded-full bg-current opacity-80" />
+              )}
+              {range.label}
+            </button>
+          );
+        })}
+      </div>
+      <Button
+        className="h-11 rounded-full border-zinc-200 bg-white px-4 text-zinc-950 hover:bg-zinc-950 hover:text-white"
+        disabled={isPending}
+        onClick={() => {
+          setIsManualRefresh(true);
+          window.dispatchEvent(new CustomEvent("aegis:overview-refresh"));
+          window.setTimeout(() => setIsManualRefresh(false), 700);
+        }}
+        type="button"
+        variant="outline"
+      >
+        <ArrowsClockwise
+          aria-hidden="true"
+          className={cn("size-4", isManualRefresh && "animate-spin")}
+        />
+        Refresh
+      </Button>
+      {lastSync && (
+        <span className="text-xs font-medium text-zinc-500">
+          Synced {lastSync}
+        </span>
+      )}
+    </div>
+  );
+}

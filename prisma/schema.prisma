@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMINISTRATOR
+  MAINTENANCE_ENGINEER
+  OPERATIONS_MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum EquipmentCategory {
+  PUMP
+  COMPRESSOR
+  WELLHEAD
+  CHRISTMAS_TREE
+  SEPARATOR
+  HEAT_EXCHANGER
+  PRODUCTION_VALVE
+  PIPELINE
+  STORAGE_TANK
+  GENERATOR
+}
+
+enum EquipmentStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+  DECOMMISSIONED
+}
+
+enum MaintenanceStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  DEFERRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum AlertSeverity {
+  INFO
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum PredictionJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  name               String
+  email              String               @unique
+  passwordHash       String
+  role               UserRole
+  status             UserStatus           @default(ACTIVE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  sessions           Session[]
+  operationalReadings OperationalReading[]
+  maintenanceRecords MaintenanceRecord[]
+  predictions        Prediction[]
+  acknowledgedAlerts Alert[]              @relation("AlertAcknowledgement")
+  auditLogs          AuditLog[]
+
+  @@index([role])
+  @@index([status])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Equipment {
+  id                  String               @id @default(cuid())
+  assetTag            String               @unique
+  name                String
+  category            EquipmentCategory
+  status              EquipmentStatus      @default(ACTIVE)
+  location            String
+  manufacturer        String?
+  model               String?
+  serialNumber        String?
+  installationDate    DateTime?
+  description         String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  operationalReadings OperationalReading[]
+  maintenanceRecords  MaintenanceRecord[]
+  predictions         Prediction[]
+  alerts              Alert[]
+
+  @@index([category])
+  @@index([status])
+  @@index([location])
+}
+
+model OperationalReading {
+  id              String       @id @default(cuid())
+  equipmentId     String
+  recordedAt      DateTime
+  parameters      Json
+  sourceType      String
+  predictionEligible Boolean  @default(true)
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  equipment       Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  createdBy       User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  predictions     Prediction[]
+  predictionJob   PredictionJob?
+
+  @@unique([equipmentId, recordedAt])
+  @@index([predictionEligible, recordedAt])
+  @@index([createdById])
+}
+
+model MaintenanceRecord {
+  id            String            @id @default(cuid())
+  equipmentId   String
+  type          String
+  description   String
+  performedAt   DateTime
+  nextDueDate   DateTime?
+  status        MaintenanceStatus @default(COMPLETED)
+  recordedById  String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  recordedBy    User?             @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([equipmentId, type, performedAt, description])
+  @@index([equipmentId, performedAt])
+  @@index([status])
+  @@index([recordedById])
+}
+
+model Prediction {
+  id                   String              @id @default(cuid())
+  equipmentId          String
+  operationalReadingId String?             @unique
+  failureProbability   Decimal             @db.Decimal(6, 5)
+  healthScore          Decimal             @db.Decimal(5, 2)
+  riskLevel            RiskLevel
+  modelVersion         String
+  thresholdVersion     String
+  featureSnapshot      Json
+  createdById          String?
+  createdAt            DateTime            @default(now())
+  equipment            Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  operationalReading   OperationalReading? @relation(fields: [operationalReadingId], references: [id], onDelete: SetNull)
+  createdBy            User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  recommendations      Recommendation[]
+  alerts               Alert[]
+
+  @@index([equipmentId, createdAt])
+  @@index([riskLevel])
+  @@index([modelVersion])
+}
+
+model PredictionJob {
+  id                   String              @id @default(cuid())
+  operationalReadingId String              @unique
+  status               PredictionJobStatus @default(PENDING)
+  attempts             Int                 @default(0)
+  lastError            String?
+  nextRunAt            DateTime            @default(now())
+  processedAt          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  operationalReading   OperationalReading  @relation(fields: [operationalReadingId], references: [id], onDelete: Restrict)
+
+  @@index([status, nextRunAt, createdAt])
+  @@index([processedAt])
+}
+
+model Recommendation {
+  id                 String     @id @default(cuid())
+  predictionId       String
+  message            String
+  priority           RiskLevel
+  explanationFactors Json?
+  createdAt          DateTime   @default(now())
+  prediction         Prediction @relation(fields: [predictionId], references: [id], onDelete: Restrict)
+
+  @@index([predictionId])
+  @@index([priority])
+}
+
+model Alert {
+  id             String        @id @default(cuid())
+  equipmentId    String
+  predictionId   String?
+  type           String
+  severity       AlertSeverity
+  status         AlertStatus   @default(ACTIVE)
+  message        String
+  acknowledgedById String?
+  acknowledgedAt DateTime?
+  createdAt      DateTime      @default(now())
+  resolvedAt     DateTime?
+  equipment      Equipment     @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  prediction     Prediction?   @relation(fields: [predictionId], references: [id], onDelete: SetNull)
+  acknowledgedBy User?         @relation("AlertAcknowledgement", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+
+  @@index([equipmentId, status])
+  @@index([predictionId])
+  @@index([severity])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  timestamp  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}

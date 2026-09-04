@@ -1,0 +1,13 @@
+{
+  "created_at_utc": "2026-08-22T11:00:54.123507+00:00",
+  "feature_schema_path": "models\\ai4i\\v1\\feature-schema.json",
+  "metrics_path": "models\\ai4i\\v1\\metrics.json",
+  "model_version": "ai4i-xgboost-v1",
+  "onnx_model_path": "models\\ai4i\\v1\\model.onnx",
+  "parity_report_path": "models\\ai4i\\v1\\parity-report.json",
+  "source_dataset": "ml\\data\\raw\\ai4i2020.csv",
+  "source_dataset_sha256": "dc6630cd9b1f0f853922fad78a1b6436570d3f1ec863f1dd5c4340ac56bc8a8e",
+  "target": "Machine failure",
+  "thresholds_path": "models\\ai4i\\v1\\thresholds.json",
+  "xgboost_model_path": "models\\ai4i\\v1\\xgboost-model.json"
+}

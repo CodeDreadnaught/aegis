@@ -1,0 +1,12 @@
+{
+  "model_version": "ai4i-xgboost-v1",
+  "risk_classification": {
+    "high": "Pf >= T2",
+    "low": "Pf < T1",
+    "medium": "T1 <= Pf < T2"
+  },
+  "selection_status": "validation-derived when training pipeline is executed",
+  "t1_lower_threshold": 0.35,
+  "t2_upper_threshold": 0.7,
+  "threshold_version": "aegis-thresholds-v1"
+}
