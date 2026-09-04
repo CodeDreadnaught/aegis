@@ -1,0 +1,89 @@
+{
+  "categorical_features": [
+    "Type"
+  ],
+  "category_levels": {
+    "Type": [
+      "H",
+      "L",
+      "M"
+    ]
+  },
+  "excluded_columns": {
+    "failure_modes": [
+      "TWF",
+      "HDF",
+      "PWF",
+      "OSF",
+      "RNF"
+    ],
+    "identifiers": [
+      "UDI",
+      "Product ID"
+    ]
+  },
+  "model_version": "ai4i-xgboost-v1",
+  "numeric_features": [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]"
+  ],
+  "random_seed": 42,
+  "raw_features": [
+    {
+      "dtype": "category",
+      "name": "type",
+      "required": true,
+      "source_column": "Type"
+    },
+    {
+      "dtype": "float",
+      "name": "air_temperature_k",
+      "required": true,
+      "source_column": "Air temperature [K]"
+    },
+    {
+      "dtype": "float",
+      "name": "process_temperature_k",
+      "required": true,
+      "source_column": "Process temperature [K]"
+    },
+    {
+      "dtype": "float",
+      "name": "rotational_speed_rpm",
+      "required": true,
+      "source_column": "Rotational speed [rpm]"
+    },
+    {
+      "dtype": "float",
+      "name": "torque_nm",
+      "required": true,
+      "source_column": "Torque [Nm]"
+    },
+    {
+      "dtype": "float",
+      "name": "tool_wear_min",
+      "required": true,
+      "source_column": "Tool wear [min]"
+    }
+  ],
+  "schema_version": "ae-08-feature-schema-v1",
+  "split": {
+    "strategy": "stratified",
+    "test_fraction": 0.2,
+    "train_fraction": 0.8
+  },
+  "target": "Machine failure",
+  "transformed_features": [
+    "type_H",
+    "type_L",
+    "type_M",
+    "air_temperature_k",
+    "process_temperature_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min"
+  ]
+}

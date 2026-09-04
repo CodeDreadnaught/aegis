@@ -1,0 +1,8 @@
+{
+  "max_abs_difference": 1.1920928955078125e-07,
+  "mean_abs_difference": 3.020701200284748e-08,
+  "model_version": "ai4i-xgboost-v1",
+  "passed": true,
+  "sample_rows": 100,
+  "tolerance": 1e-05
+}
