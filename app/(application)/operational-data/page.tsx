@@ -184,7 +184,7 @@ export default async function OperationalDataPage({
               {readingCount} records
             </Badge>
           </CardHeader>
-          <form className="grid gap-3 border-y border-zinc-100 px-4 py-3 md:grid-cols-[minmax(14rem,1fr)_minmax(19rem,0.9fr)_minmax(12rem,0.75fr)_auto] md:items-end">
+          <form className="grid gap-3 border-y border-zinc-100 px-4 py-3 xl:grid-cols-[minmax(14rem,1fr)_minmax(19rem,0.9fr)_minmax(12rem,0.75fr)_auto] xl:items-end">
             <div className="relative min-w-0">
               <MagnifyingGlass
                 aria-hidden="true"
@@ -201,11 +201,11 @@ export default async function OperationalDataPage({
             </div>
             <fieldset
               aria-label="Recorded date range"
-              className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-inner shadow-zinc-950/5 transition-colors focus-within:border-zinc-950"
+              className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-inner shadow-zinc-950/5 transition-colors focus-within:border-zinc-950"
             >
               <input
                 aria-label="Recorded from"
-                className="w-full min-w-0 bg-transparent text-sm font-medium text-zinc-700 outline-none [color-scheme:light]"
+                className="w-full min-w-0 bg-transparent text-[13px] font-medium text-zinc-700 outline-none [color-scheme:light] sm:text-sm"
                 defaultValue={dateFrom ?? ""}
                 key={`from-${dateFrom ?? "all"}`}
                 name="from"
@@ -214,7 +214,7 @@ export default async function OperationalDataPage({
               <span className="text-xs font-semibold uppercase text-zinc-400">to</span>
               <input
                 aria-label="Recorded to"
-                className="w-full min-w-0 bg-transparent text-sm font-medium text-zinc-700 outline-none [color-scheme:light]"
+                className="w-full min-w-0 bg-transparent text-[13px] font-medium text-zinc-700 outline-none [color-scheme:light] sm:text-sm"
                 defaultValue={dateTo ?? ""}
                 key={`to-${dateTo ?? "all"}`}
                 name="to"
@@ -234,7 +234,7 @@ export default async function OperationalDataPage({
                 </option>
               ))}
             </select>
-            <div className="grid grid-cols-2 gap-2 md:flex md:items-center">
+            <div className="grid grid-cols-2 gap-2 xl:flex xl:items-center">
               <button
                 className={buttonVariants({
                   size: "sm",

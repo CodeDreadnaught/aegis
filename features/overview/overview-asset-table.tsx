@@ -69,7 +69,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
 
   return (
     <div className="grid w-full max-w-full min-w-0 gap-3">
-      <div className="grid w-full max-w-full min-w-0 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_auto_minmax(10rem,0.45fr)] lg:items-center">
+      <div className="grid w-full max-w-full min-w-0 gap-2 px-4 lg:grid-cols-[minmax(14rem,1fr)_auto_minmax(10rem,0.45fr)] lg:items-center">
         <div className="relative min-w-0">
           <MagnifyingGlass
             aria-hidden="true"
@@ -86,16 +86,16 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
             value={query}
           />
         </div>
-        <div className="min-w-0 max-w-full overflow-x-auto sm:col-span-2 lg:col-span-1">
-          <div className="flex w-max items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1">
+        <div className="min-w-0 max-w-full overflow-x-auto">
+          <div className="flex w-full min-w-0 items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1 lg:w-max">
             <FunnelSimple
               aria-hidden="true"
-              className="ml-2 size-4 text-zinc-500"
+              className="ml-2 size-4 shrink-0 text-zinc-500"
             />
             {riskFilters.map(item => (
               <button
                 className={cn(
-                  "h-8 rounded-full px-3 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-950",
+                  "h-8 flex-1 rounded-full px-2 text-[11px] font-semibold text-zinc-500 transition-colors hover:text-zinc-950 sm:text-xs lg:flex-none lg:px-3",
                   risk === item && "bg-white text-zinc-950 shadow-sm",
                 )}
                 key={item}
@@ -123,7 +123,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
       </div>
 
       {paginatedRows.items.length ? (
-        <div className="grid px-4 pb-4 md:hidden">
+        <div className="grid px-4 pb-4 lg:hidden" data-testid="asset-performance-list">
           {paginatedRows.items.map((row, index) => (
             <div
               className="grid gap-3 border-b border-zinc-100 py-4 last:border-b-0"
@@ -185,7 +185,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
         </div>
       ) : null}
 
-      <div className="hidden max-w-full min-w-0 overflow-x-auto px-4 pb-4 md:block">
+      <div className="hidden max-w-full min-w-0 overflow-x-auto px-4 pb-4 lg:block" data-testid="asset-performance-table">
         <Table className="min-w-[1040px]">
           <TableHeader>
             <TableRow className="border-zinc-200 bg-zinc-50/70">

@@ -149,4 +149,26 @@ test.describe("authenticated dashboard responsiveness", () => {
       expect(hydrationErrors, `hydration errors on ${route}`).toEqual([]);
     });
   }
+  test("overview and operational data use tablet-safe controls", async ({
+    page,
+  }) => {
+    const hydrationErrors = collectHydrationConsoleErrors(page);
+
+    await page.setViewportSize({ width: 820, height: 1180 });
+
+    for (const route of ["/overview", "/operational-data"] as const) {
+      await page.goto(route);
+      await expect(page.locator("body")).toBeVisible();
+      await expectNoDocumentOverflow(page);
+
+      if (route === "/overview") {
+        await expect(page.getByTestId("asset-performance-list")).toBeVisible();
+        await expect(page.getByTestId("asset-performance-table")).toBeHidden();
+      }
+    }
+
+    expect(hydrationErrors, "hydration errors on tablet dashboard routes").toEqual(
+      [],
+    );
+  });
 });

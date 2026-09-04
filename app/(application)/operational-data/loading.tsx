@@ -40,7 +40,7 @@ export default function Loading() {
           </div>
           <Skeleton className="h-7 w-24 rounded-full" />
         </div>
-        <div className="grid gap-3 border-y border-zinc-100 py-3 md:grid-cols-[minmax(14rem,1fr)_minmax(19rem,0.9fr)_minmax(12rem,0.75fr)_auto]">
+        <div className="grid gap-3 border-y border-zinc-100 py-3 xl:grid-cols-[minmax(14rem,1fr)_minmax(19rem,0.9fr)_minmax(12rem,0.75fr)_auto]">
           <Skeleton className="h-10 w-full rounded-full" />
           <Skeleton className="h-10 w-full rounded-full" />
           <Skeleton className="h-10 w-full rounded-full" />

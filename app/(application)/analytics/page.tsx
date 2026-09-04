@@ -183,7 +183,9 @@ export default async function AnalyticsPage({
       label: "Health",
       progress: summaryPredictions.length ? averageHealth : 0,
       tone: "bg-[#fff6dc] text-[#8a5a00]",
-      value: summaryPredictions.length ? `${Math.round(averageHealth)}%` : "N/A",
+      value: summaryPredictions.length
+        ? `${Math.round(averageHealth)}%`
+        : "N/A",
     },
     {
       accent: "bg-[#ef4444]",
@@ -192,7 +194,9 @@ export default async function AnalyticsPage({
       label: "Risk",
       progress: summaryPredictions.length ? averageFailure : 0,
       tone: "bg-[#fff0ed] text-[#b13d2e]",
-      value: summaryPredictions.length ? `${Math.round(averageFailure)}%` : "N/A",
+      value: summaryPredictions.length
+        ? `${Math.round(averageFailure)}%`
+        : "N/A",
     },
   ];
 
@@ -386,7 +390,9 @@ export default async function AnalyticsPage({
                               </TableCell>
                               <TableCell>
                                 <PredictionJobBadge
-                                  attempts={reading.predictionJob?.attempts ?? 0}
+                                  attempts={
+                                    reading.predictionJob?.attempts ?? 0
+                                  }
                                   status={
                                     latestPrediction
                                       ? "COMPLETED"
@@ -483,9 +489,9 @@ export default async function AnalyticsPage({
               <Gauge aria-hidden="true" className="size-5 text-zinc-500" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-              <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+              <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center lg:py-2">
                 <div
-                  className="grid size-24 shrink-0 place-items-center justify-self-center rounded-full sm:justify-self-start"
+                  className="grid size-24 lg:size-20 shrink-0 place-items-center justify-self-center rounded-full sm:justify-self-start"
                   style={{
                     background: `conic-gradient(#2f9da7 ${modelConfidence}%, #dff7f3 0)`,
                   }}
@@ -581,14 +587,18 @@ export default async function AnalyticsPage({
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-medium text-zinc-500">
                           <span>
-                            Pf {" "}
+                            Pf{" "}
                             {(
                               Number(prediction.failureProbability) * 100
                             ).toFixed(1)}
                             %
                           </span>
-                          <span>Health {prediction.healthScore.toString()}%</span>
-                          <span>{formatEquipmentCategory(prediction.riskLevel)}</span>
+                          <span>
+                            Health {prediction.healthScore.toString()}%
+                          </span>
+                          <span>
+                            {formatEquipmentCategory(prediction.riskLevel)}
+                          </span>
                           <span>
                             {compactDateFormatter.format(prediction.createdAt)}
                           </span>
@@ -652,7 +662,9 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
+          <div
+            className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}
+          >
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
@@ -726,9 +738,14 @@ function DistributionCard({
         <span className="text-lg font-semibold text-zinc-950">{value}</span>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
-        <div className={`h-full rounded-full ${accent}`} style={{ width: `${width}%` }} />
+        <div
+          className={`h-full rounded-full ${accent}`}
+          style={{ width: `${width}%` }}
+        />
       </div>
-      <p className="mt-2 text-xs font-medium opacity-75">{width}% of stored runs</p>
+      <p className="mt-2 text-xs font-medium opacity-75">
+        {width}% of stored runs
+      </p>
     </div>
   );
 }
@@ -835,7 +852,13 @@ function PredictionTrend({
           viewBox="0 0 640 240"
         >
           <defs>
-            <linearGradient id="analytics-health-fill" x1="0" x2="0" y1="0" y2="1">
+            <linearGradient
+              id="analytics-health-fill"
+              x1="0"
+              x2="0"
+              y1="0"
+              y2="1"
+            >
               <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
               <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
             </linearGradient>
