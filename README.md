@@ -1,85 +1,59 @@
 # AEGIS
 
-AEGIS is a production-oriented predictive maintenance application for upstream
-oil and gas equipment. It uses Next.js App Router, Prisma/PostgreSQL,
-server-side RBAC, Server Actions for mutations, and a server-only ONNX inference
-path for AI4I XGBoost predictions.
+![AEGIS product preview](public/opengraph-image.png)
 
-## Runtime Requirements
+AEGIS is a predictive maintenance command centre for upstream oil and gas operations. It brings equipment records, operational readings, model inference, risk alerts, maintenance planning, reporting and audit activity into one controlled workspace for reliability teams.
 
-- Bun `1.2.19`
-- Node-compatible production host for Next.js
-- PostgreSQL with SSL enabled
-- Python only for retraining/exporting ML artefacts
+The product is designed for teams that need a clearer view of asset health before failures become operational interruptions. AEGIS converts telemetry and maintenance context into health scores, failure probability, risk levels and explainable maintenance recommendations.
 
-## Required Environment
+## What AEGIS Helps Teams Do
 
-Create `.env` locally or configure equivalent production environment variables:
+- Monitor production equipment across fleet, category, location, status and maintenance exposure.
+- Capture operational readings that describe asset condition, load, temperature, vibration, pressure, flow and wear signals.
+- Run predictive scoring against stored readings to estimate failure probability and equipment health.
+- Prioritise risk through active alerts, severity queues and structured response states.
+- Plan and review maintenance work using status, due dates and service history.
+- Export operational, maintenance, prediction and alert records for reporting workflows.
+- Review account, entity and system activity through an administrative audit trail.
 
-```text
-DATABASE_URL=postgresql://...
-DIRECT_DATABASE_URL=postgresql://...
-SESSION_SECRET=<at least 32 characters>
-```
+## Product Modules
 
-For Neon/PostgreSQL production URLs, use SSL verification, for example
-`sslmode=verify-full`.
+### Overview
+A fleet-level operational intelligence dashboard showing asset count, prediction coverage, average health, current risk load, asset mix, sensor summaries, maintenance plans and recent activity.
 
-## App Commands
+### Equipment
+A register for production assets with category, location, operating status, latest health, latest risk and maintenance exposure. Each asset profile links readings, predictions, maintenance history and lifecycle actions.
 
-```powershell
-bun install
-bun run prisma:generate
-bun run prisma:migrate
-bun run dev
-```
+### Operational Data
+A telemetry workspace for recording and reviewing model inputs. Recent readings can be searched, filtered by recorded date range and narrowed by equipment category.
 
-`bun run prisma:seed` creates demo users and demo equipment. Use it for local or
-intentional demo environments only. In production it is blocked unless
-`AEGIS_ALLOW_DEMO_SEED=true` is explicitly set.
+### Predictive Analytics
+An inference workspace that scores readings, tracks job state, visualises failure and health trends, and stores the latest prediction outputs with recommendations.
 
-Production verification:
+### Alerts
+A response queue for prediction-led risk events. Alerts can be acknowledged, resolved and reviewed with the full risk message separated from the table view for clearer triage.
 
-```powershell
-bun run typecheck
-bun run lint
-bun run test
-bun run build
-bun run e2e
-```
+### Maintenance
+A service history and planning area for recording maintenance actions, tracking work state and seeing what is overdue, due soon or completed.
 
-## Machine Learning Artefacts
+### Reports
+A structured reporting area for equipment, maintenance, prediction and alert exports.
 
-The production app does not train models at runtime. It loads the validated ONNX
-artefact from:
+### Users and Audit
+Administrative controls for authorised accounts, role/status management, account removal and redacted activity review.
 
-```text
-models/ai4i/v1/model.onnx
-```
+## Decision Support
 
-The committed model directory also contains metadata, thresholds, feature schema,
-metrics, parity report, and the XGBoost model export.
+AEGIS presents model output as practical maintenance context rather than isolated scores. Predictions include:
 
-To retrain the model in a Python environment:
+- Failure probability.
+- Equipment health score.
+- Risk level.
+- Relevant operational parameters.
+- Human-readable reason and recommendation.
 
-```powershell
-cd ml
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-cd ..
-python -m ml.aegis_ml.acquire
-python -m ml.aegis_ml.train
-python -m unittest discover -s tests/ml
-```
+The system is intended to support maintenance prioritisation, inspection planning and operational review. It does not replace engineering judgement, statutory inspection requirements or site safety procedures.
 
-Only promote a new model artefact when `parity-report.json` has `"passed": true`.
+## Access Model
 
-## Production Notes
-
-- No ordinary `/api` routes are used for workflows.
-- Server Actions perform mutations and enforce permissions server-side.
-- `onnxruntime-node` requires a Node runtime; the analytics route is marked
-  `runtime = "nodejs"`.
-- `docs/` and `coding-specs/` are intentionally ignored and not committed.
+AEGIS uses role-based access so operators, maintenance engineers, operations managers and administrators see the workflows appropriate to their responsibilities. Administrative actions and system-generated events are written to the audit trail for accountability.
