@@ -74,6 +74,31 @@ async function createAdministratorSession(page: Page) {
   return tokenHash;
 }
 
+
+function collectHydrationConsoleErrors(page: Page) {
+  const errors: string[] = [];
+  const pattern = /hydrated|hydration|server rendered HTML/i;
+
+  page.on("console", message => {
+    if (message.type() !== "error") {
+      return;
+    }
+
+    const text = message.text();
+
+    if (pattern.test(text)) {
+      errors.push(text);
+    }
+  });
+
+  page.on("pageerror", error => {
+    if (pattern.test(error.message)) {
+      errors.push(error.message);
+    }
+  });
+
+  return errors;
+}
 async function expectNoDocumentOverflow(page: Page) {
   await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
 
@@ -116,9 +141,12 @@ test.describe("authenticated dashboard responsiveness", () => {
     test(`${route} has no document-level horizontal overflow`, async ({
       page,
     }) => {
+      const hydrationErrors = collectHydrationConsoleErrors(page);
+
       await page.goto(route);
       await expect(page.locator("body")).toBeVisible();
       await expectNoDocumentOverflow(page);
+      expect(hydrationErrors, `hydration errors on ${route}`).toEqual([]);
     });
   }
 });

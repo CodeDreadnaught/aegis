@@ -121,7 +121,71 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           value={updatedDate}
         />
       </div>
-      <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
+
+      {paginatedRows.items.length ? (
+        <div className="grid px-4 pb-4 md:hidden">
+          {paginatedRows.items.map((row, index) => (
+            <div
+              className="grid gap-3 border-b border-zinc-100 py-4 last:border-b-0"
+              key={`mobile-${row.asset}-${row.updated}-${paginatedRows.currentPage}-${index}`}
+            >
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-zinc-950">
+                    {row.asset}
+                  </p>
+                  <p className="truncate text-xs text-zinc-500">{row.name}</p>
+                  <p className="truncate text-xs text-zinc-400">
+                    {row.location}
+                  </p>
+                </div>
+                <RiskBadge risk={row.risk} />
+              </div>
+
+              <dl className="grid grid-cols-2 gap-2 text-xs">
+                <div className="min-w-0 rounded-lg bg-zinc-50 p-2">
+                  <dt className="font-semibold uppercase tracking-wide text-zinc-400">
+                    Category
+                  </dt>
+                  <dd className="mt-1 truncate font-medium text-zinc-700">
+                    {row.category}
+                  </dd>
+                </div>
+                <div className="min-w-0 rounded-lg bg-zinc-50 p-2">
+                  <dt className="font-semibold uppercase tracking-wide text-zinc-400">
+                    Updated
+                  </dt>
+                  <dd className="mt-1 truncate font-medium text-zinc-700">
+                    {row.updated}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="grid gap-2">
+                <MobileScore
+                  accentClassName="bg-[#2f9da7]"
+                  label="Health"
+                  value={row.health}
+                />
+                <MobileScore
+                  accentClassName="bg-[#ef4444]"
+                  label="Failure"
+                  value={row.failure}
+                />
+              </div>
+
+              <Link
+                className="inline-flex h-9 w-full items-center justify-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-950 hover:text-white"
+                href={`/equipment/view-more/${row.assetId}`}
+              >
+                View asset
+              </Link>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="hidden max-w-full min-w-0 overflow-x-auto px-4 pb-4 md:block">
         <Table className="min-w-[1040px]">
           <TableHeader>
             <TableRow className="border-zinc-200 bg-zinc-50/70">
@@ -160,7 +224,9 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                             style={{ width: `${row.health}%` }}
                           />
                         </span>
-                        <span className="text-sm font-medium">{row.health}%</span>
+                        <span className="text-sm font-medium">
+                          {row.health}%
+                        </span>
                       </>
                     )}
                   </div>
@@ -177,7 +243,9 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                             style={{ width: `${row.failure}%` }}
                           />
                         </span>
-                        <span className="text-sm font-medium">{row.failure}%</span>
+                        <span className="text-sm font-medium">
+                          {row.failure}%
+                        </span>
                       </>
                     )}
                   </div>
@@ -199,12 +267,13 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           </TableBody>
         </Table>
       </div>
+
       {filteredRows.length > tablePageSize && (
         <div className="flex flex-col items-center gap-3 border-t border-zinc-100 px-4 py-3 text-center text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p>
             Showing {((paginatedRows.currentPage - 1) * tablePageSize + 1).toLocaleString()}-{Math.min(filteredRows.length, paginatedRows.currentPage * tablePageSize).toLocaleString()} of {filteredRows.length.toLocaleString()}
           </p>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               className="h-10 w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700"
               disabled={paginatedRows.currentPage === 1}
@@ -244,6 +313,37 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
   );
 }
 
+function MobileScore({
+  accentClassName,
+  label,
+  value,
+}: {
+  accentClassName: string;
+  label: string;
+  value: number | null;
+}) {
+  const width = value === null ? "0%" : `${Math.min(100, Math.max(0, value))}%`;
+
+  return (
+    <div className="grid gap-1.5 rounded-lg bg-zinc-50 p-2">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="font-semibold uppercase tracking-wide text-zinc-400">
+          {label}
+        </span>
+        <span className="font-semibold text-zinc-700">
+          {value === null ? "Pending" : `${value}%`}
+        </span>
+      </div>
+      <span className="h-1.5 overflow-hidden rounded-full bg-zinc-200">
+        <span
+          className={cn("block h-full rounded-full", accentClassName)}
+          style={{ width }}
+        />
+      </span>
+    </div>
+  );
+}
+
 function RiskBadge({ risk }: { risk: string }) {
   const className =
     risk === "HIGH"
@@ -256,7 +356,7 @@ function RiskBadge({ risk }: { risk: string }) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
+      className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
     >
       {risk}
     </span>
