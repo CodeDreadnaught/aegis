@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle } from "@phosphor-icons/react";
 import { useState, useTransition, type FormEvent } from "react";
 import type { UserRole, UserStatus } from "@/generated/prisma/enums";
 
@@ -56,7 +57,10 @@ export function UserAccessForm({
   }
 
   return (
-    <form className="ml-auto grid max-w-md gap-2 sm:grid-cols-[1fr_1fr_auto]" onSubmit={handleSubmit}>
+    <form
+      className="grid min-w-[34rem] grid-cols-[minmax(15rem,1fr)_minmax(10rem,0.7fr)_auto] items-center gap-2"
+      onSubmit={handleSubmit}
+    >
       <input name="userId" type="hidden" value={userId} />
       <input name="role" type="hidden" value={role} />
       <input name="status" type="hidden" value={status} />
@@ -68,12 +72,12 @@ export function UserAccessForm({
       >
         <SelectTrigger
           aria-label="Role"
-          className="w-full rounded-full border-zinc-200 bg-zinc-50"
+          className="h-10 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 text-zinc-950 [&>span]:truncate"
           size="sm"
         >
-          <SelectValue />
+          <SelectValue>{userRoleLabels[role]}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="min-w-[16rem]">
           {userRoleOptions.map((option) => (
             <SelectItem key={option} value={option}>
               {userRoleLabels[option]}
@@ -89,12 +93,12 @@ export function UserAccessForm({
       >
         <SelectTrigger
           aria-label="Status"
-          className="w-full rounded-full border-zinc-200 bg-zinc-50"
+          className="h-10 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 text-zinc-950 [&>span]:truncate"
           size="sm"
         >
-          <SelectValue />
+          <SelectValue>{userStatusLabels[status]}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="min-w-[16rem]">
           {userStatusOptions.map((option) => (
             <SelectItem key={option} value={option}>
               {userStatusLabels[option]}
@@ -104,11 +108,11 @@ export function UserAccessForm({
       </Select>
 
       <Button
-        className="rounded-full border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-10 w-24 justify-center rounded-full border-[#009966] !bg-[#009966] px-4 !text-white shadow-sm hover:!bg-[#007a55] hover:!text-white disabled:cursor-not-allowed disabled:opacity-60"
         disabled={pending}
         type="submit"
-        variant="outline"
       >
+        <CheckCircle />
         {pending ? "Saving" : "Save"}
       </Button>
     </form>

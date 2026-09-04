@@ -17,7 +17,6 @@ export default async function NewEquipmentPage() {
     <div className="space-y-6">
       <BackButton />
       <PageHeader
-        description="Register production equipment for telemetry capture, maintenance tracking and predictive risk analysis."
         eyebrow="Equipment"
         title="Register Equipment"
       />

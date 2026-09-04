@@ -1,11 +1,18 @@
 import "server-only";
 
+import { AlertSeverity } from "@/generated/prisma/enums";
 import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 
 export async function getAlertsWorkspace(page = 1) {
   const skip = (Math.max(1, page) - 1) * tablePageSize;
-  const [alerts, totalAlerts, statusGroups] = await Promise.all([
+  const [
+    alerts,
+    totalAlerts,
+    statusGroups,
+    highSeverityCount,
+    predictionRiskCount,
+  ] = await Promise.all([
     prisma.alert.findMany({
       orderBy: [{ status: "asc" }, { severity: "desc" }, { createdAt: "desc" }],
       skip,
@@ -46,13 +53,27 @@ export async function getAlertsWorkspace(page = 1) {
         _all: true,
       },
     }),
+    prisma.alert.count({
+      where: {
+        severity: {
+          in: [AlertSeverity.HIGH, AlertSeverity.CRITICAL],
+        },
+      },
+    }),
+    prisma.alert.count({
+      where: {
+        type: "PREDICTION_RISK",
+      },
+    }),
   ]);
 
   const totals = {
-    total: totalAlerts,
-    active: 0,
     acknowledged: 0,
+    active: 0,
+    highSeverity: highSeverityCount,
+    predictionRisk: predictionRiskCount,
     resolved: 0,
+    total: totalAlerts,
   };
 
   for (const group of statusGroups) {

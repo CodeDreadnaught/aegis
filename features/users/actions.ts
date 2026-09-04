@@ -7,6 +7,7 @@ import { UserRole, UserStatus } from "@/generated/prisma/enums";
 import {
   isRemovingActiveAdministrator,
   parseCreateUserFormData,
+  parseDeleteUserFormData,
   parseUpdateUserAccessFormData,
 } from "@/features/users/validation";
 import { requirePermission } from "@/server/auth/session";
@@ -144,6 +145,72 @@ export async function updateUserAccessAction(
       },
     },
   });
+
+  revalidatePath(usersPath);
+}
+
+export async function deleteUserAction(formData: FormData): Promise<void> {
+  const actor = await requirePermission("manageUsers");
+  const parsed = parseDeleteUserFormData(formData);
+
+  if (!parsed.success) {
+    throw new Error(firstValidationError(parsed.error));
+  }
+
+  if (parsed.data.userId === actor.id) {
+    throw new Error("You cannot delete your own administrator account.");
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      status: true,
+    },
+  });
+
+  if (!target) {
+    throw new Error("User account was not found.");
+  }
+
+  if (target.role === UserRole.ADMINISTRATOR && target.status === UserStatus.ACTIVE) {
+    const activeAdministratorCount = await prisma.user.count({
+      where: {
+        role: UserRole.ADMINISTRATOR,
+        status: UserStatus.ACTIVE,
+      },
+    });
+
+    if (activeAdministratorCount <= 1) {
+      throw new Error(
+        "At least one active administrator must remain available for AEGIS."
+      );
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.session.deleteMany({
+      where: { userId: target.id },
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId: actor.id,
+        action: "DELETE_USER",
+        entityType: "User",
+        entityId: target.id,
+        metadata: {
+          email: target.email,
+          role: target.role,
+          status: target.status,
+        },
+      },
+    }),
+    prisma.user.delete({
+      where: { id: target.id },
+    }),
+  ]);
 
   revalidatePath(usersPath);
 }

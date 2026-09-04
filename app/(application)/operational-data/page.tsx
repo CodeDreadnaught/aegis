@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Database, Factory, Gauge, Pulse } from "@phosphor-icons/react/ssr";
+import { Database, Factory, Gauge, MagnifyingGlass, Pulse } from "@phosphor-icons/react/ssr";
 
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -14,8 +16,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { createOperationalReadingAction } from "@/features/operational-readings/actions";
+import type { EquipmentCategory } from "@/generated/prisma/enums";
 import { CaptureWorkspace } from "@/features/operational-readings/capture-workspace";
 import { getOperationalDataWorkspace } from "@/features/operational-readings/queries";
+import { equipmentCategories, formatEquipmentCategory } from "@/features/equipment/validation";
 import { formatSourceType } from "@/features/operational-readings/validation";
 import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
@@ -61,7 +65,13 @@ const metricCards = [
 ] as const;
 
 type OperationalDataPageProps = {
-  searchParams?: Promise<{ page?: string | string[] }>;
+  searchParams?: Promise<{
+    category?: string | string[];
+    from?: string | string[];
+    page?: string | string[];
+    q?: string | string[];
+    to?: string | string[];
+  }>;
 };
 
 export default async function OperationalDataPage({
@@ -70,8 +80,22 @@ export default async function OperationalDataPage({
   await requirePermission("recordOperationalData");
   const params = await searchParams;
   const page = parsePageParam(params?.page);
-  const { equipment, metricReadings, readingCount, readings } =
-    await getOperationalDataWorkspace(page);
+  const query = getParam(params?.q)?.trim() ?? "";
+  const category = parseCategoryParam(params?.category);
+  const dateFrom = parseDateParam(params?.from);
+  const dateTo = parseDateParam(params?.to);
+  const {
+    equipment,
+    metricReadings,
+    readingCount,
+    readings,
+    totalReadingCount,
+  } = await getOperationalDataWorkspace(page, {
+    category,
+    dateFrom: toDateStart(dateFrom),
+    dateTo: toDateEndExclusive(dateTo),
+    query,
+  });
   const averageVibration = average(
     metricReadings.map(
       reading => asReadingParameters(reading.parameters).vibrationMmS,
@@ -96,8 +120,8 @@ export default async function OperationalDataPage({
     },
     readings: {
       detail: "Stored records",
-      progress: readingCount ? 100 : 0,
-      value: readingCount,
+      progress: totalReadingCount ? 100 : 0,
+      value: totalReadingCount,
     },
     vibration: {
       detail: "Recent average",
@@ -160,10 +184,84 @@ export default async function OperationalDataPage({
               {readingCount} records
             </Badge>
           </CardHeader>
+          <form className="grid gap-3 border-y border-zinc-100 px-4 py-3 md:grid-cols-[minmax(14rem,1fr)_minmax(19rem,0.9fr)_minmax(12rem,0.75fr)_auto] md:items-end">
+            <div className="relative min-w-0">
+              <MagnifyingGlass
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+              />
+              <Input
+                aria-label="Search recent readings"
+                className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
+                defaultValue={query}
+                key={query}
+                name="q"
+                placeholder="Search equipment or source"
+              />
+            </div>
+            <fieldset
+              aria-label="Recorded date range"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-inner shadow-zinc-950/5 transition-colors focus-within:border-zinc-950"
+            >
+              <input
+                aria-label="Recorded from"
+                className="w-full min-w-0 bg-transparent text-sm font-medium text-zinc-700 outline-none [color-scheme:light]"
+                defaultValue={dateFrom ?? ""}
+                key={`from-${dateFrom ?? "all"}`}
+                name="from"
+                type="date"
+              />
+              <span className="text-xs font-semibold uppercase text-zinc-400">to</span>
+              <input
+                aria-label="Recorded to"
+                className="w-full min-w-0 bg-transparent text-sm font-medium text-zinc-700 outline-none [color-scheme:light]"
+                defaultValue={dateTo ?? ""}
+                key={`to-${dateTo ?? "all"}`}
+                name="to"
+                type="date"
+              />
+            </fieldset>
+            <select
+              aria-label="Equipment category"
+              className="h-10 min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
+              defaultValue={category ?? ""}
+              name="category"
+            >
+              <option value="">All categories</option>
+              {equipmentCategories.map(item => (
+                <option key={item} value={item}>
+                  {formatEquipmentCategory(item)}
+                </option>
+              ))}
+            </select>
+            <div className="grid grid-cols-2 gap-2 md:flex md:items-center">
+              <button
+                className={buttonVariants({
+                  size: "sm",
+                  className:
+                    "h-10 rounded-full border-[#009966] !bg-[#009966] px-4 !text-white hover:!bg-[#007a55] hover:!text-white",
+                })}
+                type="submit"
+              >
+                Apply
+              </button>
+              <Link
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "sm",
+                  className:
+                    "h-10 rounded-full border-zinc-200 bg-white px-4 text-zinc-700 hover:bg-zinc-950 hover:text-white",
+                })}
+                href="/operational-data"
+              >
+                Reset
+              </Link>
+            </div>
+          </form>
           <CardContent className="min-w-0 p-0">
             {readings.length ? (
               <>
-                <div className="max-w-full min-w-0 px-4 pb-4">
+                <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
                   <Table className="min-w-[1040px]">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
@@ -388,6 +486,38 @@ function asReadingParameters(value: unknown): ReadingParameters {
   }
 
   return value as ReadingParameters;
+}
+
+function getParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseCategoryParam(value: string | string[] | undefined) {
+  const category = getParam(value);
+
+  return equipmentCategories.includes(category as EquipmentCategory)
+    ? (category as EquipmentCategory)
+    : undefined;
+}
+
+function parseDateParam(value: string | string[] | undefined) {
+  const date = getParam(value);
+
+  return date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined;
+}
+
+function toDateStart(value: string | undefined) {
+  return value ? new Date(`${value}T00:00:00.000Z`) : undefined;
+}
+
+function toDateEndExclusive(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date;
 }
 
 function average(values: Array<number | undefined>) {

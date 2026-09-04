@@ -48,8 +48,13 @@ export const updateUserAccessSchema = z.object({
   status: z.enum(userStatusOptions),
 });
 
+export const deleteUserSchema = z.object({
+  userId: z.string().trim().min(1, "A user is required."),
+});
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserAccessInput = z.infer<typeof updateUserAccessSchema>;
+export type DeleteUserInput = z.infer<typeof deleteUserSchema>;
 
 export function parseCreateUserFormData(formData: FormData) {
   return createUserSchema.safeParse({
@@ -66,6 +71,12 @@ export function parseUpdateUserAccessFormData(formData: FormData) {
     userId: formData.get("userId"),
     role: formData.get("role"),
     status: formData.get("status"),
+  });
+}
+
+export function parseDeleteUserFormData(formData: FormData) {
+  return deleteUserSchema.safeParse({
+    userId: formData.get("userId"),
   });
 }
 

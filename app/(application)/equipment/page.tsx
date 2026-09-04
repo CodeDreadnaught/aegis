@@ -91,9 +91,6 @@ export default async function EquipmentPage({
 
     return nextDueDate.getTime() - now.getTime() <= 1000 * 60 * 60 * 24 * 30;
   }).length;
-  const highRiskCount = equipment.filter(
-    item => item.predictions[0]?.riskLevel === "HIGH",
-  ).length;
   const monitoredCount = equipment.filter(
     item => item._count.operationalReadings > 0,
   ).length;
@@ -188,6 +185,7 @@ export default async function EquipmentPage({
                 className="h-11 rounded-full border-zinc-200 bg-zinc-50 pl-11 text-sm shadow-inner shadow-zinc-950/5"
                 defaultValue={query}
                 id="q"
+                key={query}
                 name="q"
                 placeholder="Search tag, asset name or location"
               />

@@ -57,40 +57,44 @@ export function CreateUserForm({
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit} ref={formRef}>
+    <form
+      className="grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-[minmax(11rem,0.8fr)_minmax(21rem,1.3fr)_minmax(13rem,0.9fr)_minmax(16rem,0.9fr)_minmax(9rem,0.6fr)] 2xl:items-end"
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       <input name="role" type="hidden" value={role} />
       <input name="status" type="hidden" value={status} />
 
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <Label htmlFor="name">Full name</Label>
         <Input
           autoComplete="name"
-          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
           disabled={pending}
           id="name"
           name="name"
-          placeholder="Ada Okoro"
+          placeholder="Nenkemun Goyit"
           required
         />
       </div>
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
           autoComplete="email"
-          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
           disabled={pending}
           id="email"
           name="email"
-          placeholder="ada.okoro@aegis.demo"
+          placeholder="nenkemum.goyit@useaegisnow.com"
           required
           type="email"
         />
       </div>
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <Label htmlFor="password">Temporary password</Label>
         <Input
           autoComplete="new-password"
-          className="h-11 rounded-full border-zinc-200 bg-zinc-50 px-4"
+          className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4"
           disabled={pending}
           id="password"
           minLength={12}
@@ -100,48 +104,46 @@ export function CreateUserForm({
           type="password"
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Role</Label>
-          <Select
-            disabled={pending}
-            value={role}
-            onValueChange={(value) => setRole(value as UserRole)}
-          >
-            <SelectTrigger className="h-11 w-full rounded-full border-zinc-200 bg-zinc-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {userRoleOptions.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {userRoleLabels[option]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Select
-            disabled={pending}
-            value={status}
-            onValueChange={(value) => setStatus(value as UserStatus)}
-          >
-            <SelectTrigger className="h-11 w-full rounded-full border-zinc-200 bg-zinc-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {userStatusOptions.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {userStatusLabels[option]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="min-w-0 space-y-2">
+        <Label>Role</Label>
+        <Select
+          disabled={pending}
+          onValueChange={value => setRole(value as UserRole)}
+          value={role}
+        >
+          <SelectTrigger className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 text-zinc-950 [&>span]:truncate">
+            <SelectValue>{userRoleLabels[role]}</SelectValue>
+          </SelectTrigger>
+          <SelectContent className="min-w-[16rem]">
+            {userRoleOptions.map(option => (
+              <SelectItem key={option} value={option}>
+                {userRoleLabels[option]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="min-w-0 space-y-2">
+        <Label>Status</Label>
+        <Select
+          disabled={pending}
+          onValueChange={value => setStatus(value as UserStatus)}
+          value={status}
+        >
+          <SelectTrigger className="h-11 w-full min-w-0 rounded-full border-zinc-200 bg-zinc-50 px-4 text-zinc-950 [&>span]:truncate">
+            <SelectValue>{userStatusLabels[status]}</SelectValue>
+          </SelectTrigger>
+          <SelectContent className="min-w-[16rem]">
+            {userStatusOptions.map(option => (
+              <SelectItem key={option} value={option}>
+                {userStatusLabels[option]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <Button
-        className="h-11 w-full rounded-full bg-zinc-950 text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-11 w-full rounded-full border-[#009966] !bg-[#009966] text-white shadow-sm hover:!bg-[#007a55] hover:text-white disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2 2xl:col-span-5"
         disabled={pending}
         type="submit"
       >

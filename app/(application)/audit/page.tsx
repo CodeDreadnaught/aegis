@@ -22,7 +22,7 @@ import {
   safeMetadataSummary,
 } from "@/features/audit/formatting";
 import { getAuditTrail } from "@/features/audit/queries";
-import { paginateItems, parsePageParam } from "@/lib/pagination";
+import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -47,48 +47,79 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
   await requirePermission("viewAudit");
   const params = await searchParams;
   const page = parsePageParam(params?.page);
-  const auditLogs = await getAuditTrail();
-  const paginatedAuditLogs = paginateItems(auditLogs, page);
-  const systemEvents = auditLogs.filter(entry => !entry.user).length;
-  const userEvents = auditLogs.length - systemEvents;
-  const entityTypes = new Set(auditLogs.map(entry => entry.entityType)).size;
+  const auditTrail = await getAuditTrail(page);
+  const {
+    currentPage,
+    entries: auditLogs,
+    entityTypes,
+    systemEvents,
+    total,
+    userEvents,
+  } = auditTrail;
+  const maxMetric = Math.max(1, total, userEvents, systemEvents, entityTypes);
+  const metrics = [
+    {
+      accent: "bg-[#2f9da7]",
+      detail: "Audit entries",
+      icon: Pulse,
+      label: "Events",
+      progress: percentage(total, maxMetric),
+      tone: "bg-[#e8fbf6] text-[#146c74]",
+      value: total,
+    },
+    {
+      accent: "bg-[#5ec3cf]",
+      detail: "Human activity",
+      icon: Fingerprint,
+      label: "User Events",
+      progress: percentage(userEvents, maxMetric),
+      tone: "bg-[#eefbfc] text-[#146c74]",
+      value: userEvents,
+    },
+    {
+      accent: "bg-[#f2bd3f]",
+      detail: "System generated",
+      icon: ShieldCheck,
+      label: "System",
+      progress: percentage(systemEvents, maxMetric),
+      tone: "bg-[#fff6dc] text-[#8a5a00]",
+      value: systemEvents,
+    },
+    {
+      accent: "bg-[#ef4444]",
+      detail: "Entity coverage",
+      icon: LockKey,
+      label: "Entities",
+      progress: percentage(entityTypes, maxMetric),
+      tone: "bg-[#fff0ed] text-[#b13d2e]",
+      value: entityTypes,
+    },
+  ];
 
   return (
     <div className="grid w-full max-w-full min-w-0 gap-4">
       <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0" data-motion="reveal">
-          <p className="text-sm font-medium text-zinc-500">Audit</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+          <p className="text-sm font-medium text-[#2f9da7]">Audit</p>
+          <h1 className="mt-1 break-words text-3xl font-semibold tracking-normal text-zinc-950">
             Trace Log
           </h1>
         </div>
       </section>
 
-      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        <MetricCard
-          detail="Recent entries"
-          icon={Pulse}
-          label="Events"
-          value={auditLogs.length}
-        />
-        <MetricCard
-          detail="Human activity"
-          icon={Fingerprint}
-          label="User Events"
-          value={userEvents}
-        />
-        <MetricCard
-          detail="System generated"
-          icon={ShieldCheck}
-          label="System"
-          value={systemEvents}
-        />
-        <MetricCard
-          detail="Entity coverage"
-          icon={LockKey}
-          label="Entities"
-          value={entityTypes}
-        />
+      <section className="grid w-full max-w-full min-w-0 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(metric => (
+          <MetricCard
+            accent={metric.accent}
+            detail={metric.detail}
+            icon={metric.icon}
+            key={metric.label}
+            label={metric.label}
+            progress={metric.progress}
+            tone={metric.tone}
+            value={metric.value}
+          />
+        ))}
       </section>
 
       <Card
@@ -103,34 +134,30 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
             </p>
           </div>
           <Badge
-            className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+            className="shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
             variant="outline"
           >
-            {auditLogs.length} entries
+            {total} entries
           </Badge>
         </CardHeader>
         <CardContent className="min-w-0 p-0">
           {auditLogs.length ? (
             <>
               <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
-                <Table className="min-w-[960px]">
+                <Table className="min-w-[1040px]">
                   <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50">
-                      <TableHead className="w-[22%]">Action</TableHead>
-                      <TableHead className="hidden text-center md:table-cell">
-                        Actor
-                      </TableHead>
-                      <TableHead className="text-center">Entity</TableHead>
-                      <TableHead className="hidden lg:table-cell">
-                        Metadata
-                      </TableHead>
-                      <TableHead className="text-center">Time</TableHead>
+                      <TableHead className="w-[14rem]">Action</TableHead>
+                      <TableHead className="w-[18rem]">Actor</TableHead>
+                      <TableHead className="w-[16rem]">Entity</TableHead>
+                      <TableHead className="w-[34rem]">Metadata</TableHead>
+                      <TableHead className="w-[10rem]">Time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedAuditLogs.items.map(entry => (
+                    {auditLogs.map(entry => (
                       <TableRow
-                        className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                        className="border-zinc-100 align-top transition-colors hover:bg-zinc-50"
                         key={entry.id}
                       >
                         <TableCell>
@@ -141,28 +168,28 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
                             {formatAuditAction(entry.action)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden text-center md:table-cell">
+                        <TableCell>
                           <p className="font-semibold text-zinc-950">
                             {entry.user?.name ?? "System"}
                           </p>
-                          <p className="truncate text-xs text-zinc-500">
+                          <p className="break-words text-xs text-zinc-500">
                             {entry.user?.email ?? "No user account"}
                           </p>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
                           <p className="font-semibold text-zinc-950">
                             {entry.entityType}
                           </p>
-                          <p className="truncate text-xs text-zinc-500">
+                          <p className="break-all text-xs text-zinc-500">
                             {entry.entityId ?? "No entity id"}
                           </p>
                         </TableCell>
-                        <TableCell className="hidden text-sm text-zinc-500 lg:table-cell">
-                          <p className="truncate">
+                        <TableCell className="text-sm text-zinc-500">
+                          <p className="max-w-[34rem] whitespace-normal break-words leading-6">
                             {safeMetadataSummary(entry.metadata)}
                           </p>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell>
                           <p className="font-medium text-zinc-950">
                             {compactDateFormatter.format(entry.timestamp)}
                           </p>
@@ -176,9 +203,9 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
                 </Table>
               </div>
               <PaginationControls
-                page={paginatedAuditLogs.currentPage}
+                page={currentPage}
                 searchParams={params}
-                total={paginatedAuditLogs.total}
+                total={total}
               />
             </>
           ) : (
@@ -193,14 +220,20 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
 type AuditIcon = typeof Pulse;
 
 function MetricCard({
+  accent,
   detail,
   icon: Icon,
   label,
+  progress,
+  tone,
   value,
 }: {
+  accent: string;
   detail: string;
   icon: AuditIcon;
   label: string;
+  progress: number;
+  tone: string;
   value: number;
 }) {
   return (
@@ -216,7 +249,7 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8fbf6] text-[#146c74]">
+          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
@@ -224,7 +257,10 @@ function MetricCard({
           {detail}
         </p>
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-          <div className="h-full rounded-full bg-[#2f9da7]" />
+          <div
+            className={`h-full rounded-full ${accent}`}
+            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+          />
         </div>
       </CardContent>
     </Card>
@@ -240,4 +276,12 @@ function EmptyState() {
       </div>
     </div>
   );
+}
+
+function percentage(value: number, total: number) {
+  if (!total) {
+    return 0;
+  }
+
+  return Math.round((value / total) * 100);
 }

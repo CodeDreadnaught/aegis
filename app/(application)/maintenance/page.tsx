@@ -5,13 +5,16 @@ import {
   ChartBar,
   ClockCounterClockwise,
   Factory,
+  MagnifyingGlass,
   ShieldWarning,
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -74,7 +77,7 @@ const metricCards = [
 const statusAccents = ["#2f9da7", "#5ec3cf", "#f2bd3f", "#ef7b63"];
 
 type MaintenancePageProps = {
-  searchParams?: Promise<{ page?: string | string[] }>;
+  searchParams?: Promise<{ page?: string | string[]; q?: string | string[] }>;
 };
 
 export default async function MaintenancePage({
@@ -83,23 +86,18 @@ export default async function MaintenancePage({
   const user = await requirePermission("viewMaintenance");
   const params = await searchParams;
   const page = parsePageParam(params?.page);
+  const query = getParam(params?.q)?.trim() ?? "";
   const canRecordMaintenance = can(user.role, "recordMaintenance");
-  const { equipment, records, scheduleRecords, totals } =
-    await getMaintenanceWorkspace(page);
+  const { equipment, historyCount, records, scheduleRecords, totals } =
+    await getMaintenanceWorkspace(page, { query });
   const now = new Date();
   const activeAssetCount = equipment.length;
-  const overdueCount = scheduleRecords.filter(record =>
-    isOverdue(record.nextDueDate, now),
-  ).length;
-  const dueSoonCount = scheduleRecords.filter(record =>
-    isDueSoon(record.nextDueDate, now),
-  ).length;
+  const overdueCount = totals.overdue;
+  const dueSoonCount = totals.dueSoon;
   const completionRate = percentage(totals.completed, totals.total);
   const openWorkCount = totals.planned + totals.in_progress + totals.deferred;
   const scheduleRiskCount = overdueCount + dueSoonCount;
-  const upcomingRecords = scheduleRecords
-    .filter(record => record.nextDueDate && record.nextDueDate >= now)
-    .slice(0, 6);
+  const upcomingRecords = scheduleRecords;
   const statusRows = [
     { label: "Completed", value: totals.completed },
     { label: "Planned", value: totals.planned },
@@ -149,7 +147,7 @@ export default async function MaintenancePage({
               accent={card.accent}
               detail={metric.detail}
               icon={card.icon}
-              key={card.key}
+              key={card.label}
               label={card.label}
               progress={metric.progress}
               tone={card.tone}
@@ -173,20 +171,59 @@ export default async function MaintenancePage({
               className="shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
               variant="outline"
             >
-              {totals.total} records
+              {historyCount} records
             </Badge>
           </CardHeader>
+          <form className="grid gap-3 border-y border-zinc-100 px-4 py-3 sm:grid-cols-[minmax(14rem,1fr)_auto] sm:items-center">
+            <div className="relative min-w-0">
+              <MagnifyingGlass
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+              />
+              <Input
+                aria-label="Search maintenance history"
+                className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
+                defaultValue={query}
+                key={query}
+                name="q"
+                placeholder="Search equipment, work or operator"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+              <button
+                className={buttonVariants({
+                  size: "sm",
+                  className:
+                    "h-10 rounded-full border-[#009966] !bg-[#009966] px-4 !text-white hover:!bg-[#007a55] hover:!text-white",
+                })}
+                type="submit"
+              >
+                Apply
+              </button>
+              <Link
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "sm",
+                  className:
+                    "h-10 rounded-full border-zinc-200 bg-white px-4 text-zinc-700 hover:bg-zinc-950 hover:text-white",
+                })}
+                href="/maintenance"
+              >
+                Reset
+              </Link>
+            </div>
+          </form>
           <CardContent className="min-w-0 p-0">
             {records.length ? (
               <>
-                <div className="max-w-full min-w-0 px-4 pb-4">
+                <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
                   <Table className="min-w-[1040px]">
                     <TableHeader>
                       <TableRow className="border-zinc-200 bg-zinc-50">
                         <TableHead>Equipment</TableHead>
                         <TableHead>Work</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Due</TableHead>
+                        <TableHead>Next Due</TableHead>
                         <TableHead>Recorded</TableHead>
                         <TableHead>Action</TableHead>
                       </TableRow>
@@ -247,11 +284,11 @@ export default async function MaintenancePage({
                 <PaginationControls
                   page={page}
                   searchParams={params}
-                  total={totals.total}
+                  total={historyCount}
                 />
               </>
             ) : (
-              <EmptyState icon={Wrench} label="No maintenance records" />
+              <EmptyState icon={Wrench} label="No maintenance records found" />
             )}
           </CardContent>
         </Card>
@@ -489,13 +526,17 @@ function EmptyState({
   label: string;
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-5 text-sm font-medium text-zinc-500">
+    <div className="m-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-5 text-sm font-medium text-zinc-500">
       <div className="flex items-center gap-2">
         {Icon && <Icon aria-hidden="true" className="size-4 text-zinc-400" />}
         <span>{label}</span>
       </div>
     </div>
   );
+}
+
+function getParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function isDueSoon(dueDate: Date | null, now: Date) {

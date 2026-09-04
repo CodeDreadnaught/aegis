@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+﻿import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
@@ -16,7 +16,7 @@ export default function Loading() {
       <section className="grid w-full max-w-full min-w-0 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
-            className="grid min-h-32 w-full max-w-full min-w-0 gap-3 rounded-[1.2rem] border border-zinc-200 bg-white px-4 py-4 shadow-sm"
+            className="grid min-h-36 w-full max-w-full min-w-0 gap-3 rounded-[1.2rem] border border-zinc-200 bg-white px-4 py-5 shadow-sm"
             key={index}
           >
             <div className="flex items-start justify-between gap-3">
@@ -40,6 +40,13 @@ export default function Loading() {
           </div>
           <Skeleton className="h-7 w-24 rounded-full" />
         </div>
+        <div className="grid gap-3 border-y border-zinc-100 py-3 sm:grid-cols-[minmax(14rem,1fr)_auto]">
+          <Skeleton className="h-10 w-full rounded-full" />
+          <div className="grid grid-cols-2 gap-2">
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-10 w-full rounded-full" />
+          </div>
+        </div>
         <div className="grid gap-2 rounded-lg border border-zinc-200 p-3">
           <Skeleton className="h-8 w-full rounded-md" />
           {Array.from({ length: 6 }).map((_, index) => (
@@ -52,7 +59,7 @@ export default function Loading() {
         <Panel>
           <Skeleton className="h-7 w-36 rounded-lg" />
           <div className="grid gap-2">
-            {Array.from({ length: 4 }).map((_, index) => (
+            {Array.from({ length: 6 }).map((_, index) => (
               <Skeleton className="h-14 w-full rounded-xl" key={index} />
             ))}
           </div>
@@ -66,7 +73,7 @@ export default function Loading() {
             <Skeleton className="h-7 w-20 rounded-full" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, index) => (
+            {Array.from({ length: 6 }).map((_, index) => (
               <Skeleton className="h-16 w-full rounded-lg" key={index} />
             ))}
           </div>

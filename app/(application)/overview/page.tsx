@@ -12,7 +12,6 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { PremiumMotion } from "@/components/motion/premium-motion";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
@@ -142,6 +141,9 @@ export default async function OverviewPage({
         updated: latestPrediction
           ? compactDateFormatter.format(latestPrediction.createdAt)
           : "Pending",
+        updatedAt: latestPrediction
+          ? latestPrediction.createdAt.toISOString().slice(0, 10)
+          : null,
       };
     })
     .sort((left, right) => {
@@ -489,15 +491,15 @@ export default async function OverviewPage({
           </div>
         </section>
 
-        <section>
+        <section className="w-full max-w-full min-w-0">
           <Card
-            className="rounded-lg border-zinc-200 bg-white shadow-sm"
+            className="w-full max-w-full min-w-0 rounded-lg border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
             <CardHeader className="pb-2">
               <CardTitle>Asset Performance</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="min-w-0 p-0">
               <OverviewAssetTable rows={assetRows} />
             </CardContent>
           </Card>

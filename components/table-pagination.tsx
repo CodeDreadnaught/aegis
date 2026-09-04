@@ -47,7 +47,7 @@ export function PaginationControls({
             variant: "outline",
             size: "sm",
             className: cn(
-              "h-10 min-w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700",
+              "h-10 w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700",
               currentPage === 1 && "pointer-events-none opacity-50"
             ),
           })}
@@ -56,7 +56,7 @@ export function PaginationControls({
           <CaretLeft />
           Previous
         </Link>
-        <span className="grid h-10 min-w-20 place-items-center rounded-full bg-zinc-50 px-3 font-semibold text-zinc-700">
+        <span className="grid h-10 w-20 place-items-center rounded-full bg-zinc-50 px-3 font-semibold text-zinc-700">
           {currentPage} / {pageCount}
         </span>
         <Link
@@ -65,7 +65,7 @@ export function PaginationControls({
             variant: "outline",
             size: "sm",
             className: cn(
-              "h-10 min-w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700",
+              "h-10 w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700",
               currentPage === pageCount && "pointer-events-none opacity-50"
             ),
           })}

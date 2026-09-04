@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-
 import { useMemo, useState } from "react";
-import { CaretLeft, CaretRight, FunnelSimple, MagnifyingGlass } from "@phosphor-icons/react";
+import {
+  CaretLeft,
+  CaretRight,
+  FunnelSimple,
+  MagnifyingGlass,
+} from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +32,7 @@ export type OverviewAssetRow = {
   name: string;
   risk: string;
   updated: string;
+  updatedAt: string | null;
 };
 
 type OverviewAssetTableProps = {
@@ -39,12 +44,13 @@ const riskFilters = ["ALL", "HIGH", "MEDIUM", "LOW"] as const;
 export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
   const [query, setQuery] = useState("");
   const [risk, setRisk] = useState<(typeof riskFilters)[number]>("ALL");
+  const [updatedDate, setUpdatedDate] = useState("");
   const [page, setPage] = useState(1);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return rows.filter((row) => {
+    return rows.filter(row => {
       const matchesQuery =
         !normalizedQuery ||
         row.asset.toLowerCase().includes(normalizedQuery) ||
@@ -52,17 +58,19 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
         row.category.toLowerCase().includes(normalizedQuery) ||
         row.location.toLowerCase().includes(normalizedQuery);
       const matchesRisk = risk === "ALL" || row.risk === risk;
+      const matchesUpdatedDate =
+        !updatedDate || row.updatedAt === updatedDate;
 
-      return matchesQuery && matchesRisk;
+      return matchesQuery && matchesRisk && matchesUpdatedDate;
     });
-  }, [query, risk, rows]);
+  }, [query, risk, rows, updatedDate]);
 
   const paginatedRows = paginateItems(filteredRows, page);
 
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:w-72">
+    <div className="grid w-full max-w-full min-w-0 gap-3">
+      <div className="grid w-full max-w-full min-w-0 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_auto_minmax(10rem,0.45fr)] lg:items-center">
+        <div className="relative min-w-0">
           <MagnifyingGlass
             aria-hidden="true"
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
@@ -70,35 +78,51 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           <Input
             aria-label="Search overview assets"
             className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
-            onChange={(event) => {
+            onChange={event => {
               setQuery(event.target.value);
               setPage(1);
             }}
+            placeholder="Search assets"
             value={query}
           />
         </div>
-        <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1">
-          <FunnelSimple aria-hidden="true" className="ml-2 size-4 text-zinc-500" />
-          {riskFilters.map((item) => (
-            <button
-              className={cn(
-                "h-8 rounded-full px-3 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-950",
-                risk === item && "bg-white text-zinc-950 shadow-sm"
-              )}
-              key={item}
-              onClick={() => {
-                setRisk(item);
-                setPage(1);
-              }}
-              type="button"
-            >
-              {item}
-            </button>
-          ))}
+        <div className="min-w-0 max-w-full overflow-x-auto sm:col-span-2 lg:col-span-1">
+          <div className="flex w-max items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1">
+            <FunnelSimple
+              aria-hidden="true"
+              className="ml-2 size-4 text-zinc-500"
+            />
+            {riskFilters.map(item => (
+              <button
+                className={cn(
+                  "h-8 rounded-full px-3 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-950",
+                  risk === item && "bg-white text-zinc-950 shadow-sm",
+                )}
+                key={item}
+                onClick={() => {
+                  setRisk(item);
+                  setPage(1);
+                }}
+                type="button"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
+        <input
+          aria-label="Filter asset updates by date"
+          className="h-10 w-full max-w-full min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
+          onChange={event => {
+            setUpdatedDate(event.target.value);
+            setPage(1);
+          }}
+          type="date"
+          value={updatedDate}
+        />
       </div>
-      <div className="overflow-x-auto px-4 pb-4">
-        <Table>
+      <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
+        <Table className="min-w-[1040px]">
           <TableHeader>
             <TableRow className="border-zinc-200 bg-zinc-50/70">
               <TableHead>Asset</TableHead>
@@ -106,8 +130,8 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
               <TableHead>Health</TableHead>
               <TableHead>Failure</TableHead>
               <TableHead>Risk</TableHead>
-              <TableHead className="text-right">Action</TableHead>
               <TableHead>Updated</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,6 +185,7 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                 <TableCell>
                   <RiskBadge risk={row.risk} />
                 </TableCell>
+                <TableCell className="text-zinc-500">{row.updated}</TableCell>
                 <TableCell className="text-right">
                   <Link
                     className="inline-flex h-8 items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-950 hover:text-white"
@@ -169,7 +194,6 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
                     View
                   </Link>
                 </TableCell>
-                <TableCell className="text-zinc-500">{row.updated}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -182,9 +206,9 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
           </p>
           <div className="flex items-center justify-center gap-2">
             <Button
-              className="rounded-full border-zinc-200 bg-white text-zinc-700"
+              className="h-10 w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700"
               disabled={paginatedRows.currentPage === 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              onClick={() => setPage(value => Math.max(1, value - 1))}
               size="sm"
               type="button"
               variant="outline"
@@ -192,13 +216,15 @@ export function OverviewAssetTable({ rows }: OverviewAssetTableProps) {
               <CaretLeft />
               Previous
             </Button>
-            <span className="rounded-full bg-zinc-50 px-3 py-1 font-semibold text-zinc-700">
+            <span className="inline-flex h-10 w-20 items-center justify-center rounded-full bg-zinc-50 px-3 py-1 font-semibold text-zinc-700">
               {paginatedRows.currentPage} / {paginatedRows.pageCount}
             </span>
             <Button
-              className="rounded-full border-zinc-200 bg-white text-zinc-700"
+              className="h-10 w-[7.5rem] justify-center rounded-full border-zinc-200 bg-white text-zinc-700"
               disabled={paginatedRows.currentPage === paginatedRows.pageCount}
-              onClick={() => setPage((value) => Math.min(paginatedRows.pageCount, value + 1))}
+              onClick={() =>
+                setPage(value => Math.min(paginatedRows.pageCount, value + 1))
+              }
               size="sm"
               type="button"
               variant="outline"

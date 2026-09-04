@@ -40,6 +40,15 @@ export default function Loading() {
           </div>
           <Skeleton className="h-7 w-24 rounded-full" />
         </div>
+        <div className="grid gap-3 border-y border-zinc-100 py-3 md:grid-cols-[minmax(14rem,1fr)_minmax(19rem,0.9fr)_minmax(12rem,0.75fr)_auto]">
+          <Skeleton className="h-10 w-full rounded-full" />
+          <Skeleton className="h-10 w-full rounded-full" />
+          <Skeleton className="h-10 w-full rounded-full" />
+          <div className="grid grid-cols-2 gap-2">
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-10 w-full rounded-full" />
+          </div>
+        </div>
         <div className="grid gap-2 rounded-lg border border-zinc-200 p-3">
           <Skeleton className="h-8 w-full rounded-md" />
           {Array.from({ length: 6 }).map((_, index) => (

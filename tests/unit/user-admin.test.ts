@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createUserSchema,
+  deleteUserSchema,
   isRemovingActiveAdministrator,
   updateUserAccessSchema,
   userInitials,
@@ -35,6 +36,12 @@ describe("AEGIS user administration helpers", () => {
         status: "ACTIVE",
       })
     ).toThrow();
+  });
+
+  it("validates delete user input", () => {
+    expect(deleteUserSchema.parse({ userId: "user_123" })).toEqual({
+      userId: "user_123",
+    });
   });
 
   it("validates role and status update input", () => {

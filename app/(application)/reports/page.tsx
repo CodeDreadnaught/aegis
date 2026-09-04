@@ -9,6 +9,7 @@ import {
   Wrench,
 } from "@phosphor-icons/react/ssr";
 
+import { MessageViewDialog } from "@/components/message-view-dialog";
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -107,61 +108,92 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const highRiskReports = reports.predictions.filter(
     prediction => prediction.riskLevel === "HIGH",
   ).length;
+  const maxReportRows = Math.max(
+    1,
+    reports.equipment.length,
+    reports.maintenance.length,
+    reports.predictions.length,
+    reports.alerts.length,
+  );
+  const metrics = [
+    {
+      accent: "bg-[#2f9da7]",
+      detail: "Fleet register",
+      icon: HardHat,
+      label: "Equipment",
+      progress: percentage(reports.equipment.length, maxReportRows),
+      tone: "bg-[#e8fbf6] text-[#146c74]",
+      value: reports.equipment.length,
+    },
+    {
+      accent: "bg-[#5ec3cf]",
+      detail: "Service history",
+      icon: Wrench,
+      label: "Maintenance",
+      progress: percentage(reports.maintenance.length, maxReportRows),
+      tone: "bg-[#eefbfc] text-[#146c74]",
+      value: reports.maintenance.length,
+    },
+    {
+      accent: "bg-[#f2bd3f]",
+      detail: highRiskReports ? "High risk" : "No high risk",
+      icon: ChartLineUp,
+      label: "Predictions",
+      progress: percentage(reports.predictions.length, maxReportRows),
+      tone: "bg-[#fff6dc] text-[#8a5a00]",
+      value: reports.predictions.length,
+    },
+    {
+      accent: "bg-[#ef4444]",
+      detail: "Response records",
+      icon: Bell,
+      label: "Alerts",
+      progress: percentage(reports.alerts.length, maxReportRows),
+      tone: "bg-[#fff0ed] text-[#b13d2e]",
+      value: reports.alerts.length,
+    },
+  ];
 
   return (
     <div className="grid w-full max-w-full min-w-0 gap-4">
       <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0" data-motion="reveal">
-          <p className="text-sm font-medium text-zinc-500">Reports</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 md:text-4xl">
+          <p className="text-sm font-medium text-[#2f9da7]">Reports</p>
+          <h1 className="mt-1 break-words text-3xl font-semibold tracking-normal text-zinc-950">
             Export Center
           </h1>
         </div>
       </section>
 
-      <section className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-w-0">
-        <MetricCard
-          detail="Fleet register"
-          icon={HardHat}
-          label="Equipment"
-          value={reports.equipment.length}
-        />
-        <MetricCard
-          detail="Service history"
-          icon={Wrench}
-          label="Maintenance"
-          value={reports.maintenance.length}
-        />
-        <MetricCard
-          detail={`${highRiskReports} high risk`}
-          icon={ChartLineUp}
-          label="Predictions"
-          value={reports.predictions.length}
-        />
-        <MetricCard
-          detail="Response records"
-          icon={Bell}
-          label="Alerts"
-          value={reports.alerts.length}
-        />
+      <section className="grid w-full max-w-full min-w-0 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(metric => (
+          <MetricCard
+            accent={metric.accent}
+            detail={metric.detail}
+            icon={metric.icon}
+            key={metric.label}
+            label={metric.label}
+            progress={metric.progress}
+            tone={metric.tone}
+            value={metric.value}
+          />
+        ))}
       </section>
 
-      <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-2">
+      <section className="grid w-full max-w-full min-w-0 items-start gap-4">
         <ReportPanel
           downloadHref={csvDataHref(equipmentCsv)}
           filename="aegis-equipment-report.csv"
           rowCount={reports.equipment.length}
           title="Equipment CSV"
         >
-          <Table className="min-w-[960px]">
+          <Table className="min-w-[1040px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
-                <TableHead className="w-[36%]">Asset</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="hidden text-center md:table-cell">
-                  Location
-                </TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="w-[28rem]">Asset</TableHead>
+                <TableHead className="w-[12rem]">Status</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead className="w-[8rem]">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,11 +206,9 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     <p className="font-semibold text-zinc-950">
                       {equipment.assetTag}
                     </p>
-                    <p className="truncate text-xs text-zinc-500">
-                      {equipment.name}
-                    </p>
+                    <p className="text-xs text-zinc-500">{equipment.name}</p>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
                     <Badge
                       className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
                       variant="outline"
@@ -186,10 +216,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                       {equipment.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                  <TableCell className="text-sm text-zinc-500">
                     {equipment.location}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
                     <Link
                       className="text-sm font-semibold text-zinc-600 underline-offset-4 transition-colors hover:text-zinc-950 hover:underline"
                       href={`/equipment/view-more/${equipment.id}`}
@@ -215,15 +245,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           rowCount={reports.maintenance.length}
           title="Maintenance CSV"
         >
-          <Table className="min-w-[960px]">
+          <Table className="min-w-[1040px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
-                <TableHead className="w-[32%]">Equipment</TableHead>
+                <TableHead className="w-[24rem]">Equipment</TableHead>
                 <TableHead>Work</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="hidden text-center md:table-cell">
-                  Performed
-                </TableHead>
+                <TableHead className="w-[12rem]">Status</TableHead>
+                <TableHead className="w-[12rem]">Performed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -236,22 +264,20 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     <p className="font-semibold text-zinc-950">
                       {record.equipment.assetTag}
                     </p>
-                    <p className="truncate text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-500">
                       {record.equipment.name}
                     </p>
                   </TableCell>
                   <TableCell>
-                    <p className="truncate font-semibold text-zinc-950">
-                      {record.type}
-                    </p>
-                    <p className="truncate text-xs text-zinc-500">
-                      Next{" "}
+                    <p className="font-semibold text-zinc-950">{record.type}</p>
+                    <p className="text-xs text-zinc-500">
+                      Next {" "}
                       {record.nextDueDate
                         ? compactDateFormatter.format(record.nextDueDate)
                         : "not scheduled"}
                     </p>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
                     <Badge
                       className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
                       variant="outline"
@@ -259,7 +285,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                       {record.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                  <TableCell className="text-sm text-zinc-500">
                     {compactDateFormatter.format(record.performedAt)}
                   </TableCell>
                 </TableRow>
@@ -280,15 +306,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           rowCount={reports.predictions.length}
           title="Prediction CSV"
         >
-          <Table className="min-w-[960px]">
+          <Table className="min-w-[1040px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
-                <TableHead className="w-[36%]">Equipment</TableHead>
-                <TableHead className="text-center">Risk</TableHead>
-                <TableHead className="text-center">Health</TableHead>
-                <TableHead className="hidden text-center md:table-cell">
-                  Date
-                </TableHead>
+                <TableHead className="w-[28rem]">Equipment</TableHead>
+                <TableHead className="w-[12rem]">Risk</TableHead>
+                <TableHead className="w-[12rem]">Health</TableHead>
+                <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -301,11 +325,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     <p className="font-semibold text-zinc-950">
                       {prediction.equipment.assetTag}
                     </p>
-                    <p className="truncate text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-500">
                       {prediction.equipment.name}
                     </p>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
                     <Badge
                       className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
                       variant="outline"
@@ -313,10 +337,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                       {prediction.riskLevel}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-center font-semibold text-zinc-950">
+                  <TableCell className="font-semibold text-zinc-950">
                     {prediction.healthScore.toString()}%
                   </TableCell>
-                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                  <TableCell className="text-sm text-zinc-500">
                     {compactDateFormatter.format(prediction.createdAt)}
                   </TableCell>
                 </TableRow>
@@ -337,32 +361,31 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           rowCount={reports.alerts.length}
           title="Alert CSV"
         >
-          <Table className="min-w-[960px]">
+          <Table className="min-w-[1040px]">
             <TableHeader>
               <TableRow className="border-zinc-200 bg-zinc-50">
-                <TableHead className="w-[30%]">Equipment</TableHead>
-                <TableHead className="text-center">Severity</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead className="hidden text-center md:table-cell">
-                  Status
-                </TableHead>
+                <TableHead className="w-[22rem]">Equipment</TableHead>
+                <TableHead className="w-[10rem]">Severity</TableHead>
+                <TableHead className="w-[12rem]">Message</TableHead>
+                <TableHead className="w-[10rem]">Status</TableHead>
+                <TableHead className="w-[10rem]">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedAlerts.items.map(alert => (
                 <TableRow
-                  className="border-zinc-100 transition-colors hover:bg-zinc-50"
+                  className="border-zinc-100 align-top transition-colors hover:bg-zinc-50"
                   key={`${alert.equipment.assetTag}-${alert.createdAt.toISOString()}`}
                 >
                   <TableCell>
                     <p className="font-semibold text-zinc-950">
                       {alert.equipment.assetTag}
                     </p>
-                    <p className="truncate text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-500">
                       {alert.equipment.name}
                     </p>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>
                     <Badge
                       className="rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
                       variant="outline"
@@ -371,15 +394,17 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <p className="line-clamp-2 text-sm font-medium text-zinc-950">
-                      {alert.message}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      {compactDateFormatter.format(alert.createdAt)}
-                    </p>
+                    <MessageViewDialog
+                      message={alert.message}
+                      meta={alert.equipment.assetTag + " / " + compactDateFormatter.format(alert.createdAt)}
+                      title="Alert message"
+                    />
                   </TableCell>
-                  <TableCell className="hidden text-center text-sm text-zinc-500 md:table-cell">
+                  <TableCell className="text-sm text-zinc-500">
                     {alert.status}
+                  </TableCell>
+                  <TableCell className="text-sm text-zinc-500">
+                    {compactDateFormatter.format(alert.createdAt)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -400,14 +425,20 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 type ReportIcon = typeof DownloadSimple;
 
 function MetricCard({
+  accent,
   detail,
   icon: Icon,
   label,
+  progress,
+  tone,
   value,
 }: {
+  accent: string;
   detail: string;
   icon: ReportIcon;
   label: string;
+  progress: number;
+  tone: string;
   value: number;
 }) {
   return (
@@ -423,7 +454,7 @@ function MetricCard({
               {value}
             </p>
           </div>
-          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8fbf6] text-[#146c74]">
+          <div className={`grid size-8 shrink-0 place-items-center rounded-full ${tone}`}>
             <Icon aria-hidden="true" className="size-4" />
           </div>
         </div>
@@ -431,7 +462,10 @@ function MetricCard({
           {detail}
         </p>
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-          <div className="h-full rounded-full bg-[#2f9da7]" />
+          <div
+            className={`h-full rounded-full ${accent}`}
+            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+          />
         </div>
       </CardContent>
     </Card>
@@ -476,8 +510,18 @@ function ReportPanel({
         </a>
       </CardHeader>
       <CardContent className="min-w-0 p-0">
-        <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">{children}</div>
+        <div className="max-w-full min-w-0 overflow-x-auto px-4 pb-4">
+          {children}
+        </div>
       </CardContent>
     </Card>
   );
+}
+
+function percentage(value: number, total: number) {
+  if (!total) {
+    return 0;
+  }
+
+  return Math.round((value / total) * 100);
 }
