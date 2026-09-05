@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowClockwise,
   Brain,
   ChartLineUp,
   Cpu,
@@ -25,7 +26,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { runPredictionAction } from "@/features/analytics/actions";
+import {
+  retryPendingPredictionsAction,
+  runPredictionAction,
+} from "@/features/analytics/actions";
 import {
   getAnalyticsWorkspace,
   storedPredictionPageSize,
@@ -76,8 +80,8 @@ const riskRows = [
 ] as const;
 
 const jobFilters: Array<{ label: string; value: "" | AnalyticsJobFilter }> = [
-  { label: "All jobs", value: "" },
-  { label: "Not queued", value: "NOT_QUEUED" },
+  { label: "All statuses", value: "" },
+  { label: "Not requested", value: "NOT_QUEUED" },
   { label: "Pending", value: PredictionJobStatus.PENDING },
   { label: "Processing", value: PredictionJobStatus.PROCESSING },
   { label: "Completed", value: PredictionJobStatus.COMPLETED },
@@ -117,6 +121,7 @@ export default async function AnalyticsPage({
   const latest = parseLatestFilter(params?.latest);
   const {
     currentPredictionPage,
+    jobStatusCounts,
     pendingJobCount,
     predictedReadingCount,
     predictionCount,
@@ -160,7 +165,7 @@ export default async function AnalyticsPage({
   const kpis = [
     {
       accent: "bg-[#2f9da7]",
-      detail: pendingJobCount ? "Jobs pending" : "Queue clear",
+      detail: pendingJobCount ? "Pending predictions" : "All predictions current",
       icon: Brain,
       label: "Inference",
       progress: totalReadingCount ? 100 : 0,
@@ -169,7 +174,7 @@ export default async function AnalyticsPage({
     },
     {
       accent: "bg-[#5ec3cf]",
-      detail: "Queue coverage",
+      detail: "Prediction coverage",
       icon: Cpu,
       label: "Readiness",
       progress: readiness,
@@ -234,19 +239,62 @@ export default async function AnalyticsPage({
             className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <CardHeader className="grid gap-4 pb-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
               <div className="min-w-0">
-                <CardTitle>Inference Queue</CardTitle>
+                <CardTitle>Prediction Processing</CardTitle>
                 <p className="text-sm text-zinc-500">
-                  Operational readings ready for model execution
+                  Operational readings awaiting prediction processing
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusCountPill
+                    label="Pending"
+                    tone="border-amber-200 bg-amber-50 text-amber-700"
+                    value={jobStatusCounts.pending}
+                  />
+                  <StatusCountPill
+                    label="Processing"
+                    tone="border-cyan-200 bg-cyan-50 text-cyan-700"
+                    value={jobStatusCounts.processing}
+                  />
+                  <StatusCountPill
+                    label="Completed"
+                    tone="border-emerald-200 bg-emerald-50 text-emerald-700"
+                    value={jobStatusCounts.completed}
+                  />
+                  <StatusCountPill
+                    label="Failed"
+                    tone="border-red-200 bg-red-50 text-red-700"
+                    value={jobStatusCounts.failed}
+                  />
+                </div>
               </div>
-              <Badge
-                className="shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                variant="outline"
-              >
-                {readingCount} readings
-              </Badge>
+              <div className="grid min-w-0 gap-2 sm:flex sm:items-center lg:justify-end">
+                <Badge
+                  className="w-fit shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
+                  variant="outline"
+                >
+                  {readingCount} readings
+                </Badge>
+                <ActionToastForm
+                  action={retryPendingPredictionsAction}
+                  className="w-full sm:w-auto"
+                  errorTitle="Predictions were not dispatched"
+                  successDescription="Eligible pending predictions were sent for processing."
+                  successTitle="Prediction recovery started"
+                >
+                  <button
+                    className={buttonVariants({
+                      size: "sm",
+                      className:
+                        "h-10 w-full rounded-full border-[#009966] !bg-[#009966] px-4 !text-white hover:!bg-[#007a55] hover:!text-white sm:w-auto",
+                    })}
+                    type="submit"
+                  >
+                    <ArrowClockwise />
+                    Retry Pending Predictions
+                  </button>
+                </ActionToastForm>
+              </div>
             </CardHeader>
             <form className="grid gap-3 border-y border-zinc-100 px-4 py-3 md:grid-cols-[minmax(14rem,1fr)_minmax(10rem,0.55fr)_minmax(10rem,0.55fr)_auto] md:items-end">
               <div className="relative min-w-0">
@@ -264,7 +312,7 @@ export default async function AnalyticsPage({
                 />
               </div>
               <select
-                aria-label="Filter by job status"
+                aria-label="Filter by prediction status"
                 className="h-10 min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
                 defaultValue={job ?? ""}
                 name="job"
@@ -323,8 +371,8 @@ export default async function AnalyticsPage({
                           <TableHead>Source</TableHead>
                           <TableHead>Signal</TableHead>
                           <TableHead>Latest</TableHead>
-                          <TableHead>Job</TableHead>
-                          <TableHead>Run</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Prediction</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -406,9 +454,9 @@ export default async function AnalyticsPage({
                                     null,
                                     reading.id,
                                   )}
-                                  errorTitle="Prediction was not queued"
-                                  successDescription="The reading was added to the inference queue."
-                                  successTitle="Prediction queued"
+                                  errorTitle="Prediction was not requested"
+                                  successDescription="The reading was sent for prediction processing."
+                                  successTitle="Prediction requested"
                                 >
                                   <button
                                     className={buttonVariants({
@@ -420,7 +468,7 @@ export default async function AnalyticsPage({
                                     type="submit"
                                   >
                                     <Brain />
-                                    Queue
+                                    Request
                                   </button>
                                 </ActionToastForm>
                               </TableCell>
@@ -632,6 +680,24 @@ export default async function AnalyticsPage({
 
 type MetricIcon = typeof Brain;
 
+function StatusCountPill({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: string;
+  value: number;
+}) {
+  return (
+    <span
+      className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold ${tone}`}
+    >
+      <span>{label}</span>
+      <span className="text-zinc-950">{value.toLocaleString()}</span>
+    </span>
+  );
+}
 function MetricCard({
   accent,
   detail,
@@ -773,7 +839,7 @@ function PredictionJobBadge({
   status?: string;
 }) {
   if (!status) {
-    return <span className="text-sm text-zinc-400">Not queued</span>;
+    return <span className="text-sm text-zinc-400">Not requested</span>;
   }
 
   const className =

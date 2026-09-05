@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { enqueuePredictionJobs } from "@/features/analytics/prediction-queue";
+import {
+  dispatchLatestPredictionJobsForEquipment,
+  dispatchPredictionJobsForReadings,
+} from "@/features/analytics/prediction-dispatcher";
 import { importDefinitions } from "@/features/imports/definitions";
 import {
   buildImportPreview,
@@ -33,13 +36,24 @@ type CreatedOperationalReading = {
 };
 
 async function queuePredictionsForOperationalReadings(readingIds: string[]) {
-  await enqueuePredictionJobs(readingIds);
+  const result = await dispatchPredictionJobsForReadings(readingIds);
 
   return {
     created: 0,
-    failed: 0,
-    queued: readingIds.length,
-    skipped: 0,
+    failed: result.failed,
+    queued: result.dispatched,
+    skipped: result.skipped,
+  };
+}
+
+async function queueLatestPredictionsForEquipment(equipmentIds: string[]) {
+  const result = await dispatchLatestPredictionJobsForEquipment(equipmentIds);
+
+  return {
+    created: 0,
+    failed: result.failed,
+    queued: result.dispatched,
+    skipped: result.skipped,
   };
 }
 
@@ -53,7 +67,7 @@ export async function createOperationalReadingAction(formData: FormData) {
     const { readings, skippedDuplicates } = await createUniqueOperationalReadings({
       actorId: actor.id,
       inputs: importedReadings,
-      predictionEligible: importMode === "LIVE_IMPORT",
+      predictionEligible: true,
     });
 
     await createOperationalReadingAuditLogs({
@@ -63,12 +77,15 @@ export async function createOperationalReadingAction(formData: FormData) {
       readings,
     });
 
-    const predictionResults =
-      importMode === "LIVE_IMPORT"
-        ? await queuePredictionsForOperationalReadings(
+    const predictionResults = readings.length
+      ? importMode === "HISTORICAL_IMPORT"
+        ? await queueLatestPredictionsForEquipment(
+            readings.map((reading) => reading.equipmentId)
+          )
+        : await queuePredictionsForOperationalReadings(
             readings.map((reading) => reading.id)
           )
-        : undefined;
+      : undefined;
 
     revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
 

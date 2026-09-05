@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { enqueuePredictionJobs, mockPrisma, redirect, requirePermission } =
+const { dispatchPredictionJobsForReadings, mockPrisma, redirect, requirePermission } =
   vi.hoisted(() => ({
-    enqueuePredictionJobs: vi.fn(),
+    dispatchPredictionJobsForReadings: vi.fn(),
     redirect: vi.fn(),
     requirePermission: vi.fn(),
     mockPrisma: {
@@ -51,8 +51,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/server/auth/session", () => ({ requirePermission }));
 vi.mock("@/server/db/client", () => ({ prisma: mockPrisma }));
-vi.mock("@/features/analytics/prediction-queue", () => ({
-  enqueuePredictionJobs,
+vi.mock("@/features/analytics/prediction-dispatcher", () => ({
+  dispatchPredictionJobsForReadings,
 }));
 
 import {
@@ -106,7 +106,12 @@ describe("equipment actions", () => {
       },
     ]);
     mockPrisma.auditLog.createMany.mockResolvedValue({ count: 1 });
-    enqueuePredictionJobs.mockResolvedValue(undefined);
+    dispatchPredictionJobsForReadings.mockResolvedValue({
+      dispatched: 1,
+      failed: 0,
+      skipped: 0,
+      total: 1,
+    });
     requirePermission.mockResolvedValue({
       id: "admin_1",
       role: "ADMINISTRATOR",
@@ -244,7 +249,7 @@ describe("equipment actions", () => {
         sourceType: true,
       },
     });
-    expect(enqueuePredictionJobs).toHaveBeenCalledWith(["reading_1"]);
+    expect(dispatchPredictionJobsForReadings).toHaveBeenCalledWith(["reading_1"]);
     expect(redirect).toHaveBeenCalledWith(
       "/equipment/view-more/equipment_1?toast=equipment-created"
     );

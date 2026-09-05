@@ -397,7 +397,7 @@ function formatReadingResult(
     const processedLabel = `${processedCount.toLocaleString()} rows processed`;
 
     if (result?.importMode === "HISTORICAL_IMPORT") {
-      return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}. Historical rows were not queued for prediction.`;
+      return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}. ${formatHistoricalPredictionDispatch(queuedCount)}.`;
     }
 
     if (queuedCount > 0) {
@@ -408,7 +408,7 @@ function formatReadingResult(
   }
 
   if (isSensorImport && result?.importMode === "HISTORICAL_IMPORT") {
-    return `${readingLabel} imported for history. No prediction jobs were queued.`;
+    return `${readingLabel} imported for history. ${formatHistoricalPredictionDispatch(queuedCount)}.`;
   }
 
   if (failedCount > 0) {
@@ -433,6 +433,14 @@ function formatQueuedPredictions(count: number) {
     count === 1 ? "1 prediction job" : `${count.toLocaleString()} prediction jobs`;
 
   return `${label} queued`;
+}
+
+function formatHistoricalPredictionDispatch(count: number) {
+  if (!count) {
+    return "Latest equipment readings remain available for recovery if needed";
+  }
+
+  return formatQueuedPredictions(count) + " for current fleet state";
 }
 
 function NumberField({

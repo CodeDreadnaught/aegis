@@ -47,6 +47,7 @@ export async function getAnalyticsWorkspace(
     trendPredictions,
     predictedReadingCount,
     pendingJobCount,
+    jobStatusGroups,
     riskGroups,
   ] = await Promise.all([
     prisma.operationalReading.findMany({
@@ -151,6 +152,12 @@ export async function getAnalyticsWorkspace(
         },
       },
     }),
+    prisma.predictionJob.groupBy({
+      by: ["status"],
+      _count: {
+        _all: true,
+      },
+    }),
     prisma.prediction.groupBy({
       by: ["riskLevel"],
       _count: {
@@ -170,8 +177,21 @@ export async function getAnalyticsWorkspace(
       group._count._all;
   }
 
+  const jobStatusCounts = {
+    completed: 0,
+    failed: 0,
+    pending: 0,
+    processing: 0,
+  };
+
+  for (const group of jobStatusGroups) {
+    jobStatusCounts[group.status.toLowerCase() as keyof typeof jobStatusCounts] =
+      group._count._all;
+  }
+
   return {
     currentPredictionPage,
+    jobStatusCounts,
     pendingJobCount,
     predictedReadingCount,
     predictionCount: totalPredictionCount,
