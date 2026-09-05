@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createPredictionsForReadings, mockPrisma, revalidatePath, requirePermission } =
+const { enqueuePredictionJobs, mockPrisma, revalidatePath, requirePermission } =
   vi.hoisted(() => ({
-    createPredictionsForReadings: vi.fn(),
+    enqueuePredictionJobs: vi.fn(),
     mockPrisma: {
       auditLog: {
         createMany: vi.fn(),
@@ -22,8 +22,8 @@ const { createPredictionsForReadings, mockPrisma, revalidatePath, requirePermiss
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/server/auth/session", () => ({ requirePermission }));
 vi.mock("@/server/db/client", () => ({ prisma: mockPrisma }));
-vi.mock("@/features/analytics/prediction-service", () => ({
-  createPredictionsForReadings,
+vi.mock("@/features/analytics/prediction-queue", () => ({
+  enqueuePredictionJobs,
 }));
 
 describe("operational reading actions", () => {
@@ -42,11 +42,7 @@ describe("operational reading actions", () => {
       { equipmentId: "equipment_1", id: "reading_1", sourceType: "REFERENCE_DATASET" },
     ]);
     mockPrisma.auditLog.createMany.mockResolvedValue({ count: 1 });
-    createPredictionsForReadings.mockResolvedValue({
-      created: 1,
-      failed: 0,
-      skipped: 0,
-    });
+    enqueuePredictionJobs.mockResolvedValue(undefined);
   });
 
   it("imports historical Christmas Tree telemetry with zero RPM and torque without predictions", async () => {
@@ -89,7 +85,7 @@ describe("operational reading actions", () => {
         sourceType: true,
       },
     });
-    expect(createPredictionsForReadings).not.toHaveBeenCalled();
+    expect(enqueuePredictionJobs).not.toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/operational-data");
   });
 
@@ -118,10 +114,7 @@ describe("operational reading actions", () => {
         data: [expect.objectContaining({ predictionEligible: true })],
       })
     );
-    expect(createPredictionsForReadings).toHaveBeenCalledWith({
-      actorId: "operator_1",
-      readingIds: ["reading_1"],
-    });
+    expect(enqueuePredictionJobs).toHaveBeenCalledWith(["reading_1"]);
   });
 
   it("skips duplicate historical readings by equipment and timestamp", async () => {
@@ -148,7 +141,7 @@ describe("operational reading actions", () => {
     });
     expect(mockPrisma.operationalReading.createManyAndReturn).not.toHaveBeenCalled();
     expect(mockPrisma.auditLog.createMany).not.toHaveBeenCalled();
-    expect(createPredictionsForReadings).not.toHaveBeenCalled();
+    expect(enqueuePredictionJobs).not.toHaveBeenCalled();
   });
 
   it("rejects sensor imports that cannot identify equipment per row", async () => {
