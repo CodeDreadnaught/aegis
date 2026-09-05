@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createPredictionsForReadings } from "@/features/analytics/prediction-service";
+import { enqueuePredictionJobs } from "@/features/analytics/prediction-queue";
 import { importDefinitions } from "@/features/imports/definitions";
 import {
   buildImportPreview,
@@ -32,6 +32,17 @@ type CreatedOperationalReading = {
   sourceType: string;
 };
 
+async function queuePredictionsForOperationalReadings(readingIds: string[]) {
+  await enqueuePredictionJobs(readingIds);
+
+  return {
+    created: 0,
+    failed: 0,
+    queued: readingIds.length,
+    skipped: 0,
+  };
+}
+
 export async function createOperationalReadingAction(formData: FormData) {
   const actor = await requirePermission("recordOperationalData");
   const sourceType = formData.get("sourceType") || "MANUAL_ENTRY";
@@ -54,10 +65,9 @@ export async function createOperationalReadingAction(formData: FormData) {
 
     const predictionResults =
       importMode === "LIVE_IMPORT"
-        ? await createPredictionsForReadings({
-            actorId: actor.id,
-            readingIds: readings.map((reading) => reading.id),
-          })
+        ? await queuePredictionsForOperationalReadings(
+            readings.map((reading) => reading.id)
+          )
         : undefined;
 
     revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
@@ -91,10 +101,9 @@ export async function createOperationalReadingAction(formData: FormData) {
     readings,
   });
 
-  const predictionResults = await createPredictionsForReadings({
-    actorId: actor.id,
-    readingIds: readings.map((reading) => reading.id),
-  });
+  const predictionResults = await queuePredictionsForOperationalReadings(
+    readings.map((reading) => reading.id)
+  );
 
   revalidateOperationalReadingPaths(readings.map((reading) => reading.equipmentId));
 

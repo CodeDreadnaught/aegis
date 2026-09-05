@@ -10,13 +10,23 @@ import {
   classifyRisk,
 } from "@/features/analytics/domain/risk";
 import { riskThresholds } from "@/features/analytics/domain/thresholds";
+import {
+  enqueuePredictionJobs,
+  getNextPredictionRetryAt,
+  maxPredictionJobAttempts,
+  stalePredictionProcessingMinutes,
+} from "@/features/analytics/prediction-queue";
 import { prisma } from "@/server/db/client";
-import { runAegisInference } from "@/server/ml/aegis-inference";
 import metadata from "@/models/ai4i/v1/metadata.json";
 
-export const maxPredictionJobAttempts = 3;
-export const predictionRetryBackoffMinutes = [5, 30, 120] as const;
-export const stalePredictionProcessingMinutes = 15;
+export {
+  enqueuePredictionJobs,
+  getNextPredictionRetryAt,
+  getPredictionRetryDelayMinutes,
+  maxPredictionJobAttempts,
+  predictionRetryBackoffMinutes,
+  stalePredictionProcessingMinutes,
+} from "@/features/analytics/prediction-queue";
 
 const riskLevelMap = {
   Low: "LOW",
@@ -24,18 +34,10 @@ const riskLevelMap = {
   High: "HIGH",
 } as const;
 
-export async function enqueuePredictionJobs(readingIds: string[]) {
-  if (!readingIds.length) {
-    return;
-  }
+async function runInference(featureVector: number[]) {
+  const { runAegisInference } = await import("@/server/ml/aegis-inference");
 
-  await prisma.predictionJob.createMany({
-    data: readingIds.map((readingId) => ({
-      operationalReadingId: readingId,
-      status: "PENDING",
-    })),
-    skipDuplicates: true,
-  });
+  return runAegisInference(featureVector);
 }
 
 export async function createPredictionForReading({
@@ -70,7 +72,7 @@ export async function createPredictionForReading({
   }
 
   const { snapshot, vector } = buildAi4iFeatureVector(claimed.parameters);
-  const { failureProbability } = await runAegisInference(vector);
+  const { failureProbability } = await runInference(vector);
   const healthScore = calculateHealthScore(failureProbability);
   const riskLevel = classifyRisk(failureProbability, riskThresholds);
   const persistedRiskLevel = riskLevelMap[riskLevel];
@@ -378,19 +380,4 @@ async function markPredictionJobFailed(readingId: string, error: unknown) {
       status: "FAILED",
     },
   });
-}
-
-export function getPredictionRetryDelayMinutes(attempts: number) {
-  const backoffIndex = Math.min(
-    Math.max(0, attempts - 1),
-    predictionRetryBackoffMinutes.length - 1
-  );
-
-  return predictionRetryBackoffMinutes[backoffIndex];
-}
-
-export function getNextPredictionRetryAt(attempts: number, from = new Date()) {
-  return new Date(
-    from.getTime() + getPredictionRetryDelayMinutes(attempts) * 60 * 1000
-  );
 }
