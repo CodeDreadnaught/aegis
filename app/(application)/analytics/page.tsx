@@ -406,9 +406,9 @@ export default async function AnalyticsPage({
                                     null,
                                     reading.id,
                                   )}
-                                  errorTitle="Prediction was not run"
-                                  successDescription="The model output and recommendation were saved."
-                                  successTitle="Prediction complete"
+                                  errorTitle="Prediction was not queued"
+                                  successDescription="The reading was added to the inference queue."
+                                  successTitle="Prediction queued"
                                 >
                                   <button
                                     className={buttonVariants({
@@ -420,7 +420,7 @@ export default async function AnalyticsPage({
                                     type="submit"
                                   >
                                     <Brain />
-                                    Run
+                                    Queue
                                   </button>
                                 </ActionToastForm>
                               </TableCell>

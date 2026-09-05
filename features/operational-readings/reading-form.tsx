@@ -50,6 +50,7 @@ type ReadingFormProps = {
     predictions?: {
       created: number;
       failed: number;
+      queued?: number;
       skipped: number;
     };
     processed?: number;
@@ -368,6 +369,7 @@ function formatReadingResult(
         predictions?: {
           created: number;
           failed: number;
+          queued?: number;
           skipped: number;
         };
         processed?: number;
@@ -385,6 +387,7 @@ function formatReadingResult(
       : `${readingCount.toLocaleString()} readings`;
   const predictionCount = result?.predictions?.created ?? 0;
   const failedCount = result?.predictions?.failed ?? 0;
+  const queuedCount = result?.predictions?.queued ?? 0;
 
   if (isSensorImport && skippedDuplicates > 0) {
     const duplicateLabel =
@@ -395,6 +398,10 @@ function formatReadingResult(
 
     if (result?.importMode === "HISTORICAL_IMPORT") {
       return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}. Historical rows were not queued for prediction.`;
+    }
+
+    if (queuedCount > 0) {
+      return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}. ${formatQueuedPredictions(queuedCount)}.`;
     }
 
     return `${processedLabel}. ${readingLabel} imported, ${duplicateLabel}.`;
@@ -412,9 +419,20 @@ function formatReadingResult(
     return `${readingLabel} saved with ${predictionCount.toLocaleString()} prediction runs.`;
   }
 
+  if (queuedCount > 0) {
+    return `${readingLabel} saved. ${formatQueuedPredictions(queuedCount)}.`;
+  }
+
   return isSensorImport
     ? `${readingLabel} imported.`
     : "The operational data point was recorded.";
+}
+
+function formatQueuedPredictions(count: number) {
+  const label =
+    count === 1 ? "1 prediction job" : `${count.toLocaleString()} prediction jobs`;
+
+  return `${label} queued`;
 }
 
 function NumberField({
