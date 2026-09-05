@@ -2,21 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createPredictionForReading } from "@/features/analytics/prediction-service";
+import { enqueuePredictionJobs } from "@/features/analytics/prediction-queue";
 import { requirePermission } from "@/server/auth/session";
 
 export async function runPredictionAction(readingId: string) {
-  const actor = await requirePermission("runPrediction");
-  const prediction = await createPredictionForReading({
-    actorId: actor.id,
-    readingId,
-  });
+  await requirePermission("runPrediction");
+  await enqueuePredictionJobs([readingId]);
 
   revalidatePath("/analytics");
   revalidatePath("/overview");
-  if (prediction.equipmentId) {
-    revalidatePath(`/equipment/view-more/${prediction.equipmentId}`);
-  }
   revalidatePath("/alerts");
   revalidatePath("/reports");
 }
