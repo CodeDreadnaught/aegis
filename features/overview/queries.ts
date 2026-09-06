@@ -69,14 +69,13 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
     categoryCounts,
     maintenanceStatusCounts,
     predictionRunCount,
-    predictionAssetGroups,
     predictionTrend,
     latestPredictionRows,
     latestReadings,
     latestMaintenance,
     latestAlerts,
     assetMixEquipment,
-    assetPerformanceEquipment,
+    assetPerformanceBaseEquipment,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -101,10 +100,6 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
       _count: { _all: true },
     }),
     prisma.prediction.count({ where: { createdAt: { gte: since } } }),
-    prisma.prediction.groupBy({
-      by: ["equipmentId"],
-      where: { createdAt: { gte: since } },
-    }),
     prisma.prediction.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
@@ -213,17 +208,6 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         name: true,
         category: true,
         location: true,
-        predictions: {
-          where: { createdAt: { gte: since } },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: {
-            createdAt: true,
-            failureProbability: true,
-            healthScore: true,
-            riskLevel: true,
-          },
-        },
       },
     }),
   ]);
@@ -247,6 +231,25 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
     }))
     .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
 
+  const latestPredictionByEquipmentId = new Map(
+    latestPredictions.map((prediction) => [
+      prediction.equipmentId,
+      {
+        createdAt: prediction.createdAt,
+        failureProbability: prediction.failureProbability,
+        healthScore: prediction.healthScore,
+        riskLevel: prediction.riskLevel,
+      },
+    ]),
+  );
+  const assetPerformanceEquipment = assetPerformanceBaseEquipment.map((asset) => {
+    const latestPrediction = latestPredictionByEquipmentId.get(asset.id);
+
+    return {
+      ...asset,
+      predictions: latestPrediction ? [latestPrediction] : [],
+    };
+  });
   const riskCounts = latestPredictions.reduce(
     (summary, prediction) => {
       summary[prediction.riskLevel.toLowerCase() as keyof typeof summary] += 1;
@@ -277,7 +280,7 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         count: category._count._all,
       })),
       predictionRunCount,
-      predictedAssetCoverage: predictionAssetGroups.length,
+      predictedAssetCoverage: latestPredictionRows.length,
       maintenanceStatusCounts: Object.fromEntries(
         maintenanceStatusCounts.map((status) => [
           status.status,

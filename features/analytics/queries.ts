@@ -46,7 +46,6 @@ export async function getAnalyticsWorkspace(
     summaryPredictions,
     trendPredictions,
     predictedReadingCount,
-    pendingJobCount,
     jobStatusGroups,
     riskGroups,
   ] = await Promise.all([
@@ -145,13 +144,7 @@ export async function getAnalyticsWorkspace(
         },
       },
     }),
-    prisma.predictionJob.count({
-      where: {
-        status: {
-          in: [PredictionJobStatus.PENDING, PredictionJobStatus.PROCESSING],
-        },
-      },
-    }),
+
     prisma.predictionJob.groupBy({
       by: ["status"],
       _count: {
@@ -192,7 +185,6 @@ export async function getAnalyticsWorkspace(
   return {
     currentPredictionPage,
     jobStatusCounts,
-    pendingJobCount,
     predictedReadingCount,
     predictionCount: totalPredictionCount,
     predictions,

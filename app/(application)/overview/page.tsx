@@ -760,7 +760,7 @@ function LineTrend({
             Health
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-zinc-950" />
+            <span className="size-2 rounded-full bg-[#ef4444]" />
             Failure risk
           </span>
         </div>
@@ -832,7 +832,7 @@ function LineTrend({
             data-overview-live="telemetry-risk-path"
             d={failurePoints.path}
             fill="none"
-            stroke="#18181b"
+            stroke="#ef4444"
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="3"

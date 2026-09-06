@@ -122,7 +122,6 @@ export default async function AnalyticsPage({
   const {
     currentPredictionPage,
     jobStatusCounts,
-    pendingJobCount,
     predictedReadingCount,
     predictionCount,
     predictions,
@@ -165,16 +164,16 @@ export default async function AnalyticsPage({
   const kpis = [
     {
       accent: "bg-[#2f9da7]",
-      detail: pendingJobCount ? "Pending predictions" : "All predictions current",
+      detail: "Prediction inputs",
       icon: Brain,
-      label: "Inference",
-      progress: totalReadingCount ? 100 : 0,
+      label: "Readings",
+      progress: readiness,
       tone: "bg-[#e8fbf6] text-[#146c74]",
       value: totalReadingCount,
     },
     {
       accent: "bg-[#5ec3cf]",
-      detail: "Prediction coverage",
+      detail: `${predictedReadingCount.toLocaleString()} predicted`,
       icon: Cpu,
       label: "Readiness",
       progress: readiness,
@@ -194,7 +193,7 @@ export default async function AnalyticsPage({
     },
     {
       accent: "bg-[#ef4444]",
-      detail: riskTotals.high ? "High risk" : "Risk average",
+      detail: "Average failure risk",
       icon: ShieldWarning,
       label: "Risk",
       progress: summaryPredictions.length ? averageFailure : 0,
@@ -245,42 +244,36 @@ export default async function AnalyticsPage({
                 <p className="text-sm text-zinc-500">
                   Operational readings awaiting prediction processing
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:max-w-2xl">
                   <StatusCountPill
                     label="Pending"
-                    tone="border-amber-200 bg-amber-50 text-amber-700"
+                    accent="bg-[#f2bd3f]"
                     value={jobStatusCounts.pending}
                   />
                   <StatusCountPill
                     label="Processing"
-                    tone="border-cyan-200 bg-cyan-50 text-cyan-700"
+                    accent="bg-[#5ec3cf]"
                     value={jobStatusCounts.processing}
                   />
                   <StatusCountPill
                     label="Completed"
-                    tone="border-emerald-200 bg-emerald-50 text-emerald-700"
+                    accent="bg-[#009966]"
                     value={jobStatusCounts.completed}
                   />
                   <StatusCountPill
                     label="Failed"
-                    tone="border-red-200 bg-red-50 text-red-700"
+                    accent="bg-[#ef4444]"
                     value={jobStatusCounts.failed}
                   />
                 </div>
               </div>
               <div className="grid min-w-0 gap-2 sm:flex sm:items-center lg:justify-end">
-                <Badge
-                  className="w-fit shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                  variant="outline"
-                >
-                  {readingCount} readings
-                </Badge>
                 <ActionToastForm
                   action={retryPendingPredictionsAction}
                   className="w-full sm:w-auto"
-                  errorTitle="Predictions were not dispatched"
+                  errorTitle="Predictions could not be retried"
                   successDescription="Eligible pending predictions were sent for processing."
-                  successTitle="Prediction recovery started"
+                  successTitle="Prediction retry started"
                 >
                   <button
                     className={buttonVariants({
@@ -303,7 +296,7 @@ export default async function AnalyticsPage({
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 />
                 <Input
-                  aria-label="Search inference queue"
+                  aria-label="Search prediction readings"
                   className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
                   defaultValue={query}
                   key={query}
@@ -681,20 +674,23 @@ export default async function AnalyticsPage({
 type MetricIcon = typeof Brain;
 
 function StatusCountPill({
+  accent,
   label,
-  tone,
   value,
 }: {
+  accent: string;
   label: string;
-  tone: string;
   value: number;
 }) {
   return (
-    <span
-      className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold ${tone}`}
-    >
-      <span>{label}</span>
-      <span className="text-zinc-950">{value.toLocaleString()}</span>
+    <span className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm">
+      <span className="flex min-w-0 items-center gap-2 text-xs font-medium text-zinc-500">
+        <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${accent}`} />
+        <span className="truncate">{label}</span>
+      </span>
+      <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-950">
+        {value.toLocaleString()}
+      </span>
     </span>
   );
 }
@@ -885,7 +881,7 @@ function PredictionTrend({
             Health
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-zinc-950" />
+            <span className="size-2 rounded-full bg-[#ef4444]" />
             Failure risk
           </span>
         </div>
@@ -960,7 +956,7 @@ function PredictionTrend({
             className="aegis-line-trace aegis-line-trace-delayed"
             d={failurePoints.path}
             fill="none"
-            stroke="#18181b"
+            stroke="#ef4444"
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="3"
