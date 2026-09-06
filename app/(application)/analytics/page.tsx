@@ -244,7 +244,7 @@ export default async function AnalyticsPage({
                 <p className="text-sm text-zinc-500">
                   Operational readings awaiting prediction processing
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:max-w-2xl">
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:max-w-3xl">
                   <StatusCountPill
                     label="Pending"
                     accent="bg-[#f2bd3f]"
@@ -683,12 +683,12 @@ function StatusCountPill({
   value: number;
 }) {
   return (
-    <span className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 shadow-sm">
-      <span className="flex min-w-0 items-center gap-2 text-xs font-medium text-zinc-500">
+    <span className="grid min-h-14 min-w-0 gap-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 shadow-sm sm:min-h-11 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2 sm:px-3">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-zinc-500 sm:gap-2">
         <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${accent}`} />
-        <span className="truncate">{label}</span>
+        <span className="whitespace-nowrap">{label}</span>
       </span>
-      <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-950">
+      <span className="justify-self-end text-sm font-semibold tabular-nums text-zinc-950 sm:shrink-0">
         {value.toLocaleString()}
       </span>
     </span>
