@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { ActionToastForm } from "@/components/action-toast-form";
+import { AnalyticsTrendPanel } from "@/features/analytics/analytics-trend-panel";
 import { PremiumMotion } from "@/components/motion/premium-motion";
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -33,22 +34,20 @@ import {
 import {
   getAnalyticsWorkspace,
   storedPredictionPageSize,
-  type AnalyticsFleetMetric,
   type AnalyticsJobFilter,
   type AnalyticsLatestFilter,
-  type AnalyticsTrendMode,
-  type AnalyticsTrendRange,
 } from "@/features/analytics/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import { formatSourceType } from "@/features/operational-readings/validation";
-import type {
-  EquipmentPredictionTrendPoint,
-  EquipmentPredictionTrendSummary,
-  FleetPredictionTrendPoint,
-} from "@/features/analytics/prediction-trend";
-import { EquipmentCategory, PredictionJobStatus, RiskLevel } from "@/generated/prisma/enums";
+import {
+  parseAnalyticsFleetMetric,
+  parseAnalyticsTrendCategory,
+  parseAnalyticsTrendMode,
+  parseAnalyticsTrendRange,
+  serializeAnalyticsTrendState,
+} from "@/features/analytics/trend-types";
+import { PredictionJobStatus, RiskLevel } from "@/generated/prisma/enums";
 import { parsePageParam } from "@/lib/pagination";
-import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata: Metadata = {
@@ -108,28 +107,6 @@ const latestFilters: Array<{
   { label: "High", value: RiskLevel.HIGH },
 ];
 
-const trendFilters: Array<{ label: string; value: AnalyticsTrendRange }> = [
-  { label: "1D", value: 1 },
-  { label: "7D", value: 7 },
-  { label: "30D", value: 30 },
-  { label: "All", value: "all" },
-];
-
-const trendModes: Array<{ label: string; value: AnalyticsTrendMode }> = [
-  { label: "Fleet", value: "FLEET" },
-  { label: "Equipment", value: "EQUIPMENT" },
-];
-
-const fleetMetricOptions: Array<{
-  label: string;
-  value: AnalyticsFleetMetric;
-}> = [
-  { label: "High-risk %", value: "HIGH_RISK_PERCENT" },
-  { label: "Coverage", value: "COVERAGE" },
-  { label: "Fresh states", value: "FRESH_STATES" },
-];
-
-const categoryFilters = Object.values(EquipmentCategory);
 
 type AnalyticsPageProps = {
   searchParams?: Promise<{
@@ -156,10 +133,10 @@ export default async function AnalyticsPage({
   const query = getParam(params?.q)?.trim() ?? "";
   const job = parseJobFilter(params?.job);
   const latest = parseLatestFilter(params?.latest);
-  const trendRange = parseTrendRange(params?.trend);
-  const trendMode = parseTrendMode(params?.mode);
-  const trendCategory = parseCategoryFilter(params?.category);
-  const fleetMetric = parseFleetMetric(params?.metric);
+  const trendRange = parseAnalyticsTrendRange(getParam(params?.trend));
+  const trendMode = parseAnalyticsTrendMode(getParam(params?.mode));
+  const trendCategory = parseAnalyticsTrendCategory(getParam(params?.category));
+  const fleetMetric = parseAnalyticsFleetMetric(getParam(params?.metric));
   const requestedEquipmentId = getParam(params?.equipment);
   const {
     currentPredictionPage,
@@ -204,19 +181,16 @@ export default async function AnalyticsPage({
   const modelConfidence = summaryPredictions.length
     ? Math.max(0, Math.round(100 - averageFailure))
     : 0;
-  const selectedEquipment =
-    equipmentOptions.find((equipment) => equipment.id === selectedEquipmentId) ??
-    null;
-  const latestFleetPoint = getLatestFleetTrendPoint(fleetTrend.points);
-  const isEquipmentTrend = activeTrendMode === "EQUIPMENT";
-  const trendPrimaryValues = isEquipmentTrend
-    ? equipmentTrend.points.map(point => point.healthScore)
-    : fleetTrend.points.map(point => point.fleetHealth);
-  const trendSecondaryValues = isEquipmentTrend
-    ? equipmentTrend.points.map(point => point.failureProbabilityPercent)
-    : fleetTrend.points.map(point => getFleetSecondaryMetricValue(point, activeFleetMetric));
-  const healthPoints = buildLinePoints(trendPrimaryValues);
-  const secondaryPoints = buildLinePoints(trendSecondaryValues);
+  const initialTrendState = serializeAnalyticsTrendState({
+    category: trendCategory ?? null,
+    equipmentOptions,
+    equipmentTrend,
+    fleetMetric: activeFleetMetric,
+    fleetTrend,
+    selectedEquipmentId,
+    trendMode: activeTrendMode,
+    trendRange: activeTrendRange,
+  });
   const kpis = [
     {
       accent: "bg-[#2f9da7]",
@@ -548,67 +522,17 @@ export default async function AnalyticsPage({
           </Card>
         </section>
 
-        <section className="w-full max-w-full min-w-0">
-          <Card
-            className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="grid gap-3 pb-2 lg:flex lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <CardTitle>
-                  {isEquipmentTrend ? "Equipment Trend" : "Fleet Trend"}
-                </CardTitle>
-                <p className="text-sm text-zinc-500">
-                  {isEquipmentTrend
-                    ? "Chronological prediction history by reading date"
-                    : "Fleet health and high-risk equipment by reading date"}
-                </p>
-              </div>
-              <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center lg:justify-end">
-                <TrendModeLinks
-                  activeMode={activeTrendMode}
-                  searchParams={params}
-                />
-                <TrendRangeLinks
-                  activeRange={activeTrendRange}
-                  searchParams={params}
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-3 p-4 pt-0">
-              <TrendControlForm
-                activeMetric={activeFleetMetric}
-                category={trendCategory}
-                equipmentOptions={equipmentOptions}
-                mode={activeTrendMode}
-                searchParams={params}
-                selectedEquipmentId={selectedEquipmentId}
-              />
-              <TrendSummary
-                equipmentSummary={equipmentTrend.summary}
-                fleetMetric={activeFleetMetric}
-                fleetPoint={latestFleetPoint}
-                mode={activeTrendMode}
-                selectedEquipment={selectedEquipment}
-              />
-              <PredictionTrend
-                freshnessDays={fleetTrend.freshnessDays}
-                healthPoints={healthPoints}
-                mode={activeTrendMode}
-                primaryLabel={isEquipmentTrend ? "Health" : "Fleet health"}
-                secondaryLabel={
-                  isEquipmentTrend
-                    ? "Failure risk"
-                    : getFleetSecondaryMetricLabel(activeFleetMetric)
-                }
-                secondaryPoints={secondaryPoints}
-                trendPoints={
-                  isEquipmentTrend ? equipmentTrend.points : fleetTrend.points
-                }
-              />
-            </CardContent>
-          </Card>
-        </section>
+        <AnalyticsTrendPanel
+          initialState={initialTrendState}
+          key={[
+            activeTrendMode,
+            activeTrendRange,
+            trendCategory ?? "all",
+            selectedEquipmentId ?? "none",
+            activeFleetMetric,
+          ].join(":")}
+        />
+
         <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-2">
           <Card
             className="h-fit w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
@@ -949,197 +873,6 @@ function PredictionJobBadge({
   );
 }
 
-function PredictionTrend({
-  freshnessDays,
-  healthPoints,
-  mode,
-  primaryLabel,
-  secondaryLabel,
-  secondaryPoints,
-  trendPoints,
-}: {
-  freshnessDays: number;
-  healthPoints: ReturnType<typeof buildLinePoints>;
-  mode: AnalyticsTrendMode;
-  primaryLabel: string;
-  secondaryLabel: string;
-  secondaryPoints: ReturnType<typeof buildLinePoints>;
-  trendPoints: Array<FleetPredictionTrendPoint | EquipmentPredictionTrendPoint>;
-}) {
-  const hasData = healthPoints.coordinates.length > 0;
-  const secondaryColor =
-    mode === "EQUIPMENT" || secondaryLabel.includes("High-risk")
-      ? "#ef4444"
-      : "#2f9da7";
-
-  return (
-    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-3 shadow-inner sm:p-4">
-      <div className="mb-4 grid gap-3 lg:flex lg:items-start lg:justify-between">
-        <div>
-          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">
-            {mode === "EQUIPMENT"
-              ? "Equipment prediction history - percent over time"
-              : "Fleet state snapshots - percent over time"}
-          </p>
-          <p className="text-xl font-semibold tracking-normal text-zinc-950 sm:text-2xl">
-            {mode === "EQUIPMENT"
-              ? "Equipment health history"
-              : "Average fleet health"}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-zinc-500 sm:gap-4">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[#a8ff9f]" />
-            {primaryLabel}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              className="size-2 rounded-full"
-              style={{ backgroundColor: secondaryColor }}
-            />
-            {secondaryLabel}
-          </span>
-        </div>
-      </div>
-      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
-        <div className="relative h-48 text-left text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
-          {[100, 75, 50, 25, 0].map((label, index) => (
-            <span
-              className="absolute left-0 leading-none"
-              key={label}
-              style={{
-                top: index * 25 + "%",
-                transform:
-                  index === 0
-                    ? "translateY(0)"
-                    : index === 4
-                      ? "translateY(-100%)"
-                      : "translateY(-50%)",
-              }}
-            >
-              {label}%
-            </span>
-          ))}
-        </div>
-        <svg
-          aria-label={`${primaryLabel} and ${secondaryLabel} trend`}
-          className="h-48 w-full overflow-hidden sm:h-64"
-          preserveAspectRatio="none"
-          role="img"
-          viewBox="0 0 640 240"
-        >
-          <defs>
-            <linearGradient
-              id="analytics-health-fill"
-              x1="0"
-              x2="0"
-              y1="0"
-              y2="1"
-            >
-              <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
-              <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[0, 1, 2, 3, 4].map(line => (
-            <line
-              key={line}
-              stroke="#e4e4e7"
-              strokeDasharray="5 8"
-              strokeWidth="1"
-              x1="18"
-              x2="622"
-              y1={line * 54 + 12}
-              y2={line * 54 + 12}
-            />
-          ))}
-          <path
-            d={healthPoints.area}
-            fill="url(#analytics-health-fill)"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <path
-            className="aegis-line-trace"
-            d={healthPoints.path}
-            fill="none"
-            stroke="#a8ff9f"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="4"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <path
-            className="aegis-line-trace aegis-line-trace-delayed"
-            d={secondaryPoints.path}
-            fill="none"
-            stroke={secondaryColor}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          {!hasData && (
-            <text
-              fill="#71717a"
-              fontSize="13"
-              fontWeight="600"
-              textAnchor="middle"
-              x="320"
-              y="124"
-            >
-              No represented state for this selection
-            </text>
-          )}
-          <g>
-            {healthPoints.coordinates.map(point => {
-              const trendPoint = trendPoints[point.index];
-
-              return (
-                <circle
-                  className="hidden sm:block aegis-chart-dot"
-                  cx={point.x}
-                  cy={point.y}
-                  fill="#a8ff9f"
-                  key={`health-${point.index}-${point.x}-${point.y}`}
-                  r="4"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                >
-                  {trendPoint && (
-                    <title>
-                      {formatTrendPointTooltip(trendPoint, freshnessDays)}
-                    </title>
-                  )}
-                </circle>
-              );
-            })}
-            {secondaryPoints.coordinates.map(point => (
-              <circle
-                className="hidden sm:block"
-                cx={point.x}
-                cy={point.y}
-                fill={secondaryColor}
-                key={`secondary-${point.index}-${point.x}-${point.y}`}
-                r="3.5"
-                stroke="#ffffff"
-                strokeWidth="2"
-              />
-            ))}
-          </g>
-        </svg>
-      </div>
-      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-[11px] font-medium text-zinc-500 sm:pl-[4.25rem] sm:text-xs">
-        <span>
-          <span className="sm:hidden">Oldest</span>
-          <span className="hidden sm:inline">Oldest state</span>
-        </span>
-        <span>
-          <span className="sm:hidden">Latest</span>
-          <span className="hidden sm:inline">Latest state</span>
-        </span>
-      </div>
-    </div>
-  );
-}
 function EmptyState({
   icon: Icon,
   label,
@@ -1157,487 +890,6 @@ function EmptyState({
   );
 }
 
-function TrendControlForm({
-  activeMetric,
-  category,
-  equipmentOptions,
-  mode,
-  searchParams,
-  selectedEquipmentId,
-}: {
-  activeMetric: AnalyticsFleetMetric;
-  category?: EquipmentCategory;
-  equipmentOptions: Array<{
-    assetTag: string;
-    category: EquipmentCategory;
-    id: string;
-    name: string;
-  }>;
-  mode: AnalyticsTrendMode;
-  searchParams?: Awaited<AnalyticsPageProps["searchParams"]>;
-  selectedEquipmentId: string | null;
-}) {
-  return (
-    <form className="grid gap-2 rounded-xl border border-zinc-100 bg-zinc-50 p-2 md:grid-cols-[minmax(12rem,0.8fr)_minmax(12rem,0.8fr)_auto] md:items-center" method="get">
-      <HiddenSearchParams
-        omit={["category", "equipment", "metric"]}
-        searchParams={searchParams}
-      />
-      {mode === "FLEET" ? (
-        <>
-          <select
-            aria-label="Filter fleet trend by category"
-            className="h-10 min-w-0 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
-            defaultValue={category ?? ""}
-            name="category"
-          >
-            <option value="">All categories</option>
-            {categoryFilters.map(option => (
-              <option key={option} value={option}>
-                {formatEquipmentCategory(option)}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Choose fleet secondary metric"
-            className="h-10 min-w-0 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
-            defaultValue={activeMetric}
-            name="metric"
-          >
-            {fleetMetricOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </>
-      ) : (
-        <select
-          aria-label="Choose equipment trend"
-          className="h-10 min-w-0 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950 md:col-span-2"
-          defaultValue={selectedEquipmentId ?? ""}
-          name="equipment"
-        >
-          {equipmentOptions.map(equipment => (
-            <option key={equipment.id} value={equipment.id}>
-              {equipment.assetTag} - {equipment.name}
-            </option>
-          ))}
-        </select>
-      )}
-      <button
-        className={buttonVariants({
-          size: "sm",
-          className:
-            "h-10 rounded-full border-[#009966] !bg-[#009966] px-4 !text-white hover:!bg-[#007a55] hover:!text-white",
-        })}
-        type="submit"
-      >
-        Apply
-      </button>
-    </form>
-  );
-}
-
-function TrendSummary({
-  equipmentSummary,
-  fleetMetric,
-  fleetPoint,
-  mode,
-  selectedEquipment,
-}: {
-  equipmentSummary: EquipmentPredictionTrendSummary;
-  fleetMetric: AnalyticsFleetMetric;
-  fleetPoint: FleetPredictionTrendPoint | null;
-  mode: AnalyticsTrendMode;
-  selectedEquipment: {
-    assetTag: string;
-    category: EquipmentCategory;
-    id: string;
-    name: string;
-  } | null;
-}) {
-  if (mode === "EQUIPMENT") {
-    return (
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        <TrendSummaryPill
-          detail={selectedEquipment?.name ?? "No equipment selected"}
-          label="Equipment"
-          value={selectedEquipment?.assetTag ?? "None"}
-        />
-        <TrendSummaryPill
-          detail="Current health"
-          label="Health"
-          value={
-            equipmentSummary ? `${equipmentSummary.currentHealthScore}%` : "N/A"
-          }
-        />
-        <TrendSummaryPill
-          detail="Latest failure risk"
-          label="Failure Risk"
-          tone="red"
-          value={
-            equipmentSummary
-              ? `${equipmentSummary.currentFailureProbabilityPercent}%`
-              : "N/A"
-          }
-        />
-        <TrendSummaryPill
-          detail={
-            equipmentSummary
-              ? compactDateFormatter.format(equipmentSummary.latestRecordedAt)
-              : "No prediction history"
-          }
-          label="Risk"
-          value={
-            equipmentSummary
-              ? formatEquipmentCategory(equipmentSummary.currentRiskLevel)
-              : "N/A"
-          }
-        />
-        {equipmentSummary?.currentRecommendation && (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 sm:col-span-2 xl:col-span-4">
-            <span className="font-semibold text-zinc-950">
-              Latest recommendation:
-            </span>{" "}
-            {equipmentSummary.currentRecommendation}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const coverage = fleetPoint
-    ? percentage(
-        fleetPoint.representedEquipmentCount,
-        fleetPoint.totalEligibleEquipmentCount,
-      )
-    : 0;
-  const fleetSecondaryMetric = fleetPoint
-    ? getFleetSecondaryMetricValue(fleetPoint, fleetMetric)
-    : null;
-
-  return (
-    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-      <TrendSummaryPill
-        detail="Average represented state"
-        label="Fleet Health"
-        value={fleetPoint?.fleetHealth != null ? `${fleetPoint.fleetHealth}%` : "N/A"}
-      />
-      <TrendSummaryPill
-        detail={getFleetMetricDetail(fleetMetric)}
-        label={getFleetSecondaryMetricLabel(fleetMetric)}
-        tone={fleetMetric === "HIGH_RISK_PERCENT" ? "red" : "teal"}
-        value={fleetSecondaryMetric != null ? `${fleetSecondaryMetric}%` : "N/A"}
-      />
-      <TrendSummaryPill
-        detail="Current represented set"
-        label="High-Risk Equipment"
-        tone="red"
-        value={fleetPoint ? fleetPoint.highRiskCount.toLocaleString() : "N/A"}
-      />
-      <TrendSummaryPill
-        detail="Equipment represented"
-        label="Coverage"
-        value={
-          fleetPoint
-            ? `${fleetPoint.representedEquipmentCount} / ${fleetPoint.totalEligibleEquipmentCount}`
-            : "N/A"
-        }
-      />
-      <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-500 sm:col-span-2 xl:col-span-4">
-        Latest point: {fleetPoint ? `${coverage}% coverage, ${fleetPoint.freshEquipmentCount} fresh, ${fleetPoint.carriedForwardEquipmentCount} carried, ${fleetPoint.staleExcludedEquipmentCount} stale/excluded` : "No represented equipment"}
-      </div>
-    </div>
-  );
-}
-
-function TrendSummaryPill({
-  detail,
-  label,
-  tone = "neutral",
-  value,
-}: {
-  detail: string;
-  label: string;
-  tone?: "neutral" | "red" | "teal";
-  value: number | string;
-}) {
-  const dotClass =
-    tone === "red"
-      ? "bg-[#ef4444]"
-      : tone === "teal"
-        ? "bg-[#2f9da7]"
-        : "bg-zinc-400";
-
-  return (
-    <div className="min-w-0 rounded-xl border border-zinc-200 bg-white px-3 py-2 shadow-sm">
-      <div className="flex items-center gap-2 text-xs font-medium text-zinc-500">
-        <span aria-hidden="true" className={`size-2 rounded-full ${dotClass}`} />
-        <span className="truncate">{label}</span>
-      </div>
-      <div className="mt-1 flex items-end justify-between gap-3">
-        <span className="truncate text-lg font-semibold tracking-normal text-zinc-950">
-          {value}
-        </span>
-        <span className="truncate text-xs font-medium text-zinc-400">
-          {detail}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function TrendModeLinks({
-  activeMode,
-  searchParams,
-}: {
-  activeMode: AnalyticsTrendMode;
-  searchParams?: Awaited<AnalyticsPageProps["searchParams"]>;
-}) {
-  return (
-    <div className="inline-flex w-fit items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1 shadow-inner shadow-zinc-950/5">
-      {trendModes.map(mode => (
-        <Link
-          className={cn(
-            "inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2",
-            activeMode === mode.value
-              ? "bg-white text-zinc-950 shadow-sm"
-              : "text-zinc-500 hover:text-zinc-950",
-          )}
-          href={buildAnalyticsHref(
-            searchParams,
-            { mode: mode.value === "FLEET" ? null : "EQUIPMENT" },
-            mode.value === "FLEET" ? ["equipment"] : ["category", "metric"],
-          )}
-          key={mode.value}
-        >
-          {mode.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function TrendRangeLinks({
-  activeRange,
-  searchParams,
-}: {
-  activeRange: AnalyticsTrendRange;
-  searchParams?: Awaited<AnalyticsPageProps["searchParams"]>;
-}) {
-  return (
-    <div className="inline-flex w-fit items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 p-1 shadow-inner shadow-zinc-950/5">
-      {trendFilters.map(filter => (
-        <Link
-          className={cn(
-            "inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2",
-            activeRange === filter.value
-              ? "bg-white text-zinc-950 shadow-sm"
-              : "text-zinc-500 hover:text-zinc-950",
-          )}
-          href={buildAnalyticsHref(searchParams, {
-            trend: filter.value === "all" ? null : String(filter.value),
-          })}
-          key={filter.label}
-        >
-          {filter.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function HiddenSearchParams({
-  omit,
-  searchParams,
-}: {
-  omit: string[];
-  searchParams?: Awaited<AnalyticsPageProps["searchParams"]>;
-}) {
-  const omitSet = new Set(omit);
-
-  return Object.entries(searchParams ?? {}).flatMap(([key, value]) => {
-    if (omitSet.has(key) || typeof value === "undefined") {
-      return [];
-    }
-
-    const values = Array.isArray(value) ? value : [value];
-
-    return values
-      .filter(Boolean)
-      .map((paramValue, index) => (
-        <input
-          key={`${key}-${index}`}
-          name={key}
-          type="hidden"
-          value={paramValue}
-        />
-      ));
-  });
-}
-
-function buildAnalyticsHref(
-  searchParams: Awaited<AnalyticsPageProps["searchParams"]> | undefined,
-  updates: Record<string, string | null>,
-  clearKeys: string[] = [],
-) {
-  const params = new URLSearchParams();
-  const clearSet = new Set([...clearKeys, ...Object.keys(updates)]);
-
-  for (const [key, value] of Object.entries(searchParams ?? {})) {
-    if (clearSet.has(key) || typeof value === "undefined") {
-      continue;
-    }
-
-    const paramValue = Array.isArray(value) ? value[0] : value;
-
-    if (paramValue) {
-      params.set(key, paramValue);
-    }
-  }
-
-  for (const [key, value] of Object.entries(updates)) {
-    if (value) {
-      params.set(key, value);
-    }
-  }
-
-  const query = params.toString();
-
-  return query ? `/analytics?${query}` : "/analytics";
-}
-
-function parseTrendRange(
-  value: string | string[] | undefined,
-): AnalyticsTrendRange {
-  const range = getParam(value);
-
-  if (range === "1" || range === "7" || range === "30") {
-    return Number(range) as AnalyticsTrendRange;
-  }
-
-  return "all";
-}
-
-function parseTrendMode(
-  value: string | string[] | undefined,
-): AnalyticsTrendMode {
-  return getParam(value)?.toUpperCase() === "EQUIPMENT" ? "EQUIPMENT" : "FLEET";
-}
-
-function parseCategoryFilter(
-  value: string | string[] | undefined,
-): EquipmentCategory | undefined {
-  const category = getParam(value);
-
-  return categoryFilters.includes(category as EquipmentCategory)
-    ? (category as EquipmentCategory)
-    : undefined;
-}
-
-function parseFleetMetric(
-  value: string | string[] | undefined,
-): AnalyticsFleetMetric {
-  const metric = getParam(value);
-
-  return fleetMetricOptions.some(option => option.value === metric)
-    ? (metric as AnalyticsFleetMetric)
-    : "HIGH_RISK_PERCENT";
-}
-
-function getLatestFleetTrendPoint(points: FleetPredictionTrendPoint[]) {
-  return points.findLast(point => point.fleetHealth !== null) ?? null;
-}
-
-function getFleetSecondaryMetricValue(
-  point: FleetPredictionTrendPoint,
-  metric: AnalyticsFleetMetric,
-) {
-  if (metric === "COVERAGE") {
-    return point.totalEligibleEquipmentCount
-      ? percentage(
-          point.representedEquipmentCount,
-          point.totalEligibleEquipmentCount,
-        )
-      : null;
-  }
-
-  if (metric === "FRESH_STATES") {
-    return point.totalEligibleEquipmentCount
-      ? percentage(point.freshEquipmentCount, point.totalEligibleEquipmentCount)
-      : null;
-  }
-
-  if (metric === "HIGH_RISK_COUNT") {
-    return point.totalEligibleEquipmentCount
-      ? percentage(point.highRiskCount, point.totalEligibleEquipmentCount)
-      : null;
-  }
-
-  return point.highRiskPercent;
-}
-
-function getFleetSecondaryMetricLabel(metric: AnalyticsFleetMetric) {
-  if (metric === "COVERAGE") {
-    return "Coverage";
-  }
-
-  if (metric === "FRESH_STATES") {
-    return "Fresh states";
-  }
-
-  if (metric === "HIGH_RISK_COUNT") {
-    return "High-risk share";
-  }
-
-  return "High-risk %";
-}
-
-function getFleetMetricDetail(metric: AnalyticsFleetMetric) {
-  if (metric === "COVERAGE") {
-    return "Represented equipment";
-  }
-
-  if (metric === "FRESH_STATES") {
-    return "Updated in bucket";
-  }
-
-  if (metric === "HIGH_RISK_COUNT") {
-    return "Count as fleet share";
-  }
-
-  return "Current represented set";
-}
-
-function formatTrendPointTooltip(
-  point: FleetPredictionTrendPoint | EquipmentPredictionTrendPoint,
-  freshnessDays: number,
-) {
-  if ("fleetHealth" in point) {
-    const health = point.fleetHealth === null ? "No current data" : `${point.fleetHealth}%`;
-    const highRisk = point.highRiskPercent === null ? "No current data" : `${point.highRiskPercent}%`;
-
-    return [
-      `${compactDateFormatter.format(point.bucketStart)} - ${compactDateFormatter.format(point.bucketEnd)}`,
-      `Fleet Health: ${health}`,
-      `High Risk: ${highRisk}`,
-      `High-Risk Equipment: ${point.highRiskCount}`,
-      `Coverage: ${point.representedEquipmentCount} / ${point.totalEligibleEquipmentCount}`,
-      `Fresh in bucket: ${point.freshEquipmentCount}`,
-      `Carried forward: ${point.carriedForwardEquipmentCount}`,
-      `Stale/excluded: ${point.staleExcludedEquipmentCount}`,
-      `Freshness window: ${freshnessDays} days`,
-    ].join("\n");
-  }
-
-  return [
-    `${compactDateFormatter.format(point.recordedAt)} ${timeFormatter.format(point.recordedAt)}`,
-    `Health: ${point.healthScore}%`,
-    `Failure Risk: ${point.failureProbabilityPercent}%`,
-    `Risk: ${formatEquipmentCategory(point.riskLevel)}`,
-  ].join("\n");
-}
 function getParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -1702,91 +954,4 @@ function percentage(value: number, total: number) {
   }
 
   return Math.round((value / total) * 100);
-}
-
-function buildLinePoints(values: Array<number | null>) {
-  const left = 18;
-  const width = 604;
-  const height = 216;
-  const top = 12;
-  const baseY = height + top;
-  const valueCount = Math.max(values.length, 1);
-  const coordinates = values.map((value, index) => {
-    if (value === null || !Number.isFinite(value)) {
-      return null;
-    }
-
-    const x =
-      valueCount === 1
-        ? left + width / 2
-        : left + (index / (valueCount - 1)) * width;
-    const y = top + height - (Math.min(Math.max(value, 0), 100) / 100) * height;
-
-    return {
-      index,
-      x: Math.round(x),
-      y: Math.round(y),
-    };
-  });
-  const segments: Array<Array<{ index: number; x: number; y: number }>> = [];
-  let currentSegment: Array<{ index: number; x: number; y: number }> = [];
-
-  for (const coordinate of coordinates) {
-    if (!coordinate) {
-      if (currentSegment.length) {
-        segments.push(currentSegment);
-        currentSegment = [];
-      }
-      continue;
-    }
-
-    currentSegment.push(coordinate);
-  }
-
-  if (currentSegment.length) {
-    segments.push(currentSegment);
-  }
-
-  const path = segments.map(segment => buildSmoothPath(segment)).join(" ");
-  const area = segments
-    .filter(segment => segment.length > 1)
-    .map((segment) => {
-      const segmentPath = buildSmoothPath(segment);
-      const first = segment[0];
-      const last = segment[segment.length - 1];
-
-      return `${segmentPath} L ${last.x},${baseY} L ${first.x},${baseY} Z`;
-    })
-    .join(" ");
-
-  return {
-    area,
-    coordinates: coordinates.filter(
-      (coordinate): coordinate is { index: number; x: number; y: number } =>
-        coordinate !== null,
-    ),
-    path,
-  };
-}
-function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
-  if (!coordinates.length) {
-    return "";
-  }
-
-  if (coordinates.length === 1) {
-    const [{ x, y }] = coordinates;
-
-    return `M ${x},${y}`;
-  }
-
-  return coordinates.reduce((path, point, index) => {
-    if (index === 0) {
-      return `M ${point.x},${point.y}`;
-    }
-
-    const previous = coordinates[index - 1];
-    const controlX = (previous.x + point.x) / 2;
-
-    return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
-  }, "");
 }

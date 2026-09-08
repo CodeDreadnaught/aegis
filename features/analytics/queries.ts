@@ -1,13 +1,23 @@
 import "server-only";
 
-import { EquipmentCategory, PredictionJobStatus, RiskLevel } from "@/generated/prisma/enums";
+import {
+  EquipmentCategory,
+  PredictionJobStatus,
+  RiskLevel,
+} from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   getEquipmentPredictionTrend,
   getFleetPredictionTrend,
-  type FleetTrendMetric,
-  type PredictionTrendRange,
+  getFleetTrendFreshnessDays,
 } from "@/features/analytics/prediction-trend";
+import type {
+  AnalyticsTrendMode as AnalyticsTrendModeValue,
+  EquipmentPredictionTrendResult,
+  FleetPredictionTrendResult,
+  FleetTrendMetric,
+  PredictionTrendRange,
+} from "@/features/analytics/trend-types";
 import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 
@@ -17,7 +27,7 @@ export const storedPredictionPageSize = 12;
 export type AnalyticsJobFilter = "NOT_QUEUED" | PredictionJobStatus;
 export type AnalyticsLatestFilter = "NOT_RUN" | RiskLevel;
 export type AnalyticsTrendRange = PredictionTrendRange;
-export type AnalyticsTrendMode = "FLEET" | "EQUIPMENT";
+export type AnalyticsTrendMode = AnalyticsTrendModeValue;
 export type AnalyticsFleetMetric = FleetTrendMetric;
 
 export type AnalyticsFilters = {
@@ -31,6 +41,131 @@ export type AnalyticsFilters = {
   trendMode?: AnalyticsTrendMode;
   trendRange?: AnalyticsTrendRange;
 };
+
+export type AnalyticsTrendFilters = Pick<
+  AnalyticsFilters,
+  "category" | "equipmentId" | "fleetMetric" | "trendMode" | "trendRange"
+>;
+
+type AnalyticsTrendEquipmentOption = {
+  assetTag: string;
+  category: EquipmentCategory;
+  id: string;
+  name: string;
+};
+
+type AnalyticsTrendWorkspace = {
+  category: EquipmentCategory | null;
+  equipmentOptions: AnalyticsTrendEquipmentOption[];
+  equipmentTrend: EquipmentPredictionTrendResult;
+  fleetMetric: AnalyticsFleetMetric;
+  fleetTrend: FleetPredictionTrendResult;
+  selectedEquipmentId: string | null;
+  trendMode: AnalyticsTrendMode;
+  trendRange: AnalyticsTrendRange;
+};
+
+type NormalizedAnalyticsTrendFilters = {
+  category?: EquipmentCategory;
+  equipmentId?: string;
+  fleetMetric: AnalyticsFleetMetric;
+  trendMode: AnalyticsTrendMode;
+  trendRange: AnalyticsTrendRange;
+};
+
+const analyticsTrendWorkspaceCache = new Map<
+  string,
+  { expiresAt: number; value: Promise<AnalyticsTrendWorkspace> }
+>();
+
+let equipmentOptionsCache:
+  | { expiresAt: number; value: Promise<AnalyticsTrendEquipmentOption[]> }
+  | null = null;
+
+export async function getAnalyticsTrendWorkspace(
+  filters: AnalyticsTrendFilters = {},
+) {
+  const normalized = normalizeAnalyticsTrendFilters(filters);
+  const cacheKey = buildAnalyticsTrendCacheKey(normalized);
+  const now = Date.now();
+  const cached = analyticsTrendWorkspaceCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const value = getAnalyticsTrendWorkspaceFresh(normalized).catch((error) => {
+    analyticsTrendWorkspaceCache.delete(cacheKey);
+    throw error;
+  });
+
+  const cacheTtl = getAnalyticsTrendCacheTtl(normalized.trendRange);
+  const cacheEntry = {
+    expiresAt: now + cacheTtl,
+    value,
+  };
+
+  value.then(
+    () => {
+      cacheEntry.expiresAt = Date.now() + cacheTtl;
+    },
+    () => undefined,
+  );
+  analyticsTrendWorkspaceCache.set(cacheKey, cacheEntry);
+
+  return value;
+}
+
+async function getAnalyticsTrendWorkspaceFresh(
+  filters: NormalizedAnalyticsTrendFilters,
+): Promise<AnalyticsTrendWorkspace> {
+  const equipmentOptionsPromise = getAnalyticsTrendEquipmentOptions();
+
+  if (filters.trendMode === "FLEET") {
+    const [equipmentOptions, fleetTrend] = await Promise.all([
+      equipmentOptionsPromise,
+      getFleetPredictionTrend({
+        category: filters.category,
+        range: filters.trendRange,
+      }),
+    ]);
+
+    return {
+      category: filters.category ?? null,
+      equipmentOptions,
+      equipmentTrend: emptyEquipmentPredictionTrendResult(),
+      fleetMetric: filters.fleetMetric,
+      fleetTrend,
+      selectedEquipmentId: getSelectedTrendEquipmentId(
+        equipmentOptions,
+        filters.equipmentId,
+      ),
+      trendMode: filters.trendMode,
+      trendRange: filters.trendRange,
+    };
+  }
+
+  const equipmentOptions = await equipmentOptionsPromise;
+  const selectedEquipmentId = getSelectedTrendEquipmentId(
+    equipmentOptions,
+    filters.equipmentId,
+  );
+  const equipmentTrend = await getEquipmentPredictionTrend({
+    equipmentId: selectedEquipmentId,
+    range: filters.trendRange,
+  });
+
+  return {
+    category: null,
+    equipmentOptions,
+    equipmentTrend,
+    fleetMetric: filters.fleetMetric,
+    fleetTrend: emptyFleetPredictionTrendResult(),
+    selectedEquipmentId,
+    trendMode: filters.trendMode,
+    trendRange: filters.trendRange,
+  };
+}
 
 export async function getAnalyticsWorkspace(
   page = 1,
@@ -52,29 +187,13 @@ export async function getAnalyticsWorkspace(
     predictionPageCount,
   );
   const predictionSkip = (currentPredictionPage - 1) * storedPredictionPageSize;
-  const trendRange = filters.trendRange ?? "all";
-  const trendMode = filters.trendMode ?? "FLEET";
-  const equipmentOptions = await prisma.equipment.findMany({
-    orderBy: [{ category: "asc" }, { assetTag: "asc" }],
-    select: {
-      assetTag: true,
-      category: true,
-      id: true,
-      name: true,
-    },
-  });
-  const selectedEquipmentId =
-    equipmentOptions.find((equipment) => equipment.id === filters.equipmentId)?.id ??
-    equipmentOptions[0]?.id ??
-    null;
   const [
     readings,
     readingCount,
     totalReadingCount,
     predictions,
     summaryPredictions,
-    fleetTrend,
-    equipmentTrend,
+    trendWorkspace,
     predictedReadingCount,
     jobStatusGroups,
     riskGroups,
@@ -159,16 +278,7 @@ export async function getAnalyticsWorkspace(
         healthScore: true,
       },
     }),
-    getFleetPredictionTrend({
-      category: filters.category,
-      range: trendRange,
-    }),
-    trendMode === "EQUIPMENT"
-      ? getEquipmentPredictionTrend({
-          equipmentId: selectedEquipmentId,
-          range: trendRange,
-        })
-      : Promise.resolve({ points: [], summary: null }),
+    getAnalyticsTrendWorkspace(filters),
     prisma.operationalReading.count({
       where: {
         predictions: {
@@ -176,7 +286,6 @@ export async function getAnalyticsWorkspace(
         },
       },
     }),
-
     prisma.predictionJob.groupBy({
       by: ["status"],
       _count: {
@@ -216,23 +325,107 @@ export async function getAnalyticsWorkspace(
 
   return {
     currentPredictionPage,
-    equipmentOptions,
-    equipmentTrend,
-    fleetMetric: filters.fleetMetric ?? "HIGH_RISK_PERCENT",
-    fleetTrend,
+    ...trendWorkspace,
     jobStatusCounts,
     predictedReadingCount,
     predictionCount: totalPredictionCount,
+    predictionPageCount,
     predictions,
     readingCount,
     readings,
     riskTotals,
-    selectedEquipmentId,
     storedPredictionCount,
     summaryPredictions,
     totalReadingCount,
-    trendMode,
-    trendRange,
+  };
+}
+
+function getAnalyticsTrendEquipmentOptions() {
+  const now = Date.now();
+
+  if (equipmentOptionsCache && equipmentOptionsCache.expiresAt > now) {
+    return equipmentOptionsCache.value;
+  }
+
+  const value = prisma.equipment.findMany({
+    orderBy: [{ category: "asc" }, { assetTag: "asc" }],
+    select: {
+      assetTag: true,
+      category: true,
+      id: true,
+      name: true,
+    },
+  }).catch((error) => {
+    equipmentOptionsCache = null;
+    throw error;
+  });
+
+  const cacheEntry = {
+    expiresAt: now + 10_000,
+    value,
+  };
+
+  value.then(
+    () => {
+      cacheEntry.expiresAt = Date.now() + 10_000;
+    },
+    () => undefined,
+  );
+  equipmentOptionsCache = cacheEntry;
+
+  return value;
+}
+
+function normalizeAnalyticsTrendFilters(
+  filters: AnalyticsTrendFilters,
+): NormalizedAnalyticsTrendFilters {
+  return {
+    category: filters.category,
+    equipmentId: filters.equipmentId,
+    fleetMetric: filters.fleetMetric ?? "HIGH_RISK_PERCENT",
+    trendMode: filters.trendMode ?? "FLEET",
+    trendRange: filters.trendRange ?? "all",
+  };
+}
+
+function buildAnalyticsTrendCacheKey(filters: NormalizedAnalyticsTrendFilters) {
+  return [
+    filters.trendMode,
+    filters.trendRange,
+    filters.category ?? "all-categories",
+    filters.equipmentId ?? "default-equipment",
+    filters.fleetMetric,
+  ].join(":");
+}
+
+function getAnalyticsTrendCacheTtl(range: AnalyticsTrendRange) {
+  return range === "all" ? 10_000 : 5_000;
+}
+
+function getSelectedTrendEquipmentId(
+  equipmentOptions: AnalyticsTrendEquipmentOption[],
+  requestedEquipmentId: string | undefined,
+) {
+  return (
+    equipmentOptions.find(equipment => equipment.id === requestedEquipmentId)?.id ??
+    equipmentOptions[0]?.id ??
+    null
+  );
+}
+
+function emptyEquipmentPredictionTrendResult(): EquipmentPredictionTrendResult {
+  return { points: [], summary: null };
+}
+
+function emptyFleetPredictionTrendResult(): FleetPredictionTrendResult {
+  return {
+    bucketMs: 0,
+    freshnessDays: getFleetTrendFreshnessDays(),
+    granularity: "day",
+    points: [],
+    rangeEnd: null,
+    rangeStart: null,
+    totalEligibleEquipmentCount: 0,
   };
 }
 

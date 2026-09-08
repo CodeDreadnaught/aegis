@@ -103,7 +103,6 @@ export default async function OverviewPage({
     predictedAssetCoverage,
     predictionRunCount,
   });
-  const latestTrendPoint = getLatestTrendPoint(predictionTrend);
   const healthTrend = predictionTrend.map(point => point.fleetHealth);
   const highRiskTrend = predictionTrend.map(point => point.highRiskPercent);
   const healthPoints = buildLinePoints(healthTrend);
@@ -511,7 +510,7 @@ export default async function OverviewPage({
               <div>
                 <CardTitle>Prediction Trend</CardTitle>
                 <p className="text-sm text-zinc-500">
-                  Average fleet health and high-risk equipment
+                  Average fleet health and high-risk share
                 </p>
               </div>
             </CardHeader>
@@ -521,7 +520,6 @@ export default async function OverviewPage({
                 hasData={predictionTrend.some(point => point.fleetHealth !== null)}
                 healthPoints={healthPoints}
                 highRiskPoints={highRiskPoints}
-                latestPoint={latestTrendPoint}
                 trendPoints={predictionTrend}
               />
             </CardContent>
@@ -1017,14 +1015,12 @@ function LineTrend({
   hasData,
   healthPoints,
   highRiskPoints,
-  latestPoint,
   trendPoints,
 }: {
   freshnessDays: number;
   hasData: boolean;
   healthPoints: ReturnType<typeof buildLinePoints>;
   highRiskPoints: ReturnType<typeof buildLinePoints>;
-  latestPoint: FleetPredictionTrendPoint | null;
   trendPoints: FleetPredictionTrendPoint[];
 }) {
   return (
@@ -1049,14 +1045,6 @@ function LineTrend({
               High-risk %
             </span>
           </div>
-          {latestPoint && (
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-zinc-500">
-              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">
-                Coverage {latestPoint.representedEquipmentCount} / {latestPoint.totalEligibleEquipmentCount}
-              </span>
-
-            </div>
-          )}
         </div>
       </div>
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
@@ -1080,7 +1068,7 @@ function LineTrend({
           ))}
         </div>
         <svg
-          aria-label="Average fleet health and high-risk equipment percentage trend"
+          aria-label="Average fleet health and high-risk share percentage trend"
           className="h-48 w-full overflow-hidden sm:h-64"
           preserveAspectRatio="none"
           role="img"
@@ -1329,9 +1317,6 @@ function buildLinePoints(values: Array<number | null>) {
     ),
     path,
   };
-}
-function getLatestTrendPoint(points: FleetPredictionTrendPoint[]) {
-  return points.findLast(point => point.fleetHealth !== null) ?? null;
 }
 
 function formatFleetTrendTooltip(

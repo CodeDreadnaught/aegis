@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { EquipmentCategory, RiskLevel } from "@/generated/prisma/enums";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/client";
 
 export type PredictionTrendRange = 1 | 7 | 30 | "all";
@@ -66,6 +66,13 @@ export type FleetPredictionState = {
   riskLevel: RiskLevel;
 };
 
+type FleetPredictionStateRow = {
+  equipmentId: string;
+  failureProbability: Prisma.Decimal | number | string;
+  healthScore: Prisma.Decimal | number | string;
+  recordedAt: Date;
+  riskLevel: RiskLevel;
+};
 export type PredictionTrendBucket = {
   bucketEnd: Date;
   bucketStart: Date;
@@ -375,52 +382,22 @@ export async function getFleetPredictionTrend({
 
   const buckets = buildPredictionTrendBuckets(spec);
   const historyStart = new Date(spec.rangeStart.getTime() - freshnessMs);
-  const rawStates = await prisma.prediction.findMany({
-    orderBy: [{ equipmentId: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-    select: {
-      equipmentId: true,
-      failureProbability: true,
-      healthScore: true,
-      id: true,
-      operationalReading: {
-        select: {
-          recordedAt: true,
-        },
-      },
-      riskLevel: true,
-    },
-    where: {
-      equipmentId: {
-        in: eligibleEquipment.map((equipment) => equipment.id),
-      },
-      operationalReading: {
-        is: {
-          predictionEligible: true,
-          recordedAt: {
-            gte: historyStart,
-            lte: spec.rangeEnd,
-          },
-        },
-      },
-    },
+  const rawStates = await getFleetPredictionStateRows({
+    equipmentIds: eligibleEquipment.map((equipment) => equipment.id),
+    historyStart,
+    rangeEnd: spec.rangeEnd,
   });
   const states = rawStates
-    .map((state) => {
-      const recordedAt = state.operationalReading?.recordedAt;
-
-      if (!recordedAt) {
-        return null;
-      }
-
-      return {
-        equipmentId: state.equipmentId,
-        failureProbabilityPercent: Number(state.failureProbability) * 100,
-        healthScore: Number(state.healthScore),
-        recordedAt,
-        riskLevel: state.riskLevel,
-      } satisfies FleetPredictionState;
-    })
-    .filter((state): state is FleetPredictionState => state !== null)
+    .map(
+      (state) =>
+        ({
+          equipmentId: state.equipmentId,
+          failureProbabilityPercent: Number(state.failureProbability) * 100,
+          healthScore: Number(state.healthScore),
+          recordedAt: state.recordedAt,
+          riskLevel: state.riskLevel,
+        }) satisfies FleetPredictionState,
+    )
     .sort(compareFleetStates);
 
   return {
@@ -540,6 +517,35 @@ export async function getEquipmentPredictionTrend({
   };
 }
 
+function getFleetPredictionStateRows({
+  equipmentIds,
+  historyStart,
+  rangeEnd,
+}: {
+  equipmentIds: string[];
+  historyStart: Date;
+  rangeEnd: Date;
+}) {
+  if (!equipmentIds.length) {
+    return Promise.resolve([] as FleetPredictionStateRow[]);
+  }
+
+  return prisma.$queryRaw<FleetPredictionStateRow[]>(Prisma.sql`
+    SELECT
+      p."equipmentId",
+      p."failureProbability",
+      p."healthScore",
+      p."riskLevel",
+      r."recordedAt"
+    FROM "Prediction" p
+    INNER JOIN "OperationalReading" r ON r.id = p."operationalReadingId"
+    WHERE p."equipmentId" IN (${Prisma.join(equipmentIds)})
+      AND r."predictionEligible" = true
+      AND r."recordedAt" >= ${historyStart}
+      AND r."recordedAt" <= ${rangeEnd}
+    ORDER BY p."equipmentId" ASC, r."recordedAt" ASC, p."createdAt" ASC, p.id ASC
+  `);
+}
 function compareFleetStates(left: FleetPredictionState, right: FleetPredictionState) {
   return (
     left.equipmentId.localeCompare(right.equipmentId) ||

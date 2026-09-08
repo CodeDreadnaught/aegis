@@ -167,14 +167,14 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
           className="h-fit w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
-          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-1">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 pb-0">
             <div className="min-w-0">
               <CardTitle>Response Mix</CardTitle>
               <p className="text-sm text-zinc-500">Alert state</p>
             </div>
             <Bell aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
-          <CardContent className="grid gap-2 p-4 pt-0">
+          <CardContent className="grid gap-1 px-4 pb-3 pt-0">
             <DistributionRow
               accent="bg-[#ef4444]"
               label="Active"
@@ -291,12 +291,12 @@ function DistributionRow({
   const width = percentage(value, total);
 
   return (
-    <div className="grid gap-1.5">
-      <div className="flex items-center justify-between gap-3 text-sm">
+    <div className="grid gap-0.5">
+      <div className="flex items-center justify-between gap-3 text-[13px]">
         <span className="font-semibold text-zinc-950">{label}</span>
         <span className="font-medium text-zinc-500">{value}</span>
       </div>
-      <span className="h-2 overflow-hidden rounded-full bg-zinc-100">
+      <span className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
         <span
           className={`block h-full rounded-full ${accent}`}
           style={{ width: `${width}%` }}
