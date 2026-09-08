@@ -1,7 +1,13 @@
 import "server-only";
 
-import { PredictionJobStatus, RiskLevel } from "@/generated/prisma/enums";
+import { EquipmentCategory, PredictionJobStatus, RiskLevel } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
+import {
+  getEquipmentPredictionTrend,
+  getFleetPredictionTrend,
+  type FleetTrendMetric,
+  type PredictionTrendRange,
+} from "@/features/analytics/prediction-trend";
 import { tablePageSize } from "@/lib/pagination";
 import { prisma } from "@/server/db/client";
 
@@ -10,12 +16,20 @@ export const storedPredictionPageSize = 12;
 
 export type AnalyticsJobFilter = "NOT_QUEUED" | PredictionJobStatus;
 export type AnalyticsLatestFilter = "NOT_RUN" | RiskLevel;
+export type AnalyticsTrendRange = PredictionTrendRange;
+export type AnalyticsTrendMode = "FLEET" | "EQUIPMENT";
+export type AnalyticsFleetMetric = FleetTrendMetric;
 
 export type AnalyticsFilters = {
+  category?: EquipmentCategory;
+  equipmentId?: string;
+  fleetMetric?: AnalyticsFleetMetric;
   job?: AnalyticsJobFilter;
   latest?: AnalyticsLatestFilter;
   predictionPage?: number;
   query?: string;
+  trendMode?: AnalyticsTrendMode;
+  trendRange?: AnalyticsTrendRange;
 };
 
 export async function getAnalyticsWorkspace(
@@ -38,13 +52,29 @@ export async function getAnalyticsWorkspace(
     predictionPageCount,
   );
   const predictionSkip = (currentPredictionPage - 1) * storedPredictionPageSize;
+  const trendRange = filters.trendRange ?? "all";
+  const trendMode = filters.trendMode ?? "FLEET";
+  const equipmentOptions = await prisma.equipment.findMany({
+    orderBy: [{ category: "asc" }, { assetTag: "asc" }],
+    select: {
+      assetTag: true,
+      category: true,
+      id: true,
+      name: true,
+    },
+  });
+  const selectedEquipmentId =
+    equipmentOptions.find((equipment) => equipment.id === filters.equipmentId)?.id ??
+    equipmentOptions[0]?.id ??
+    null;
   const [
     readings,
     readingCount,
     totalReadingCount,
     predictions,
     summaryPredictions,
-    trendPredictions,
+    fleetTrend,
+    equipmentTrend,
     predictedReadingCount,
     jobStatusGroups,
     riskGroups,
@@ -129,14 +159,16 @@ export async function getAnalyticsWorkspace(
         healthScore: true,
       },
     }),
-    prisma.prediction.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 12,
-      select: {
-        failureProbability: true,
-        healthScore: true,
-      },
+    getFleetPredictionTrend({
+      category: filters.category,
+      range: trendRange,
     }),
+    trendMode === "EQUIPMENT"
+      ? getEquipmentPredictionTrend({
+          equipmentId: selectedEquipmentId,
+          range: trendRange,
+        })
+      : Promise.resolve({ points: [], summary: null }),
     prisma.operationalReading.count({
       where: {
         predictions: {
@@ -184,6 +216,10 @@ export async function getAnalyticsWorkspace(
 
   return {
     currentPredictionPage,
+    equipmentOptions,
+    equipmentTrend,
+    fleetMetric: filters.fleetMetric ?? "HIGH_RISK_PERCENT",
+    fleetTrend,
     jobStatusCounts,
     predictedReadingCount,
     predictionCount: totalPredictionCount,
@@ -191,10 +227,12 @@ export async function getAnalyticsWorkspace(
     readingCount,
     readings,
     riskTotals,
+    selectedEquipmentId,
     storedPredictionCount,
     summaryPredictions,
     totalReadingCount,
-    trendPredictions,
+    trendMode,
+    trendRange,
   };
 }
 
