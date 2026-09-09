@@ -162,9 +162,9 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
         </Card>
       </section>
 
-      <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-2">
+      <section className="grid w-full max-w-full min-w-0 items-stretch gap-4 xl:grid-cols-2">
         <Card
-          className="h-fit w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          className="flex h-full w-full max-w-full min-w-0 flex-col rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="flex flex-row items-start justify-between gap-3 pb-0">
@@ -174,7 +174,7 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
             </div>
             <Bell aria-hidden="true" className="size-5 text-zinc-500" />
           </CardHeader>
-          <CardContent className="grid gap-1 px-4 pb-3 pt-0">
+          <CardContent className="flex flex-1 flex-col justify-between gap-2 px-4 pb-4 pt-1">
             <DistributionRow
               accent="bg-[#ef4444]"
               label="Active"
@@ -197,15 +197,15 @@ export default async function AlertsPage({ searchParams }: AlertsPageProps) {
         </Card>
 
         <Card
-          className="h-fit w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
+          className="flex h-full w-full max-w-full min-w-0 flex-col rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
           data-motion="panel"
         >
           <CardHeader className="pb-0">
             <CardTitle>Alert Source</CardTitle>
             <p className="text-sm text-zinc-500">Prediction-led events</p>
           </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2.5">
+          <CardContent className="flex flex-1 px-4 pb-4 pt-0">
+            <div className="flex w-full flex-col justify-between rounded-xl border border-red-100 bg-red-50 px-3 py-2.5">
               <p className="text-3xl font-semibold leading-none text-zinc-950">
                 {totals.predictionRisk}
               </p>
