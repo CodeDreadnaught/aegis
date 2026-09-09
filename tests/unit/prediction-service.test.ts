@@ -109,21 +109,12 @@ describe("prediction job processing", () => {
     expect(mockPrisma.auditLog.create).toHaveBeenCalledTimes(1);
   });
 
-  it("queries only bounded and eligible jobs for recovery", async () => {
-    mockPrisma.operationalReading.findMany.mockResolvedValue([]);
+  it("queries only bounded and eligible existing jobs for explicit processing", async () => {
     mockPrisma.predictionJob.findMany.mockResolvedValue([]);
 
     await processPendingPredictionJobs({ limit: 9 });
 
-    expect(mockPrisma.operationalReading.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 9,
-        where: expect.objectContaining({
-          predictionEligible: true,
-        }),
-      })
-    );
-
+    expect(mockPrisma.operationalReading.findMany).not.toHaveBeenCalled();
     expect(mockPrisma.predictionJob.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 9,

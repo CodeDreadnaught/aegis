@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createPredictionsForReadings, mockPrisma, redirect, requirePermission } =
+const { dispatchPredictionJobsForReadings, mockPrisma, redirect, requirePermission } =
   vi.hoisted(() => ({
-    createPredictionsForReadings: vi.fn(),
+    dispatchPredictionJobsForReadings: vi.fn(),
     redirect: vi.fn(),
     requirePermission: vi.fn(),
     mockPrisma: {
@@ -51,8 +51,8 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/server/auth/session", () => ({ requirePermission }));
 vi.mock("@/server/db/client", () => ({ prisma: mockPrisma }));
-vi.mock("@/features/analytics/prediction-service", () => ({
-  createPredictionsForReadings,
+vi.mock("@/features/analytics/prediction-dispatcher", () => ({
+  dispatchPredictionJobsForReadings,
 }));
 
 import {
@@ -106,13 +106,12 @@ describe("equipment actions", () => {
       },
     ]);
     mockPrisma.auditLog.createMany.mockResolvedValue({ count: 1 });
-    createPredictionsForReadings.mockResolvedValue([
-      {
-        created: true,
-        equipmentId: "equipment_1",
-        predictionId: "prediction_1",
-      },
-    ]);
+    dispatchPredictionJobsForReadings.mockResolvedValue({
+      dispatched: 1,
+      failed: 0,
+      skipped: 0,
+      total: 1,
+    });
     requirePermission.mockResolvedValue({
       id: "admin_1",
       role: "ADMINISTRATOR",
@@ -192,7 +191,7 @@ describe("equipment actions", () => {
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it("creates initial readings and immediate predictions during registration", async () => {
+  it("creates initial readings and queues prediction jobs during registration", async () => {
     const formData = new FormData();
     formData.set("registrationMode", "manual");
     formData.append("equipmentRowId", "row_1");
@@ -250,10 +249,7 @@ describe("equipment actions", () => {
         sourceType: true,
       },
     });
-    expect(createPredictionsForReadings).toHaveBeenCalledWith({
-      actorId: "admin_1",
-      readingIds: ["reading_1"],
-    });
+    expect(dispatchPredictionJobsForReadings).toHaveBeenCalledWith(["reading_1"]);
     expect(redirect).toHaveBeenCalledWith(
       "/equipment/view-more/equipment_1?toast=equipment-created"
     );

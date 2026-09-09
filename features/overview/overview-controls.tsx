@@ -11,6 +11,7 @@ const ranges = [
   { label: "Live", value: "1" },
   { label: "7D", value: "7" },
   { label: "30D", value: "30" },
+  { label: "All", value: "all" },
 ] as const;
 
 type OverviewControlsProps = {
