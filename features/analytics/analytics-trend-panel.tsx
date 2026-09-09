@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useMemo, useRef, useState } from "react";
-import { SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { Info, SpinnerGap } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -539,36 +539,26 @@ function TrendSummaryPill({
 
 function LatestRecommendationCard({ message }: { message: string }) {
   const recommendation = parseRecommendationMessage(message);
-  const riskLabel = recommendation.risk
-    ? formatLabel(recommendation.risk)
-    : null;
 
   return (
-    <div className="col-span-2 rounded-xl border border-red-100 bg-red-50/40 p-3 shadow-sm xl:col-span-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-red-100 bg-white text-red-500">
-            <WarningCircle aria-hidden="true" size={18} weight="bold" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-red-600">
-              Latest recommendation
-            </p>
-            <p className="mt-1 text-sm font-medium leading-6 text-zinc-950">
-              {recommendation.action ?? recommendation.raw}
-            </p>
-          </div>
+    <div className="col-span-2 rounded-xl border border-[#cfecee] bg-[#f5fbfb] p-3 shadow-sm xl:col-span-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#cfecee] bg-white text-[#2f9da7]">
+          <Info aria-hidden="true" size={18} weight="bold" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#087985]">
+            Latest recommendation
+          </p>
+          <p className="mt-1 text-sm font-medium leading-6 text-zinc-950">
+            {recommendation.action ?? recommendation.raw}
+          </p>
         </div>
-        {riskLabel && (
-          <span className="inline-flex w-fit shrink-0 items-center rounded-full border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600">
-            Risk: {riskLabel}
-          </span>
-        )}
       </div>
       {(recommendation.reason || recommendation.parameters.length > 0) && (
         <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           {recommendation.reason && (
-            <div className="rounded-lg border border-red-100 bg-white/80 px-3 py-2">
+            <div className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-2">
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
                 Reason
               </p>
@@ -578,14 +568,14 @@ function LatestRecommendationCard({ message }: { message: string }) {
             </div>
           )}
           {recommendation.parameters.length > 0 && (
-            <div className="rounded-lg border border-red-100 bg-white/80 px-3 py-2">
+            <div className="rounded-lg border border-zinc-200 bg-white/85 px-3 py-2">
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
                 Review
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {recommendation.parameters.map(parameter => (
                   <span
-                    className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-zinc-700"
+                    className="inline-flex items-center rounded-full border border-[#cfecee] bg-[#f5fbfb] px-2 py-0.5 text-xs font-medium text-[#087985]"
                     key={parameter}
                   >
                     {parameter}
@@ -599,7 +589,6 @@ function LatestRecommendationCard({ message }: { message: string }) {
     </div>
   );
 }
-
 type ParsedRecommendationMessage = {
   action: string | null;
   parameters: string[];
@@ -644,6 +633,7 @@ function parseRecommendationMessage(message: string): ParsedRecommendationMessag
 function cleanRecommendationValue(value: string) {
   return value.replace(/\s+/g, " ").trim().replace(/\.$/, "");
 }
+
 function PredictionTrend({
   freshnessDays,
   healthPoints,
