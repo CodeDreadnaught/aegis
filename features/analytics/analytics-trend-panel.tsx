@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useMemo, useRef, useState } from "react";
-import { SpinnerGap } from "@phosphor-icons/react";
+import { SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -469,12 +469,9 @@ function TrendSummary({
           }
         />
         {equipmentSummary?.currentRecommendation && (
-          <div className="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 xl:col-span-4">
-            <span className="font-semibold text-zinc-950">
-              Latest recommendation:
-            </span>{" "}
-            {equipmentSummary.currentRecommendation}
-          </div>
+          <LatestRecommendationCard
+            message={equipmentSummary.currentRecommendation}
+          />
         )}
       </div>
     );
@@ -540,6 +537,113 @@ function TrendSummaryPill({
   );
 }
 
+function LatestRecommendationCard({ message }: { message: string }) {
+  const recommendation = parseRecommendationMessage(message);
+  const riskLabel = recommendation.risk
+    ? formatLabel(recommendation.risk)
+    : null;
+
+  return (
+    <div className="col-span-2 rounded-xl border border-red-100 bg-red-50/40 p-3 shadow-sm xl:col-span-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-red-100 bg-white text-red-500">
+            <WarningCircle aria-hidden="true" size={18} weight="bold" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-red-600">
+              Latest recommendation
+            </p>
+            <p className="mt-1 text-sm font-medium leading-6 text-zinc-950">
+              {recommendation.action ?? recommendation.raw}
+            </p>
+          </div>
+        </div>
+        {riskLabel && (
+          <span className="inline-flex w-fit shrink-0 items-center rounded-full border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600">
+            Risk: {riskLabel}
+          </span>
+        )}
+      </div>
+      {(recommendation.reason || recommendation.parameters.length > 0) && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          {recommendation.reason && (
+            <div className="rounded-lg border border-red-100 bg-white/80 px-3 py-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                Reason
+              </p>
+              <p className="mt-1 text-sm leading-5 text-zinc-700">
+                {recommendation.reason}
+              </p>
+            </div>
+          )}
+          {recommendation.parameters.length > 0 && (
+            <div className="rounded-lg border border-red-100 bg-white/80 px-3 py-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                Review
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {recommendation.parameters.map(parameter => (
+                  <span
+                    className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-zinc-700"
+                    key={parameter}
+                  >
+                    {parameter}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type ParsedRecommendationMessage = {
+  action: string | null;
+  parameters: string[];
+  raw: string;
+  reason: string | null;
+  risk: string | null;
+};
+
+function parseRecommendationMessage(message: string): ParsedRecommendationMessage {
+  const raw = message.replace(/\s+/g, " ").trim();
+  const match = raw.match(
+    /^Risk:\s*(.*?)\.\s*Reason:\s*(.*?)\s*Relevant parameters requiring review:\s*(.*?)\.\s*Recommendation:\s*(.*)$/i,
+  );
+
+  if (!match) {
+    return {
+      action: null,
+      parameters: [],
+      raw,
+      reason: null,
+      risk: null,
+    };
+  }
+
+  const parameters = cleanRecommendationValue(match[3])
+    .split(/,\s*|\s+and\s+/i)
+    .map(parameter => parameter.trim())
+    .filter(
+      parameter =>
+        parameter.length > 0 && parameter.toLowerCase() !== "none",
+    );
+
+  return {
+    action: cleanRecommendationValue(match[4]),
+    parameters,
+    raw,
+    reason: cleanRecommendationValue(match[2]),
+    risk: cleanRecommendationValue(match[1]),
+  };
+}
+
+function cleanRecommendationValue(value: string) {
+  return value.replace(/\s+/g, " ").trim().replace(/\.$/, "");
+}
 function PredictionTrend({
   freshnessDays,
   healthPoints,
