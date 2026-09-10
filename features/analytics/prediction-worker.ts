@@ -1,5 +1,7 @@
 import "server-only";
 
+import { dispatchPredictionJobRecords } from "@/features/analytics/prediction-dispatcher";
+import { maxPredictionJobAttempts } from "@/features/analytics/prediction-queue";
 import { prisma } from "@/server/db/client";
 
 const defaultPredictionJobLimit = 10;
@@ -15,71 +17,84 @@ export function normalisePredictionJobLimit(value: unknown) {
 }
 
 export async function processPredictionRecoverySweep({
-  actorId,
   limit = defaultPredictionJobLimit,
 }: {
   actorId?: string;
   limit?: number;
 } = {}) {
   const boundedLimit = normalisePredictionJobLimit(limit);
-  const hasWork = await hasEligiblePredictionWork();
-
-  if (!hasWork) {
-    return {
-      completed: 0,
-      failed: 0,
-      skipped: 0,
-      total: 0,
-    };
-  }
-
-  const { processPendingPredictionJobs } = await import(
-    "@/features/analytics/prediction-service"
-  );
-
-  return processPendingPredictionJobs({
-    actorId,
-    limit: boundedLimit,
-  });
-}
-
-async function hasEligiblePredictionWork() {
   const now = new Date();
   const staleProcessingCutoff = new Date(
     now.getTime() - stalePredictionProcessingMinutes * 60 * 1000
   );
-  const [job, readingWithoutJob] = await Promise.all([
-    prisma.predictionJob.findFirst({
-      where: {
-        attempts: { lt: 3 },
-        OR: [
-          {
-            nextRunAt: { lte: now },
-            status: { in: ["PENDING", "FAILED"] },
-          },
-          {
-            status: "PROCESSING",
-            updatedAt: { lte: staleProcessingCutoff },
-          },
-        ],
+
+  const repaired = await prisma.predictionJob.updateMany({
+    where: {
+      status: {
+        not: "COMPLETED",
       },
-      select: {
-        id: true,
-      },
-    }),
-    prisma.operationalReading.findFirst({
-      where: {
-        predictionEligible: true,
-        predictionJob: null,
+      operationalReading: {
         predictions: {
-          none: {},
+          some: {},
         },
       },
-      select: {
-        id: true,
-      },
-    }),
-  ]);
+    },
+    data: {
+      lastError: null,
+      nextRunAt: now,
+      processedAt: now,
+      status: "COMPLETED",
+    },
+  });
 
-  return Boolean(job || readingWithoutJob);
+  const stale = await prisma.predictionJob.updateMany({
+    where: {
+      attempts: {
+        lt: maxPredictionJobAttempts,
+      },
+      status: "PROCESSING",
+      updatedAt: {
+        lte: staleProcessingCutoff,
+      },
+    },
+    data: {
+      lastError: "Prediction processing was interrupted before completion.",
+      nextRunAt: now,
+      status: "FAILED",
+    },
+  });
+
+  const jobs = await prisma.predictionJob.findMany({
+    where: {
+      attempts: {
+        lt: maxPredictionJobAttempts,
+      },
+      nextRunAt: {
+        lte: now,
+      },
+      status: {
+        in: ["PENDING", "FAILED"],
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    take: boundedLimit,
+    select: {
+      attempts: true,
+      nextRunAt: true,
+      operationalReadingId: true,
+      status: true,
+    },
+  });
+  const dispatch = await dispatchPredictionJobRecords(jobs, {
+    dueOnly: true,
+    now,
+  });
+
+  return {
+    ...dispatch,
+    repaired: repaired.count,
+    stale: stale.count,
+  };
 }

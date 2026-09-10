@@ -17,7 +17,10 @@ export type OverviewLiveSnapshot = {
   predictionSampleCount: number;
   predictedAssetCoverage: number;
   riskPath: string;
+  sensorFlowPath: string;
   sensorFlowPercent: number;
+  sensorPressurePath: string;
   sensorPressurePercent: number;
+  sensorSampleCount: number;
   syncedAt: string;
 };

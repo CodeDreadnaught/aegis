@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowClockwise,
   Brain,
   ChartLineUp,
   Cpu,
@@ -11,6 +12,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 
 import { ActionToastForm } from "@/components/action-toast-form";
+import { AnalyticsTrendPanel } from "@/features/analytics/analytics-trend-panel";
 import { PremiumMotion } from "@/components/motion/premium-motion";
 import { PaginationControls } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +27,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { runPredictionAction } from "@/features/analytics/actions";
+import {
+  retryPendingPredictionsAction,
+  runPredictionAction,
+} from "@/features/analytics/actions";
 import {
   getAnalyticsWorkspace,
   storedPredictionPageSize,
@@ -34,6 +39,13 @@ import {
 } from "@/features/analytics/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
 import { formatSourceType } from "@/features/operational-readings/validation";
+import {
+  parseAnalyticsFleetMetric,
+  parseAnalyticsTrendCategory,
+  parseAnalyticsTrendMode,
+  parseAnalyticsTrendRange,
+  serializeAnalyticsTrendState,
+} from "@/features/analytics/trend-types";
 import { PredictionJobStatus, RiskLevel } from "@/generated/prisma/enums";
 import { parsePageParam } from "@/lib/pagination";
 import { requirePermission } from "@/server/auth/session";
@@ -76,8 +88,8 @@ const riskRows = [
 ] as const;
 
 const jobFilters: Array<{ label: string; value: "" | AnalyticsJobFilter }> = [
-  { label: "All jobs", value: "" },
-  { label: "Not queued", value: "NOT_QUEUED" },
+  { label: "All statuses", value: "" },
+  { label: "Not requested", value: "NOT_QUEUED" },
   { label: "Pending", value: PredictionJobStatus.PENDING },
   { label: "Processing", value: PredictionJobStatus.PROCESSING },
   { label: "Completed", value: PredictionJobStatus.COMPLETED },
@@ -95,13 +107,19 @@ const latestFilters: Array<{
   { label: "High", value: RiskLevel.HIGH },
 ];
 
+
 type AnalyticsPageProps = {
   searchParams?: Promise<{
+    category?: string | string[];
+    equipment?: string | string[];
     job?: string | string[];
     latest?: string | string[];
+    metric?: string | string[];
+    mode?: string | string[];
     page?: string | string[];
     predictionPage?: string | string[];
     q?: string | string[];
+    trend?: string | string[];
   }>;
 };
 
@@ -115,24 +133,40 @@ export default async function AnalyticsPage({
   const query = getParam(params?.q)?.trim() ?? "";
   const job = parseJobFilter(params?.job);
   const latest = parseLatestFilter(params?.latest);
+  const trendRange = parseAnalyticsTrendRange(getParam(params?.trend));
+  const trendMode = parseAnalyticsTrendMode(getParam(params?.mode));
+  const trendCategory = parseAnalyticsTrendCategory(getParam(params?.category));
+  const fleetMetric = parseAnalyticsFleetMetric(getParam(params?.metric));
+  const requestedEquipmentId = getParam(params?.equipment);
   const {
     currentPredictionPage,
-    pendingJobCount,
+    equipmentOptions,
+    equipmentTrend,
+    fleetMetric: activeFleetMetric,
+    fleetTrend,
+    jobStatusCounts,
     predictedReadingCount,
     predictionCount,
     predictions,
     readingCount,
     readings,
     riskTotals,
+    selectedEquipmentId,
     storedPredictionCount,
     summaryPredictions,
     totalReadingCount,
-    trendPredictions,
+    trendMode: activeTrendMode,
+    trendRange: activeTrendRange,
   } = await getAnalyticsWorkspace(page, {
+    category: trendCategory,
+    equipmentId: requestedEquipmentId,
+    fleetMetric,
     job,
     latest,
     predictionPage,
     query,
+    trendMode,
+    trendRange,
   });
 
   const readiness = percentage(predictedReadingCount, totalReadingCount);
@@ -147,29 +181,29 @@ export default async function AnalyticsPage({
   const modelConfidence = summaryPredictions.length
     ? Math.max(0, Math.round(100 - averageFailure))
     : 0;
-  const healthTrend = trendPredictions
-    .slice()
-    .reverse()
-    .map(prediction => Number(prediction.healthScore));
-  const failureTrend = trendPredictions
-    .slice()
-    .reverse()
-    .map(prediction => Number(prediction.failureProbability) * 100);
-  const healthPoints = buildLinePoints(healthTrend);
-  const failurePoints = buildLinePoints(failureTrend);
+  const initialTrendState = serializeAnalyticsTrendState({
+    category: trendCategory ?? null,
+    equipmentOptions,
+    equipmentTrend,
+    fleetMetric: activeFleetMetric,
+    fleetTrend,
+    selectedEquipmentId,
+    trendMode: activeTrendMode,
+    trendRange: activeTrendRange,
+  });
   const kpis = [
     {
       accent: "bg-[#2f9da7]",
-      detail: pendingJobCount ? "Jobs pending" : "Queue clear",
+      detail: "Prediction inputs",
       icon: Brain,
-      label: "Inference",
-      progress: totalReadingCount ? 100 : 0,
+      label: "Readings",
+      progress: readiness,
       tone: "bg-[#e8fbf6] text-[#146c74]",
       value: totalReadingCount,
     },
     {
       accent: "bg-[#5ec3cf]",
-      detail: "Queue coverage",
+      detail: `${predictedReadingCount.toLocaleString()} predicted`,
       icon: Cpu,
       label: "Readiness",
       progress: readiness,
@@ -189,7 +223,7 @@ export default async function AnalyticsPage({
     },
     {
       accent: "bg-[#ef4444]",
-      detail: riskTotals.high ? "High risk" : "Risk average",
+      detail: "Average failure risk",
       icon: ShieldWarning,
       label: "Risk",
       progress: summaryPredictions.length ? averageFailure : 0,
@@ -234,19 +268,56 @@ export default async function AnalyticsPage({
             className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
             data-motion="panel"
           >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+            <CardHeader className="grid gap-4 pb-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
               <div className="min-w-0">
-                <CardTitle>Inference Queue</CardTitle>
+                <CardTitle>Prediction Processing</CardTitle>
                 <p className="text-sm text-zinc-500">
-                  Operational readings ready for model execution
+                  Operational readings awaiting prediction processing
                 </p>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:max-w-3xl">
+                  <StatusCountPill
+                    label="Pending"
+                    accent="bg-[#f2bd3f]"
+                    value={jobStatusCounts.pending}
+                  />
+                  <StatusCountPill
+                    label="Processing"
+                    accent="bg-[#5ec3cf]"
+                    value={jobStatusCounts.processing}
+                  />
+                  <StatusCountPill
+                    label="Completed"
+                    accent="bg-[#009966]"
+                    value={jobStatusCounts.completed}
+                  />
+                  <StatusCountPill
+                    label="Failed"
+                    accent="bg-[#ef4444]"
+                    value={jobStatusCounts.failed}
+                  />
+                </div>
               </div>
-              <Badge
-                className="shrink-0 rounded-full border-zinc-200 bg-zinc-50 text-zinc-700"
-                variant="outline"
-              >
-                {readingCount} readings
-              </Badge>
+              <div className="grid min-w-0 gap-2 sm:flex sm:items-center lg:justify-end">
+                <ActionToastForm
+                  action={retryPendingPredictionsAction}
+                  className="w-full sm:w-auto"
+                  errorTitle="Predictions could not be retried"
+                  successDescription="Eligible pending predictions were sent for processing."
+                  successTitle="Prediction retry started"
+                >
+                  <button
+                    className={buttonVariants({
+                      size: "sm",
+                      className:
+                        "h-10 w-full rounded-full border-[#009966] !bg-[#009966] px-4 !text-white hover:!bg-[#007a55] hover:!text-white sm:w-auto",
+                    })}
+                    type="submit"
+                  >
+                    <ArrowClockwise />
+                    Retry Pending Predictions
+                  </button>
+                </ActionToastForm>
+              </div>
             </CardHeader>
             <form className="grid gap-3 border-y border-zinc-100 px-4 py-3 md:grid-cols-[minmax(14rem,1fr)_minmax(10rem,0.55fr)_minmax(10rem,0.55fr)_auto] md:items-end">
               <div className="relative min-w-0">
@@ -255,7 +326,7 @@ export default async function AnalyticsPage({
                   className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 />
                 <Input
-                  aria-label="Search inference queue"
+                  aria-label="Search prediction readings"
                   className="h-10 rounded-full border-zinc-200 bg-zinc-50 pl-9"
                   defaultValue={query}
                   key={query}
@@ -264,7 +335,7 @@ export default async function AnalyticsPage({
                 />
               </div>
               <select
-                aria-label="Filter by job status"
+                aria-label="Filter by prediction status"
                 className="h-10 min-w-0 rounded-full border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 shadow-inner shadow-zinc-950/5 outline-none transition-colors focus:border-zinc-950"
                 defaultValue={job ?? ""}
                 name="job"
@@ -323,8 +394,8 @@ export default async function AnalyticsPage({
                           <TableHead>Source</TableHead>
                           <TableHead>Signal</TableHead>
                           <TableHead>Latest</TableHead>
-                          <TableHead>Job</TableHead>
-                          <TableHead>Run</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Prediction</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -406,9 +477,9 @@ export default async function AnalyticsPage({
                                     null,
                                     reading.id,
                                   )}
-                                  errorTitle="Prediction was not queued"
-                                  successDescription="The reading was added to the inference queue."
-                                  successTitle="Prediction queued"
+                                  errorTitle="Prediction was not requested"
+                                  successDescription="The reading was sent for prediction processing."
+                                  successTitle="Prediction requested"
                                 >
                                   <button
                                     className={buttonVariants({
@@ -420,7 +491,7 @@ export default async function AnalyticsPage({
                                     type="submit"
                                   >
                                     <Brain />
-                                    Queue
+                                    Request
                                   </button>
                                 </ActionToastForm>
                               </TableCell>
@@ -451,28 +522,16 @@ export default async function AnalyticsPage({
           </Card>
         </section>
 
-        <section className="w-full max-w-full min-w-0">
-          <Card
-            className="w-full max-w-full min-w-0 rounded-[1.35rem] border-zinc-200 bg-white shadow-sm"
-            data-motion="panel"
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div className="min-w-0">
-                <CardTitle>Failure Trend</CardTitle>
-                <p className="text-sm text-zinc-500">
-                  Health score and failure risk
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <PredictionTrend
-                failurePoints={failurePoints}
-                hasData={trendPredictions.length > 0}
-                healthPoints={healthPoints}
-              />
-            </CardContent>
-          </Card>
-        </section>
+        <AnalyticsTrendPanel
+          initialState={initialTrendState}
+          key={[
+            activeTrendMode,
+            activeTrendRange,
+            trendCategory ?? "all",
+            selectedEquipmentId ?? "none",
+            activeFleetMetric,
+          ].join(":")}
+        />
 
         <section className="grid w-full max-w-full min-w-0 items-start gap-4 xl:grid-cols-2">
           <Card
@@ -632,6 +691,27 @@ export default async function AnalyticsPage({
 
 type MetricIcon = typeof Brain;
 
+function StatusCountPill({
+  accent,
+  label,
+  value,
+}: {
+  accent: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <span className="grid min-h-14 min-w-0 gap-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 shadow-sm sm:min-h-11 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2 sm:px-3">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-zinc-500 sm:gap-2">
+        <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${accent}`} />
+        <span className="whitespace-nowrap">{label}</span>
+      </span>
+      <span className="justify-self-end text-sm font-semibold tabular-nums text-zinc-950 sm:shrink-0">
+        {value.toLocaleString()}
+      </span>
+    </span>
+  );
+}
 function MetricCard({
   accent,
   detail,
@@ -773,7 +853,7 @@ function PredictionJobBadge({
   status?: string;
 }) {
   if (!status) {
-    return <span className="text-sm text-zinc-400">Not queued</span>;
+    return <span className="text-sm text-zinc-400">Not requested</span>;
   }
 
   const className =
@@ -790,144 +870,6 @@ function PredictionJobBadge({
       {formatEquipmentCategory(status)}
       {status === "FAILED" && attempts ? ` (${attempts})` : ""}
     </Badge>
-  );
-}
-
-function PredictionTrend({
-  failurePoints,
-  hasData,
-  healthPoints,
-}: {
-  failurePoints: ReturnType<typeof buildLinePoints>;
-  hasData: boolean;
-  healthPoints: ReturnType<typeof buildLinePoints>;
-}) {
-  return (
-    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-3 shadow-inner sm:p-4">
-      <div className="mb-4 grid gap-3 sm:flex sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">
-            Predictive trend - percent over time
-          </p>
-          <p className="text-xl font-semibold tracking-normal text-zinc-950 sm:text-2xl">
-            Health trajectory
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 sm:gap-4">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[#a8ff9f]" />
-            Health
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-zinc-950" />
-            Failure risk
-          </span>
-        </div>
-      </div>
-      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
-        <div className="relative h-48 text-left text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
-          {[100, 75, 50, 25, 0].map((label, index) => (
-            <span
-              className="absolute left-0 leading-none"
-              key={label}
-              style={{
-                top: index * 25 + "%",
-                transform:
-                  index === 0
-                    ? "translateY(0)"
-                    : index === 4
-                      ? "translateY(-100%)"
-                      : "translateY(-50%)",
-              }}
-            >
-              {label}%
-            </span>
-          ))}
-        </div>
-        <svg
-          aria-label="Prediction health and failure risk trend"
-          className="h-48 w-full overflow-hidden sm:h-64"
-          preserveAspectRatio="none"
-          role="img"
-          viewBox="0 0 640 240"
-        >
-          <defs>
-            <linearGradient
-              id="analytics-health-fill"
-              x1="0"
-              x2="0"
-              y1="0"
-              y2="1"
-            >
-              <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
-              <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[0, 1, 2, 3, 4].map(line => (
-            <line
-              key={line}
-              stroke="#e4e4e7"
-              strokeDasharray="5 8"
-              strokeWidth="1"
-              x1="18"
-              x2="622"
-              y1={line * 54 + 12}
-              y2={line * 54 + 12}
-            />
-          ))}
-          <path
-            d={healthPoints.area}
-            fill="url(#analytics-health-fill)"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <path
-            className="aegis-line-trace"
-            d={healthPoints.path}
-            fill="none"
-            stroke="#a8ff9f"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="4"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <path
-            className="aegis-line-trace aegis-line-trace-delayed"
-            d={failurePoints.path}
-            fill="none"
-            stroke="#18181b"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <g>
-            {hasData &&
-              healthPoints.coordinates.map(point => (
-                <circle
-                  className="hidden sm:block aegis-chart-dot"
-                  cx={point.x}
-                  cy={point.y}
-                  fill="#a8ff9f"
-                  key={point.x + "-" + point.y}
-                  r="4"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                />
-              ))}
-          </g>
-        </svg>
-      </div>
-      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-[11px] font-medium text-zinc-500 sm:pl-[4.25rem] sm:text-xs">
-        <span>
-          <span className="sm:hidden">Oldest</span>
-          <span className="hidden sm:inline">Oldest prediction</span>
-        </span>
-        <span>
-          <span className="sm:hidden">Latest</span>
-          <span className="hidden sm:inline">Latest prediction</span>
-        </span>
-      </div>
-    </div>
   );
 }
 
@@ -1012,67 +954,4 @@ function percentage(value: number, total: number) {
   }
 
   return Math.round((value / total) * 100);
-}
-
-function buildLinePoints(values: number[]) {
-  const left = 18;
-  const width = 604;
-  const height = 216;
-  const top = 12;
-  const fallback = values.length ? values : [0];
-  const max = Math.max(100, ...fallback);
-  const coordinates = fallback.map((value, index) => {
-    const x =
-      fallback.length === 1
-        ? left + width / 2
-        : left + (index / (fallback.length - 1)) * width;
-    const y = top + height - (Math.min(value, max) / max) * height;
-
-    return {
-      x: Math.round(x),
-      y: Math.round(y),
-    };
-  });
-  const path = buildSmoothPath(coordinates);
-  const area = coordinates.length
-    ? path +
-      " L " +
-      (left + width) +
-      "," +
-      (height + top) +
-      " L " +
-      left +
-      "," +
-      (height + top) +
-      " Z"
-    : "";
-
-  return {
-    area,
-    coordinates,
-    path,
-  };
-}
-
-function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
-  if (!coordinates.length) {
-    return "";
-  }
-
-  if (coordinates.length === 1) {
-    const [{ x, y }] = coordinates;
-
-    return `M ${x},${y}`;
-  }
-
-  return coordinates.reduce((path, point, index) => {
-    if (index === 0) {
-      return `M ${point.x},${point.y}`;
-    }
-
-    const previous = coordinates[index - 1];
-    const controlX = (previous.x + point.x) / 2;
-
-    return `${path} C ${controlX},${previous.y} ${controlX},${point.y} ${point.x},${point.y}`;
-  }, "");
 }

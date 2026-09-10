@@ -132,7 +132,7 @@ function applySnapshot(snapshot: OverviewLiveSnapshot) {
   setText("ai-score-delta", `${snapshot.predictionCoverage}% coverage`);
   setText("sensor-flow", `${snapshot.averageFlow.toLocaleString()} bpd`);
   setText("sensor-pressure", `${snapshot.averagePressure} bar`);
-setText("intervention-alerts", snapshot.activeAlertCount);
+  setText("intervention-alerts", snapshot.activeAlertCount);
   setText("intervention-maintenance", snapshot.maintenanceDueCount);
   setText("telemetry-samples", `${snapshot.predictionSampleCount} samples`);
 
@@ -142,9 +142,27 @@ setText("intervention-alerts", snapshot.activeAlertCount);
   setWidth("ai-score-bar", snapshot.aiScore);
   setSensorBar("sensor-bar-flow", snapshot.sensorFlowPercent);
   setSensorBar("sensor-bar-pressure", snapshot.sensorPressurePercent);
-setPath("telemetry-health-area", snapshot.healthArea, snapshot.predictionSampleCount);
-  setPath("telemetry-health-path", snapshot.healthPath, snapshot.predictionSampleCount);
-  setPath("telemetry-risk-path", snapshot.riskPath, snapshot.predictionSampleCount);
+  setPath(
+    "telemetry-health-area",
+    snapshot.healthArea,
+    snapshot.predictionSampleCount
+  );
+  setPath(
+    "telemetry-health-path",
+    snapshot.healthPath,
+    snapshot.predictionSampleCount
+  );
+  setPath(
+    "telemetry-risk-path",
+    snapshot.riskPath,
+    snapshot.predictionSampleCount
+  );
+  setPath("sensor-flow-path", snapshot.sensorFlowPath, snapshot.sensorSampleCount);
+  setPath(
+    "sensor-pressure-path",
+    snapshot.sensorPressurePath,
+    snapshot.sensorSampleCount
+  );
 }
 
 function setText(name: string, value: number | string) {

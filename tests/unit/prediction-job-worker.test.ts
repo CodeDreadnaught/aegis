@@ -1,21 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockPrisma, processPendingPredictionJobs } = vi.hoisted(() => ({
+const { dispatchPredictionJobRecords, mockPrisma } = vi.hoisted(() => ({
+  dispatchPredictionJobRecords: vi.fn(),
   mockPrisma: {
-    operationalReading: {
-      findFirst: vi.fn(),
-    },
     predictionJob: {
-      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      updateMany: vi.fn(),
     },
   },
-  processPendingPredictionJobs: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/db/client", () => ({ prisma: mockPrisma }));
-vi.mock("@/features/analytics/prediction-service", () => ({
-  processPendingPredictionJobs,
+vi.mock("@/features/analytics/prediction-dispatcher", () => ({
+  dispatchPredictionJobRecords,
 }));
 
 import {
@@ -26,47 +24,86 @@ import {
 describe("prediction recovery worker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPrisma.predictionJob.findFirst.mockResolvedValue(null);
-    mockPrisma.operationalReading.findFirst.mockResolvedValue(null);
-    processPendingPredictionJobs.mockResolvedValue({
-      completed: 1,
-      failed: 0,
-      skipped: 0,
-      total: 1,
-    });
-  });
-
-  it("returns cheaply without importing recovery processing when there is no work", async () => {
-    await expect(processPredictionRecoverySweep()).resolves.toEqual({
-      completed: 0,
+    mockPrisma.predictionJob.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.predictionJob.findMany.mockResolvedValue([]);
+    dispatchPredictionJobRecords.mockResolvedValue({
+      dispatched: 0,
       failed: 0,
       skipped: 0,
       total: 0,
     });
+  });
 
-    expect(mockPrisma.operationalReading.findFirst).toHaveBeenCalledWith(
+  it("performs bounded dispatch-only reconciliation without scanning historical readings", async () => {
+    await expect(processPredictionRecoverySweep()).resolves.toEqual({
+      dispatched: 0,
+      failed: 0,
+      repaired: 0,
+      skipped: 0,
+      stale: 0,
+      total: 0,
+    });
+
+    expect(mockPrisma.predictionJob.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        take: 10,
         where: expect.objectContaining({
-          predictionEligible: true,
+          attempts: { lt: 3 },
+          status: { in: ["PENDING", "FAILED"] },
         }),
       })
     );
-    expect(processPendingPredictionJobs).not.toHaveBeenCalled();
+    expect(dispatchPredictionJobRecords).toHaveBeenCalledWith([], {
+      dueOnly: true,
+      now: expect.any(Date),
+    });
   });
 
-  it("loads the processing service only when eligible work exists", async () => {
-    mockPrisma.predictionJob.findFirst.mockResolvedValue({ id: "job_1" });
-
-    await expect(processPredictionRecoverySweep({ limit: 4 })).resolves.toEqual({
-      completed: 1,
+  it("repairs completed prediction jobs and releases stale processing jobs before dispatch", async () => {
+    mockPrisma.predictionJob.updateMany
+      .mockResolvedValueOnce({ count: 2 })
+      .mockResolvedValueOnce({ count: 1 });
+    const jobs = [
+      {
+        attempts: 1,
+        nextRunAt: new Date("2026-08-27T00:00:00.000Z"),
+        operationalReadingId: "reading_1",
+        status: "FAILED",
+      },
+    ];
+    mockPrisma.predictionJob.findMany.mockResolvedValue(jobs);
+    dispatchPredictionJobRecords.mockResolvedValue({
+      dispatched: 1,
       failed: 0,
       skipped: 0,
       total: 1,
     });
 
-    expect(processPendingPredictionJobs).toHaveBeenCalledWith({
-      actorId: undefined,
-      limit: 4,
+    await expect(processPredictionRecoverySweep({ limit: 4 })).resolves.toEqual({
+      dispatched: 1,
+      failed: 0,
+      repaired: 2,
+      skipped: 0,
+      stale: 1,
+      total: 1,
+    });
+
+    expect(mockPrisma.predictionJob.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "COMPLETED" }),
+      })
+    );
+    expect(mockPrisma.predictionJob.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "FAILED" }),
+        where: expect.objectContaining({ status: "PROCESSING" }),
+      })
+    );
+    expect(dispatchPredictionJobRecords).toHaveBeenCalledWith(jobs, {
+      dueOnly: true,
+      now: expect.any(Date),
     });
   });
 

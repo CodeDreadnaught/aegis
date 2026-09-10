@@ -29,6 +29,7 @@ import {
   type OverviewRange,
 } from "@/features/overview/queries";
 import { formatEquipmentCategory } from "@/features/equipment/validation";
+import type { FleetPredictionTrendPoint } from "@/features/analytics/prediction-trend";
 import {
   calculateAiReadinessScore,
   percentage,
@@ -74,6 +75,7 @@ export default async function OverviewPage({
     latestPredictions,
     latestReadings,
     predictionTrend,
+    predictionTrendMeta,
     recentActivity,
     stats,
     assetMixEquipment,
@@ -101,16 +103,10 @@ export default async function OverviewPage({
     predictedAssetCoverage,
     predictionRunCount,
   });
-  const healthTrend = predictionTrend
-    .slice()
-    .reverse()
-    .map(prediction => Number(prediction.healthScore));
-  const failureTrend = predictionTrend
-    .slice()
-    .reverse()
-    .map(prediction => Number(prediction.failureProbability) * 100);
+  const healthTrend = predictionTrend.map(point => point.fleetHealth);
+  const highRiskTrend = predictionTrend.map(point => point.highRiskPercent);
   const healthPoints = buildLinePoints(healthTrend);
-  const failurePoints = buildLinePoints(failureTrend);
+  const highRiskPoints = buildLinePoints(highRiskTrend);
   const signalBars = latestReadings
     .slice()
     .reverse()
@@ -139,10 +135,10 @@ export default async function OverviewPage({
         name: asset.name,
         risk: latestPrediction?.riskLevel ?? "PENDING",
         updated: latestPrediction
-          ? compactDateFormatter.format(latestPrediction.createdAt)
+          ? compactDateFormatter.format(latestPrediction.recordedAt)
           : "Pending",
         updatedAt: latestPrediction
-          ? latestPrediction.createdAt.toISOString().slice(0, 10)
+          ? latestPrediction.recordedAt.toISOString().slice(0, 10)
           : null,
       };
     })
@@ -514,15 +510,17 @@ export default async function OverviewPage({
               <div>
                 <CardTitle>Prediction Trend</CardTitle>
                 <p className="text-sm text-zinc-500">
-                  Health score and failure risk
+                  Average fleet health and high-risk share
                 </p>
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <LineTrend
-                failurePoints={failurePoints}
+                freshnessDays={predictionTrendMeta.freshnessDays}
+                hasData={predictionTrend.some(point => point.fleetHealth !== null)}
                 healthPoints={healthPoints}
-                hasData={predictionTrend.length > 0}
+                highRiskPoints={highRiskPoints}
+                trendPoints={predictionTrend}
               />
             </CardContent>
           </Card>
@@ -734,141 +732,6 @@ function FocusItem({
   return <div className={className}>{content}</div>;
 }
 
-function LineTrend({
-  failurePoints,
-  hasData,
-  healthPoints,
-}: {
-  failurePoints: ReturnType<typeof buildLinePoints>;
-  hasData: boolean;
-  healthPoints: ReturnType<typeof buildLinePoints>;
-}) {
-  return (
-    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-3 shadow-inner sm:p-4">
-      <div className="mb-4 grid gap-3 sm:flex sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">
-            Predictive trend - percent over time
-          </p>
-          <p className="text-xl font-semibold tracking-normal text-zinc-950 sm:text-2xl">
-            Health trajectory
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 sm:gap-4">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[#a8ff9f]" />
-            Health
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-zinc-950" />
-            Failure risk
-          </span>
-        </div>
-      </div>
-      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
-        <div className="relative h-48 text-left text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
-          {[100, 75, 50, 25, 0].map((label, index) => (
-            <span
-              className="absolute left-0 leading-none"
-              key={label}
-              style={{
-                top: index * 25 + "%",
-                transform:
-                  index === 0
-                    ? "translateY(0)"
-                    : index === 4
-                      ? "translateY(-100%)"
-                      : "translateY(-50%)",
-              }}
-            >
-              {label}%
-            </span>
-          ))}
-        </div>
-        <svg
-          aria-label="Prediction health and failure risk trend"
-          className="h-48 w-full overflow-hidden sm:h-64"
-          preserveAspectRatio="none"
-          role="img"
-          viewBox="0 0 640 240"
-        >
-          <defs>
-            <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
-              <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[0, 1, 2, 3, 4].map(line => (
-            <line
-              key={line}
-              stroke="#e4e4e7"
-              strokeDasharray="5 8"
-              strokeWidth="1"
-              x1="18"
-              x2="622"
-              y1={line * 54 + 12}
-              y2={line * 54 + 12}
-            />
-          ))}
-          <path
-            d={healthPoints.area}
-            data-overview-live="telemetry-health-area"
-            fill="url(#health-fill)"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <path
-            className="aegis-line-trace"
-            data-overview-live="telemetry-health-path"
-            d={healthPoints.path}
-            fill="none"
-            stroke="#a8ff9f"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="4"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <path
-            className="aegis-line-trace aegis-line-trace-delayed"
-            data-overview-live="telemetry-risk-path"
-            d={failurePoints.path}
-            fill="none"
-            stroke="#18181b"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            style={{ opacity: hasData ? 1 : 0 }}
-          />
-          <g data-overview-live="telemetry-dots">
-            {hasData &&
-              healthPoints.coordinates.map(point => (
-                <circle
-                  className="hidden sm:block aegis-chart-dot"
-                  cx={point.x}
-                  cy={point.y}
-                  fill="#a8ff9f"
-                  key={point.x + "-" + point.y}
-                  r="4"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                />
-              ))}
-          </g>
-        </svg>
-      </div>
-      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-[11px] font-medium text-zinc-500 sm:pl-[4.25rem] sm:text-xs">
-        <span>
-          <span className="sm:hidden">Oldest</span>
-          <span className="hidden sm:inline">Oldest prediction</span>
-        </span>
-        <span>
-          <span className="sm:hidden">Latest</span>
-          <span className="hidden sm:inline">Latest prediction</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function SignalTrendCards({
   signals,
 }: {
@@ -918,6 +781,7 @@ function SignalTrendCards({
               />
               <path
                 d={points.path}
+                data-overview-live={`${signal.liveKey}-path`}
                 fill="none"
                 stroke={signal.color}
                 strokeLinecap="round"
@@ -934,6 +798,7 @@ function SignalTrendCards({
     </div>
   );
 }
+
 function AssetMixRings({
   rows,
   total,
@@ -1145,6 +1010,154 @@ function PlanRow({
     </div>
   );
 }
+function LineTrend({
+  freshnessDays,
+  hasData,
+  healthPoints,
+  highRiskPoints,
+  trendPoints,
+}: {
+  freshnessDays: number;
+  hasData: boolean;
+  healthPoints: ReturnType<typeof buildLinePoints>;
+  highRiskPoints: ReturnType<typeof buildLinePoints>;
+  trendPoints: FleetPredictionTrendPoint[];
+}) {
+  return (
+    <div className="rounded-[1.1rem] border border-zinc-200 bg-white p-3 shadow-inner sm:p-4">
+      <div className="mb-4 grid gap-3 lg:flex lg:items-start lg:justify-between">
+        <div>
+          <p className="text-[11px] font-medium text-zinc-500 sm:text-xs">
+            Fleet state snapshots - percent over time
+          </p>
+          <p className="text-xl font-semibold tracking-normal text-zinc-950 sm:text-2xl">
+            Average fleet health
+          </p>
+        </div>
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+          <div className="flex items-center gap-3 text-xs font-medium text-zinc-500 sm:gap-4">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#a8ff9f]" />
+              Fleet health
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#ef4444]" />
+              High-risk %
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
+        <div className="relative h-48 text-left text-[11px] font-medium text-zinc-500 sm:h-64 sm:text-xs">
+          {[100, 75, 50, 25, 0].map((label, index) => (
+            <span
+              className="absolute left-0 leading-none"
+              key={label}
+              style={{
+                top: index * 25 + "%",
+                transform:
+                  index === 0
+                    ? "translateY(0)"
+                    : index === 4
+                      ? "translateY(-100%)"
+                      : "translateY(-50%)",
+              }}
+            >
+              {label}%
+            </span>
+          ))}
+        </div>
+        <svg
+          aria-label="Average fleet health and high-risk share percentage trend"
+          className="h-48 w-full overflow-hidden sm:h-64"
+          preserveAspectRatio="none"
+          role="img"
+          viewBox="0 0 640 240"
+        >
+          <defs>
+            <linearGradient id="health-fill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#a8ff9f" stopOpacity="0.34" />
+              <stop offset="100%" stopColor="#a8ff9f" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0, 1, 2, 3, 4].map(line => (
+            <line
+              key={line}
+              stroke="#e4e4e7"
+              strokeDasharray="5 8"
+              strokeWidth="1"
+              x1="18"
+              x2="622"
+              y1={line * 54 + 12}
+              y2={line * 54 + 12}
+            />
+          ))}
+          <path
+            d={healthPoints.area}
+            data-overview-live="telemetry-health-area"
+            fill="url(#health-fill)"
+            style={{ opacity: hasData ? 1 : 0 }}
+          />
+          <path
+            className="aegis-line-trace"
+            data-overview-live="telemetry-health-path"
+            d={healthPoints.path}
+            fill="none"
+            stroke="#a8ff9f"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="4"
+            style={{ opacity: hasData ? 1 : 0 }}
+          />
+          <path
+            className="aegis-line-trace aegis-line-trace-delayed"
+            data-overview-live="telemetry-risk-path"
+            d={highRiskPoints.path}
+            fill="none"
+            stroke="#ef4444"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            style={{ opacity: hasData ? 1 : 0 }}
+          />
+          <g data-overview-live="telemetry-dots">
+            {hasData &&
+              healthPoints.coordinates.map(point => {
+                const trendPoint = trendPoints[point.index];
+
+                return (
+                  <circle
+                    className="hidden sm:block aegis-chart-dot"
+                    cx={point.x}
+                    cy={point.y}
+                    fill="#a8ff9f"
+                    key={`${point.index}-${point.x}-${point.y}`}
+                    r="4"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                  >
+                    {trendPoint && (
+                      <title>{formatFleetTrendTooltip(trendPoint, freshnessDays)}</title>
+                    )}
+                  </circle>
+                );
+              })}
+          </g>
+        </svg>
+      </div>
+      <div className="mt-2 flex items-center justify-between pl-[3.5rem] text-[11px] font-medium text-zinc-500 sm:pl-[4.25rem] sm:text-xs">
+        <span>
+          <span className="sm:hidden">Oldest</span>
+          <span className="hidden sm:inline">Oldest state</span>
+        </span>
+        <span>
+          <span className="sm:hidden">Latest</span>
+          <span className="hidden sm:inline">Latest state</span>
+        </span>
+      </div>
+    </div>
+  );
+}
 function EmptyState({ label }: { label: string }) {
   return (
     <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
@@ -1155,6 +1168,10 @@ function EmptyState({ label }: { label: string }) {
 
 function parseRange(value: string | string[] | undefined): OverviewRange {
   const range = Array.isArray(value) ? value[0] : value;
+
+  if (range === "all") {
+    return range;
+  }
 
   if (range === "1" || range === "7" || range === "30") {
     return Number(range) as OverviewRange;
@@ -1236,44 +1253,90 @@ function buildSparklinePoints(values: number[]) {
     path: buildSmoothPath(coordinates),
   };
 }
-function buildLinePoints(values: number[]) {
+function buildLinePoints(values: Array<number | null>) {
   const left = 18;
   const width = 604;
   const height = 216;
   const top = 12;
-  const fallback = values.length ? values : [0];
-  const max = Math.max(100, ...fallback);
-  const coordinates = fallback.map((value, index) => {
-    const x =
-      fallback.length === 1
-        ? left + width / 2
-        : left + (index / (fallback.length - 1)) * width;
-    const y = top + height - (Math.min(value, max) / max) * height;
+  const baseY = height + top;
+  const valueCount = Math.max(values.length, 1);
+  const coordinates = values
+    .map((value, index) => {
+      if (value === null || !Number.isFinite(value)) {
+        return null;
+      }
 
-    return {
-      x: Math.round(x),
-      y: Math.round(y),
-    };
-  });
-  const path = buildSmoothPath(coordinates);
-  const area = coordinates.length
-    ? path +
-      " L " +
-      (left + width) +
-      "," +
-      (height + top) +
-      " L " +
-      left +
-      "," +
-      (height + top) +
-      " Z"
-    : "";
+      const x =
+        valueCount === 1
+          ? left + width / 2
+          : left + (index / (valueCount - 1)) * width;
+      const y = top + height - (Math.min(Math.max(value, 0), 100) / 100) * height;
+
+      return {
+        index,
+        x: Math.round(x),
+        y: Math.round(y),
+      };
+    });
+  const segments: Array<Array<{ index: number; x: number; y: number }>> = [];
+  let currentSegment: Array<{ index: number; x: number; y: number }> = [];
+
+  for (const coordinate of coordinates) {
+    if (!coordinate) {
+      if (currentSegment.length) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+      continue;
+    }
+
+    currentSegment.push(coordinate);
+  }
+
+  if (currentSegment.length) {
+    segments.push(currentSegment);
+  }
+
+  const path = segments.map(segment => buildSmoothPath(segment)).join(" ");
+  const area = segments
+    .filter(segment => segment.length > 1)
+    .map((segment) => {
+      const segmentPath = buildSmoothPath(segment);
+      const first = segment[0];
+      const last = segment[segment.length - 1];
+
+      return `${segmentPath} L ${last.x},${baseY} L ${first.x},${baseY} Z`;
+    })
+    .join(" ");
 
   return {
     area,
-    coordinates,
+    coordinates: coordinates.filter(
+      (coordinate): coordinate is { index: number; x: number; y: number } =>
+        coordinate !== null,
+    ),
     path,
   };
+}
+
+function formatFleetTrendTooltip(
+  point: FleetPredictionTrendPoint,
+  freshnessDays: number,
+) {
+  const health = point.fleetHealth === null ? "No current data" : `${point.fleetHealth}%`;
+  const highRisk = point.highRiskPercent === null ? "No current data" : `${point.highRiskPercent}%`;
+
+  return [
+    `${compactDateFormatter.format(point.bucketStart)} - ${compactDateFormatter.format(point.bucketEnd)}`,
+    `Fleet Health: ${health}`,
+    `High Risk: ${highRisk}`,
+    `High-Risk Equipment: ${point.highRiskCount}`,
+    `Coverage: ${point.representedEquipmentCount} / ${point.totalEligibleEquipmentCount}`,
+    `Fresh in bucket: ${point.freshEquipmentCount}`,
+    `Carried forward: ${point.carriedForwardEquipmentCount}`,
+    `Stale/excluded: ${point.staleExcludedEquipmentCount}`,
+    `Freshness window: ${freshnessDays} days`,
+  ].join("\n");
 }
 function buildSmoothPath(coordinates: Array<{ x: number; y: number }>) {
   if (!coordinates.length) {
