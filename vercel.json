@@ -5,5 +5,17 @@
       "path": "/api/jobs/predictions/run",
       "schedule": "0 2 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/queues/predictions/route.ts": {
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "aegis-predictions",
+          "retryAfterSeconds": 300,
+          "initialDelaySeconds": 0
+        }
+      ]
+    }
+  }
 }

@@ -137,7 +137,7 @@ test.describe("authenticated dashboard responsiveness", () => {
     }
   });
 
-  for (const route of ["/overview", "/operational-data", "/analytics", "/users"] as const) {
+  for (const route of ["/overview", "/operational-data", "/analytics", "/alerts", "/users"] as const) {
     test(`${route} has no document-level horizontal overflow`, async ({
       page,
     }) => {
@@ -149,6 +149,33 @@ test.describe("authenticated dashboard responsiveness", () => {
       expect(hydrationErrors, `hydration errors on ${route}`).toEqual([]);
     });
   }
+  test("alerts table exposes status filters and hides bulk actions until selection", async ({
+    page,
+  }) => {
+    const hydrationErrors = collectHydrationConsoleErrors(page);
+
+    await page.goto("/alerts");
+    await expect(page.locator("body")).toBeVisible();
+    await expect(page.getByRole("link", { name: "All" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Active" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Acknowledged" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Resolved" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Acknowledge selected" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Resolve selected" })).toBeHidden();
+
+    const selectVisible = page.getByRole("button", { name: "Select all visible" });
+    await expect(selectVisible).toBeVisible();
+
+    if (await selectVisible.isDisabled()) {
+      test.skip(true, "No unresolved alerts are visible for bulk response.");
+    }
+
+    await selectVisible.click();
+    await expect(page.getByText(/\d+ selected/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Acknowledge selected" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Resolve selected" })).toBeVisible();
+    expect(hydrationErrors, "hydration errors on alerts toolbar").toEqual([]);
+  });
   test("overview and operational data use tablet-safe controls", async ({
     page,
   }) => {

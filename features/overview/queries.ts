@@ -6,9 +6,15 @@ import type {
   RiskLevel,
 } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
+import {
+  getFleetPredictionTrend,
+  getPredictionTrendRangeWindow,
+  getPredictionTrendSince,
+  type PredictionTrendRange,
+} from "@/features/analytics/prediction-trend";
 import { prisma } from "@/server/db/client";
 
-export type OverviewRange = 1 | 7 | 30;
+export type OverviewRange = PredictionTrendRange;
 
 type LatestPredictionRow = {
   id: string;
@@ -18,6 +24,7 @@ type LatestPredictionRow = {
   riskLevel: RiskLevel;
   modelVersion: string;
   createdAt: Date;
+  operationalRecordedAt: Date;
   equipmentAssetTag: string;
   equipmentName: string;
   equipmentCategory: EquipmentCategory;
@@ -53,12 +60,35 @@ export async function getOverviewWorkspace(range: OverviewRange = 7) {
 }
 
 function getOverviewCacheTtl(range: OverviewRange) {
-  return range === 1 ? 5000 : 30000;
+  return range === 1 ? 5000 : range === "all" ? 60000 : 30000;
 }
 
 async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
-  const since = new Date();
-  since.setDate(since.getDate() - range);
+  const now = new Date();
+  const since = getPredictionTrendSince(range, now);
+  const operationalReadingExtent = await prisma.operationalReading.aggregate({
+    _max: { recordedAt: true },
+    _min: { recordedAt: true },
+  });
+  const readingRange = getPredictionTrendRangeWindow({
+    extent: {
+      maxRecordedAt: operationalReadingExtent._max.recordedAt,
+      minRecordedAt: operationalReadingExtent._min.recordedAt,
+    },
+    now,
+    range,
+  });
+  const readingRecordedWhere: Prisma.OperationalReadingWhereInput = readingRange
+    ? {
+        recordedAt: {
+          gte: readingRange.rangeStart,
+          lte: readingRange.rangeEnd,
+        },
+      }
+    : {};
+  const alertCreatedWhere: Prisma.AlertWhereInput = since
+    ? { createdAt: { gte: since } }
+    : {};
 
   const [
     equipmentCount,
@@ -69,14 +99,13 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
     categoryCounts,
     maintenanceStatusCounts,
     predictionRunCount,
-    predictionAssetGroups,
     predictionTrend,
     latestPredictionRows,
     latestReadings,
     latestMaintenance,
     latestAlerts,
     assetMixEquipment,
-    assetPerformanceEquipment,
+    assetPerformanceBaseEquipment,
   ] = await Promise.all([
     prisma.equipment.count(),
     prisma.equipment.count({ where: { status: "ACTIVE" } }),
@@ -100,23 +129,9 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
       by: ["status"],
       _count: { _all: true },
     }),
-    prisma.prediction.count({ where: { createdAt: { gte: since } } }),
-    prisma.prediction.groupBy({
-      by: ["equipmentId"],
-      where: { createdAt: { gte: since } },
-    }),
-    prisma.prediction.findMany({
-      where: { createdAt: { gte: since } },
-      orderBy: { createdAt: "desc" },
-      take: 12,
-      select: {
-        id: true,
-        riskLevel: true,
-        healthScore: true,
-        failureProbability: true,
-        createdAt: true,
-      },
-    }),
+    prisma.prediction.count(),
+    getFleetPredictionTrend({ range, now }),
+
     prisma.$queryRaw<LatestPredictionRow[]>`
       SELECT DISTINCT ON (p."equipmentId")
         p.id,
@@ -126,17 +141,18 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         p."riskLevel",
         p."modelVersion",
         p."createdAt",
+        r."recordedAt" AS "operationalRecordedAt",
         e."assetTag" AS "equipmentAssetTag",
         e.name AS "equipmentName",
         e.category AS "equipmentCategory",
         e.location AS "equipmentLocation"
       FROM "Prediction" p
       INNER JOIN "Equipment" e ON e.id = p."equipmentId"
-      WHERE p."createdAt" >= ${since}
-      ORDER BY p."equipmentId", p."createdAt" DESC, p.id DESC
+      INNER JOIN "OperationalReading" r ON r.id = p."operationalReadingId"
+      ORDER BY p."equipmentId", r."recordedAt" DESC, p."createdAt" DESC, p.id DESC
     `,
     prisma.operationalReading.findMany({
-      where: { recordedAt: { gte: since } },
+      where: readingRecordedWhere,
       orderBy: { recordedAt: "desc" },
       take: 10,
       select: {
@@ -179,7 +195,7 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
       },
     }),
     prisma.alert.findMany({
-      where: { createdAt: { gte: since } },
+      where: alertCreatedWhere,
       orderBy: { createdAt: "desc" },
       take: 5,
       select: {
@@ -213,17 +229,6 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         name: true,
         category: true,
         location: true,
-        predictions: {
-          where: { createdAt: { gte: since } },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: {
-            createdAt: true,
-            failureProbability: true,
-            healthScore: true,
-            riskLevel: true,
-          },
-        },
       },
     }),
   ]);
@@ -237,6 +242,7 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
       equipmentId: prediction.equipmentId,
       modelVersion: prediction.modelVersion,
       createdAt: prediction.createdAt,
+      recordedAt: prediction.operationalRecordedAt,
       equipment: {
         id: prediction.equipmentId,
         assetTag: prediction.equipmentAssetTag,
@@ -245,8 +251,28 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         location: prediction.equipmentLocation,
       },
     }))
-    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    .sort((left, right) => right.recordedAt.getTime() - left.recordedAt.getTime());
 
+  const latestPredictionByEquipmentId = new Map(
+    latestPredictions.map((prediction) => [
+      prediction.equipmentId,
+      {
+        createdAt: prediction.createdAt,
+        recordedAt: prediction.recordedAt,
+        failureProbability: prediction.failureProbability,
+        healthScore: prediction.healthScore,
+        riskLevel: prediction.riskLevel,
+      },
+    ]),
+  );
+  const assetPerformanceEquipment = assetPerformanceBaseEquipment.map((asset) => {
+    const latestPrediction = latestPredictionByEquipmentId.get(asset.id);
+
+    return {
+      ...asset,
+      predictions: latestPrediction ? [latestPrediction] : [],
+    };
+  });
   const riskCounts = latestPredictions.reduce(
     (summary, prediction) => {
       summary[prediction.riskLevel.toLowerCase() as keyof typeof summary] += 1;
@@ -277,7 +303,7 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
         count: category._count._all,
       })),
       predictionRunCount,
-      predictedAssetCoverage: predictionAssetGroups.length,
+      predictedAssetCoverage: latestPredictionRows.length,
       maintenanceStatusCounts: Object.fromEntries(
         maintenanceStatusCounts.map((status) => [
           status.status,
@@ -288,7 +314,13 @@ async function getOverviewWorkspaceFresh(range: OverviewRange = 7) {
     assetMixEquipment,
     assetPerformanceEquipment,
     latestPredictions,
-    predictionTrend,
+    predictionTrend: predictionTrend.points,
+    predictionTrendMeta: {
+      bucketMs: predictionTrend.bucketMs,
+      freshnessDays: predictionTrend.freshnessDays,
+      granularity: predictionTrend.granularity,
+      totalEligibleEquipmentCount: predictionTrend.totalEligibleEquipmentCount,
+    },
     latestReadings,
     latestMaintenance,
     latestAlerts,

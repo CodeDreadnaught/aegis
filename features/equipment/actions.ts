@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { enqueuePredictionJobs } from "@/features/analytics/prediction-queue";
+import { dispatchPredictionJobsForReadings } from "@/features/analytics/prediction-dispatcher";
 import { equipmentSchema } from "@/features/equipment/validation";
 import {
   buildReadingParameters,
@@ -166,7 +166,7 @@ export async function createEquipmentAction(formData: FormData) {
       })),
     });
 
-    await enqueuePredictionJobs(readings.map((reading) => reading.id));
+    await dispatchPredictionJobsForReadings(readings.map((reading) => reading.id));
   }
 
   revalidatePath("/equipment");

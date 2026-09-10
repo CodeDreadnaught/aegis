@@ -49,6 +49,16 @@ export async function createPredictionForReading({
 }) {
   await enqueuePredictionJobs([readingId]);
 
+  return processPredictionForReading({ actorId, readingId });
+}
+
+export async function processPredictionForReading({
+  actorId,
+  readingId,
+}: {
+  actorId?: string;
+  readingId: string;
+}) {
   const claimed = await claimPredictionJob(readingId);
 
   if (!claimed) {
@@ -166,7 +176,7 @@ export async function createPredictionsForReadings({
 
   for (const readingId of readingIds) {
     try {
-      const prediction = await createPredictionForReading({ actorId, readingId });
+      const prediction = await processPredictionForReading({ actorId, readingId });
 
       if (prediction.created) {
         results.created += 1;
@@ -193,21 +203,20 @@ export async function processPendingPredictionJobs({
   actorId?: string;
   limit?: number;
 } = {}) {
-  await enqueueMissingPredictionJobs(limit);
-
+  const now = new Date();
   const jobs = await prisma.predictionJob.findMany({
     where: {
       attempts: { lt: maxPredictionJobAttempts },
       OR: [
         {
-          nextRunAt: { lte: new Date() },
+          nextRunAt: { lte: now },
           status: { in: ["PENDING", "FAILED"] },
         },
         {
           status: "PROCESSING",
           updatedAt: {
             lte: new Date(
-              Date.now() - stalePredictionProcessingMinutes * 60 * 1000
+              now.getTime() - stalePredictionProcessingMinutes * 60 * 1000
             ),
           },
         },
@@ -230,7 +239,7 @@ export async function processPendingPredictionJobs({
 
   for (const job of jobs) {
     try {
-      const prediction = await createPredictionForReading({
+      const prediction = await processPredictionForReading({
         actorId,
         readingId: job.operationalReadingId,
       });
@@ -252,25 +261,6 @@ export async function processPendingPredictionJobs({
   }
 
   return results;
-}
-
-async function enqueueMissingPredictionJobs(limit: number) {
-  const readings = await prisma.operationalReading.findMany({
-    where: {
-      predictionEligible: true,
-      predictionJob: null,
-      predictions: {
-        none: {},
-      },
-    },
-    orderBy: { recordedAt: "asc" },
-    take: limit,
-    select: {
-      id: true,
-    },
-  });
-
-  await enqueuePredictionJobs(readings.map((reading) => reading.id));
 }
 
 async function claimPredictionJob(readingId: string) {
@@ -361,7 +351,10 @@ async function markPredictionJobCompleted(readingId: string) {
   });
 }
 
-async function markPredictionJobFailed(readingId: string, error: unknown) {
+export async function markPredictionJobFailed(
+  readingId: string,
+  error: unknown
+) {
   const message = error instanceof Error ? error.message : "Unknown prediction error";
   const job = await prisma.predictionJob.findUnique({
     where: { operationalReadingId: readingId },
@@ -370,7 +363,8 @@ async function markPredictionJobFailed(readingId: string, error: unknown) {
     },
   });
   const attempts = job?.attempts ?? 0;
-  const nextRunAt = getNextPredictionRetryAt(attempts);
+  const terminal = attempts >= maxPredictionJobAttempts;
+  const nextRunAt = terminal ? new Date() : getNextPredictionRetryAt(attempts);
 
   await prisma.predictionJob.updateMany({
     where: { operationalReadingId: readingId },
@@ -380,4 +374,12 @@ async function markPredictionJobFailed(readingId: string, error: unknown) {
       status: "FAILED",
     },
   });
+
+  return {
+    attempts,
+    maxAttempts: maxPredictionJobAttempts,
+    message: message.slice(0, 2000),
+    nextRunAt,
+    terminal,
+  };
 }
