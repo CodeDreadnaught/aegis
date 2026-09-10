@@ -42,6 +42,9 @@ export const metadata: Metadata = {
   openGraph: {
     images: "/opengraph-image.png",
   },
+  verification: {
+    google: "hS4vQ7NbMeaP-FFOg9wQF3ouO44MU8xXpmBAPTnqif4",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
